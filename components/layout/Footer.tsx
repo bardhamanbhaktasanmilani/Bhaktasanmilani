@@ -109,10 +109,10 @@ export default function Footer() {
           <motion.div variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0 } }}>
             <h4 className="mb-4 text-lg font-bold">Contact Info</h4>
             <ul className="space-y-3 text-gray-400">
-              <li>123 Spiritual Avenue</li>
-              <li>New Delhi - 110001, India</li>
-              <li className="mt-4">+91 98765 43210</li>
-              <li>info@bhaktasammilan.org</li>
+              <li>R.B Chatterjee Road , Tikorhat, Bardhaman</li>
+              <li> West Bengal - 713102, India</li>
+              <li className="mt-4">+91 84369 22630</li>
+              <li>bardhamanbhaktasanmilani@gmail.com</li>
             </ul>
           </motion.div>
         </motion.div>

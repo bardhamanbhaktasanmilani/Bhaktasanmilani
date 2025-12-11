@@ -192,11 +192,9 @@ export default function ContactSection() {
                       Phone
                     </h4>
                     <p className="text-sm text-gray-600 sm:text-base">
-                      +91 98765 43210
+                     +91 84369 22630
                     </p>
-                    <p className="text-sm text-gray-600 sm:text-base">
-                      +91 98765 43211
-                    </p>
+                  
                   </div>
                 </div>
 
@@ -209,11 +207,9 @@ export default function ContactSection() {
                       Email
                     </h4>
                     <p className="text-sm text-gray-600 sm:text-base">
-                      info@bhaktasammilan.org
+                    bardhamanbhaktasanmilani@gmail.com
                     </p>
-                    <p className="text-sm text-gray-600 sm:text-base">
-                      support@bhaktasammilan.org
-                    </p>
+                 
                   </div>
                 </div>
 
@@ -226,9 +222,9 @@ export default function ContactSection() {
                       Address
                     </h4>
                     <p className="text-sm text-gray-600 sm:text-base">
-                      123 Spiritual Avenue,
+                      R.B Chatterjee Road, Tikorhat
                       <br />
-                      Devotion Plaza, New Delhi - 110001,
+                      Bardhaman, West Bengal 713102,
                       <br />
                       India
                     </p>

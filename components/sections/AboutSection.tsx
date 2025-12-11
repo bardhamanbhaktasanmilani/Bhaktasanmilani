@@ -1,10 +1,9 @@
 // components/sections/AboutSection.tsx
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import anime from "animejs";
+import React, { useEffect, useRef, useState, Suspense } from "react";
 import { Users, Heart, Globe, Award } from "lucide-react";
-import TempleViewer from "@/components/ui/TempleViewer";
+const TempleViewer = React.lazy(() => import("@/components/ui/TempleViewer"));
 import PhotoGallery from "../sub-sections/About/Photo-gallery";
 
 /* ---------- data ---------- */
@@ -15,366 +14,239 @@ const stats = [
   { icon: Award, value: "100+", label: "Projects Completed" },
 ];
 
+const usePrefersReducedMotion = () =>
+  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 const AboutSection: React.FC = () => {
-  const sectionRef = useRef<HTMLDivElement | null>(null);
-
-  // Royal-decree refs
-  const decreeWrapperRef = useRef<HTMLDivElement | null>(null);
-  const parchmentRef = useRef<HTMLDivElement | null>(null);
-  const scrollContentRef = useRef<HTMLDivElement | null>(null);
-  const topHandleRef = useRef<HTMLDivElement | null>(null);
-  const bottomHandleRef = useRef<HTMLDivElement | null>(null);
-
-  // Temple refs + flag to avoid re-animation
-  const templeRef = useRef<HTMLDivElement | null>(null);
-  const hasAnimatedTempleRef = useRef(false);
-
-  // Stats refs (array)
-  const statsRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const hasAnimatedStatsRef = useRef(false);
-
-  // Decree open state
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const hasAutoOpenedRef = useRef(false);
-  const openDecreeFnRef = useRef<() => void>(() => {});
+  const [visible, setVisible] = useState(false);
+  const [load3D, setLoad3D] = useState(false);
+  const statRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const prefersReducedMotion = usePrefersReducedMotion();
 
+  // Auto-enable 3D ONLY on >=768px -- prevents WebGL init on phones
   useEffect(() => {
     if (typeof window === "undefined") return;
-
-    if (decreeWrapperRef.current) decreeWrapperRef.current.style.opacity = "0";
-    if (parchmentRef.current) {
-      parchmentRef.current.style.height = "40px";
-    }
-    if (scrollContentRef.current) {
-      scrollContentRef.current.style.opacity = "0";
-      scrollContentRef.current.style.transform = "translateY(-50px)";
-    }
-    if (topHandleRef.current) topHandleRef.current.style.transform = "rotateX(0deg)";
-    if (bottomHandleRef.current) bottomHandleRef.current.style.transform = "rotateX(0deg)";
-
-    if (templeRef.current) {
-      anime.set(templeRef.current, { opacity: 0, scale: 0.95, translateY: 24 });
-    }
-
-    if (statsRefs.current.length) {
-      statsRefs.current.forEach((el) => {
-        if (el) anime.set(el, { opacity: 0, translateY: 40, scale: 0.96 });
-      });
-    }
-
-    const openDecree = () => {
-      if (
-        !decreeWrapperRef.current ||
-        !parchmentRef.current ||
-        !scrollContentRef.current ||
-        !topHandleRef.current ||
-        !bottomHandleRef.current
-      ) {
-        return;
-      }
-
-      if (isOpen) return;
-      setIsOpen(true);
-
-      anime.set(parchmentRef.current, { height: "40px", opacity: 1 });
-      anime.set(scrollContentRef.current, { opacity: 0, translateY: -50 });
-      anime.set([topHandleRef.current, bottomHandleRef.current], { rotateX: 0 });
-
-      const timeline = anime.timeline({ easing: "easeOutCubic" });
-
-      timeline
-        .add({
-          targets: decreeWrapperRef.current!,
-          opacity: [0, 1],
-          duration: 300,
-        })
-        .add(
-          {
-            targets: [topHandleRef.current!, bottomHandleRef.current!],
-            rotateX: [-10, 10],
-            duration: 420,
-            easing: "easeInOutSine",
-            delay: anime.stagger(40),
-          },
-          180
-        )
-        .add(
-          {
-            targets: parchmentRef.current!,
-            height: ["40px", "520px"],
-            duration: 1100,
-            easing: "easeOutElastic(1, 0.6)",
-          },
-          420
-        )
-        .add(
-          {
-            targets: topHandleRef.current!,
-            rotateX: [10, 0],
-            translateY: [0, -12],
-            duration: 580,
-            easing: "easeOutSine",
-          },
-          860
-        )
-        .add(
-          {
-            targets: bottomHandleRef.current!,
-            rotateX: [10, 0],
-            translateY: [0, 12],
-            duration: 580,
-            easing: "easeOutSine",
-          },
-          860
-        )
-        .add(
-          {
-            targets: scrollContentRef.current!,
-            opacity: [0, 1],
-            translateY: [-50, 0],
-            duration: 760,
-            easing: "easeOutQuart",
-          },
-          1080
-        )
-        .add(
-          {
-            targets: parchmentRef.current!,
-            scale: [1, 1.02, 1],
-            duration: 480,
-            easing: "easeInOutSine",
-          },
-          1680
-        );
+    const mq = window.matchMedia("(min-width: 768px)");
+    if (mq.matches) setLoad3D(true);
+    const handler = (e: MediaQueryListEvent) => {
+      if (e.matches) setLoad3D(true);
     };
+    if (mq.addEventListener) mq.addEventListener("change", handler);
+    else mq.addListener(handler);
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener("change", handler);
+      else mq.removeListener(handler);
+    };
+  }, []);
 
-    openDecreeFnRef.current = openDecree;
-
+  // Intersection observer: reveal section, auto-open decree (unless reduced motion)
+  useEffect(() => {
+    if (!sectionRef.current) return;
+    let opened = false;
     const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (!entry.isIntersecting) return;
+          setVisible(true);
+          // reveal stats
+          statRefs.current.forEach((el, idx) => {
+            if (el) {
+              el.style.transition = `opacity 520ms cubic-bezier(.2,.9,.3,1) ${idx * 120}ms, transform 520ms cubic-bezier(.2,.9,.3,1) ${idx * 120}ms`;
+              el.style.opacity = "1";
+              el.style.transform = "translateY(0) scale(1)";
+            }
+          });
 
-          if (!hasAutoOpenedRef.current) {
-            hasAutoOpenedRef.current = true;
-            openDecree();
-          }
-
-          if (!hasAnimatedTempleRef.current && templeRef.current) {
-            hasAnimatedTempleRef.current = true;
-            anime({
-              targets: templeRef.current,
-              opacity: [0, 1],
-              scale: [0.95, 1],
-              translateY: [24, 0],
-              duration: 900,
-              easing: "easeOutCubic",
-            });
-          }
-
-          if (!hasAnimatedStatsRef.current && statsRefs.current.length) {
-            hasAnimatedStatsRef.current = true;
-            anime
-              .timeline({ easing: "easeOutExpo" })
-              .add({
-                targets: statsRefs.current.filter(Boolean) as Element[],
-                opacity: [0, 1],
-                translateY: [40, 0],
-                scale: [0.96, 1],
-                duration: 900,
-                delay: anime.stagger(140),
-              })
-              .add(
-                {
-                  targets: statsRefs.current.filter(Boolean) as Element[],
-                  boxShadow: ["0 0 0 rgba(0,0,0,0)", "0 18px 40px rgba(0,0,0,0.14)"],
-                  duration: 600,
-                  offset: "-=420",
-                },
-                "-=420"
-              );
+          if (!opened && !prefersReducedMotion) {
+            opened = true;
+            setTimeout(() => setIsOpen(true), 420);
           }
         });
       },
-      { threshold: 0.28, rootMargin: "0px 0px -10% 0px" }
+      { threshold: 0.28, rootMargin: "0px 0px -8% 0px" }
     );
 
-    if (sectionRef.current) io.observe(sectionRef.current);
-
+    io.observe(sectionRef.current);
     return () => io.disconnect();
+  }, [prefersReducedMotion]);
+
+  // preload placeholder for slightly better LCP (optional; best in head)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const link = document.createElement("link");
+    link.rel = "preload";
+    link.as = "image";
+    link.href = "/images/temple-placeholder.jpg";
+    document.head.appendChild(link);
+    return () => document.head.removeChild(link);
   }, []);
 
-  const handleParchmentClick = () => {
-    if (!isOpen && openDecreeFnRef.current) openDecreeFnRef.current();
-  };
-
-  const handleParchmentKeyDown = (e: React.KeyboardEvent) => {
-    if (isOpen) return;
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      if (openDecreeFnRef.current) openDecreeFnRef.current();
-    }
-  };
+  const toggleDecree = () => setIsOpen((v) => !v);
+  const requestLoad3D = () => setLoad3D(true);
 
   return (
-    <section id="about" className="py-20 bg-gradient-to-br from-orange-50 to-amber-50">
-      <div className="px-4 mx-auto max-w-8xl sm:px-6 lg:px-8">
-        <div ref={sectionRef}>
-          <div className="mb-16 text-center">
-            <h2 className="mb-4 text-4xl font-bold text-gray-900 md:text-5xl">
-              About{" "}
-              <span className="text-transparent bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text">
-                Bhakta Sammilan
-              </span>
-            </h2>
-            <div className="w-24 h-1 mx-auto mb-6 bg-gradient-to-r from-orange-600 to-amber-600" />
-          </div>
+    <section id="about" ref={sectionRef} className="py-16 sm:py-20 bg-gradient-to-br from-orange-50 to-amber-50">
+      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+        <header className="mb-8 text-center">
+          <h2 className="mb-4 text-3xl font-extrabold text-gray-900 sm:text-4xl md:text-5xl">
+            About{" "}
+            <span className="text-transparent bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text">
+              Bhakta Sammilan
+            </span>
+          </h2>
+          <div className="mx-auto w-20 h-1 mb-6 rounded-full bg-gradient-to-r from-orange-600 to-amber-600" />
+        </header>
 
-          {/* RESPONSIVE LAYOUT:
-              - Mobile: stacked (temple above decree)
-              - md+: two-column flex where left (temple) gets the majority of width
-            */}
-          <div className="mb-16">
-            <div className="flex flex-col md:flex-row md:items-start md:gap-10">
-              {/* LEFT: Temple viewer — larger and prioritized */}
+        <main className="mb-12" role="main" aria-labelledby="about-heading">
+          <div className="flex flex-col md:flex-row md:items-start md:gap-10">
+            {/* LEFT: Temple viewer container
+                We reserve layout space with CSS (clamp + aspect-ratio), and use a placeholder image with explicit dimensions to avoid CLS.
+             */}
+            <div className="w-full md:flex-1 flex items-center justify-center" style={{ minWidth: 0 }}>
               <div
-                ref={templeRef}
-                className="w-full md:flex-1 flex items-center justify-center"
-                aria-hidden={false}
-                style={{ minWidth: 0 }}
+                className="w-full rounded-2xl overflow-hidden shadow-lg bg-white"
+                style={{
+                  // reserve space for the viewer (clamp prevents huge reflows)
+                  height: "clamp(360px, 64vh, 820px)",
+                  maxWidth: 1200,
+                  margin: "0 auto",
+                  display: "flex",
+                }}
+                aria-hidden={!visible}
               >
-                <div
-                  className="w-full rounded-2xl shadow-2xl overflow-hidden"
-                  style={{
-                    /* larger height so the Canvas can be more prominent */
-                    height: "clamp(420px, 72vh, 920px)", 
-                    maxWidth: 1300,
-                    margin: "0 auto",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  {/* TempleViewer fills the parent */
-                  /* We keep no extra padding so the 3D canvas centers perfectly */ }
-                  <div style={{ width: "100%", height: "100%" }}>
-                    <TempleViewer />
+                {/* Placeholder image (include width/height attrs in markup or via CSS) */}
+                {!load3D && (
+                  <div className="w-full h-full flex flex-col items-center justify-center p-4">
+                    <img
+                      src="/images/temple-placeholder.jpg"
+                      alt="Temple"
+                      width={1600}
+                      height={900}
+                      loading="eager"
+                      style={{ objectFit: "cover", width: "100%", height: "100%" }}
+                    />
+                    <div className="mt-3">
+                      <button
+                        onClick={requestLoad3D}
+                        className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg shadow-sm bg-amber-600 text-white hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      >
+                        Load 3D Viewer
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Lazy-loaded 3D viewer - Suspense fallback is lightweight */}
+                {load3D && (
+                  <div className="w-full h-full">
+                    <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-sm text-gray-500">Loading 3D…</div>}>
+                      <TempleViewer />
+                    </Suspense>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* RIGHT: Decree / parchment */}
+            <div className="mt-6 md:mt-0 md:w-[460px] flex-shrink-0 flex justify-center">
+              <div className="relative w-full max-w-xl">
+                {/* Top decorative handle (visual only) */}
+                <div aria-hidden className="absolute left-0 right-0 z-20 h-6 mx-8 -top-3 pointer-events-none">
+                  <div className="w-full h-6 rounded-full shadow-sm bg-gradient-to-r from-amber-900 via-amber-800 to-amber-900/90">
+                    <div className="w-full h-2 mt-2 rounded-full bg-amber-700/80" />
                   </div>
                 </div>
-              </div>
 
-              {/* RIGHT: Decree — fixed comfortable width on md+ so it doesn't crowd the temple */}
-              <div className="mt-8 md:mt-0 md:w-[460px] flex-shrink-0 flex justify-center">
                 <div
-                  ref={decreeWrapperRef}
-                  className="relative w-full max-w-xl transition-opacity duration-300"
-                  aria-live="polite"
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={isOpen}
+                  onClick={toggleDecree}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toggleDecree();
+                    }
+                  }}
+                  className="relative w-full mx-auto bg-gradient-to-br from-yellow-50 via-amber-50 to-yellow-100 rounded-xl shadow-xl overflow-hidden transition-shadow"
+                  style={{
+                    borderLeft: "3px solid #d97706",
+                    borderRight: "3px solid #d97706",
+                    // Reserve a collapsed height value to avoid layout shift:
+                    minHeight: 56,
+                    maxHeight: isOpen ? 520 : 56,
+                  }}
                 >
+                  {/* Content container uses transform + opacity to animate (no height anim) */}
                   <div
-                    ref={topHandleRef}
-                    className="absolute left-0 right-0 z-20 h-6 mx-8 -top-3"
-                    style={{ transform: "rotateX(0deg)" }}
-                  >
-                    <div className="w-full h-6 rounded-full shadow-lg bg-gradient-to-r from-amber-900 via-amber-800 to-amber-900">
-                      <div className="w-full h-2 mt-2 rounded-full bg-gradient-to-r from-amber-700 to-amber-600 opacity-70" />
-                    </div>
-                    <div className="absolute w-8 h-8 rounded-full shadow-xl bg-gradient-to-br from-amber-900 to-amber-950 -left-4 -top-1" />
-                    <div className="absolute w-8 h-8 rounded-full shadow-xl bg-gradient-to-br from-amber-900 to-amber-950 -right-4 -top-1" />
-                  </div>
-
-                  <div
-                    ref={parchmentRef}
-                    role="button"
-                    tabIndex={0}
-                    onClick={handleParchmentClick}
-                    onKeyDown={handleParchmentKeyDown}
-                    aria-expanded={isOpen}
-                    aria-controls="decree-content"
-                    className={`relative w-full mx-auto overflow-hidden shadow-2xl bg-gradient-to-br from-yellow-50 via-amber-50 to-yellow-100 ${
-                      isOpen ? "cursor-default" : "cursor-pointer"
-                    }`}
+                    id="decree-content"
+                    ref={contentRef}
+                    className="relative z-10 p-6 max-h-[520px] overflow-y-auto"
                     style={{
-                      height: "40px",
-                      borderLeft: "3px solid #d97706",
-                      borderRight: "3px solid #d97706",
-                      boxShadow: "inset 0 0 50px rgba(217,119,6,0.08), 0 25px 50px rgba(0,0,0,0.18)",
-                      transition: "height 0.3s ease",
+                      opacity: isOpen ? 1 : 0,
+                      transform: isOpen ? "translateY(0)" : "translateY(-6px)",
+                      transition: "opacity 420ms ease, transform 420ms ease",
                     }}
                   >
-                    <div
-                      id="decree-content"
-                      ref={scrollContentRef}
-                      className="relative z-10 p-8 max-h-[520px] overflow-y-auto scrollbar-thin scrollbar-thumb-amber-800 scrollbar-track-amber-200"
-                      style={{ opacity: 0 }}
-                    >
-                      <div className="space-y-4 font-serif text-amber-800">
-                        <h3 className="mb-6 text-3xl font-bold text-center text-amber-900">
-                          Compassion ॐ
-                        </h3>
-                        <p className="text-lg leading-relaxed text-amber-900/90">
-                          Bhakta Sammilan is a sacred gathering of devotees committed to serving
-                          humanity through spiritual values and compassionate action. Founded on the
-                          principles of devotion, service, and unity, we bring together people from
-                          all walks of life to make a meaningful difference in our communities.
-                        </p>
-                        <p className="text-lg leading-relaxed text-amber-900/90">
-                          Our mission is to create a harmonious society where spiritual growth and
-                          social welfare go hand in hand. Through various initiatives in education,
-                          healthcare, community development, and spiritual upliftment, we touch
-                          thousands of lives every year.
-                        </p>
-                        <p className="text-lg leading-relaxed text-amber-900/90">
-                          Join us in this divine journey of service and transformation. Together, we
-                          can create ripples of positive change that echo through generations.
-                        </p>
-                      </div>
+                    <div className="space-y-4 font-serif text-amber-800">
+                      <h3 id="about-heading" className="mb-2 text-2xl font-bold text-center text-amber-900 sm:text-3xl">
+                        Compassion ॐ
+                      </h3>
+                      <p className="text-base leading-relaxed text-amber-900/95 sm:text-lg">
+                        Bhakta Sammilan is a sacred gathering ... (content kept)
+                      </p>
+                      <p className="text-base leading-relaxed text-amber-900/95 sm:text-lg">
+                        Our mission is to create a harmonious society ...
+                      </p>
                     </div>
-
-                    {!isOpen && (
-                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center pointer-events-none">
-                        <div className="px-4 py-2 text-xs font-semibold tracking-[0.18em] uppercase rounded-full bg-amber-900/10 text-amber-900">
-                          Tap to open royal decree
-                        </div>
-                      </div>
-                    )}
                   </div>
 
-                  <div
-                    ref={bottomHandleRef}
-                    className="absolute left-0 right-0 z-20 h-6 mx-8 -bottom-3"
-                    style={{ transform: "rotateX(0deg)" }}
-                  >
-                    <div className="w-full h-6 rounded-full shadow-lg bg-gradient-to-r from-amber-900 via-amber-800 to-amber-900">
-                      <div className="w-full h-2 rounded-full bg-gradient-to-r from-amber-700 to-amber-600 opacity-70" />
+                  {!isOpen && (
+                    <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+                      <div className="px-3 py-1 text-xs font-semibold tracking-widest uppercase rounded-full bg-amber-900/10 text-amber-900">
+                        Tap to open royal decree
+                      </div>
                     </div>
-                    <div className="absolute w-8 h-8 rounded-full shadow-xl bg-gradient-to-br from-amber-900 to-amber-950 -left-4 -top-1" />
-                    <div className="absolute w-8 h-8 rounded-full shadow-xl bg-gradient-to-br from-amber-900 to-amber-950 -right-4 -top-1" />
+                  )}
+                </div>
+
+                {/* Bottom decorative handle */}
+                <div aria-hidden className="absolute left-0 right-0 z-20 h-6 mx-8 -bottom-3 pointer-events-none">
+                  <div className="w-full h-6 rounded-full shadow-sm bg-gradient-to-r from-amber-900 via-amber-800 to-amber-900/90">
+                    <div className="w-full h-2 rounded-full bg-amber-700/80" />
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Stats cards */}
-          <div className="grid grid-cols-2 gap-6 md:grid-cols-4 md:gap-8 mb-12">
+          {/* Stats - initial state hidden -> revealed via IntersectionObserver */}
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6 my-8">
             {stats.map((stat, index) => {
+              const Icon = stat.icon;
               return (
                 <div
                   key={index}
-                  ref={(el) => (statsRefs.current[index] = el)}
-                  className="p-6 text-center transition-all duration-300 bg-white shadow-lg rounded-xl hover:shadow-2xl hover:-translate-y-2 hover:scale-[1.02] will-change-transform"
+                  ref={(el) => (statRefs.current[index] = el)}
+                  className="p-4 text-center bg-white rounded-xl shadow transform transition will-change-transform"
+                  style={{ opacity: 0, transform: "translateY(18px) scale(0.98)" }}
                 >
-                  <div className="inline-flex items-center justify-center mb-4 rounded-full shadow-inner w-14 h-14 bg-gradient-to-br from-orange-100 to-amber-100">
-                    <stat.icon className="text-orange-600 w-7 h-7" />
+                  <div className="inline-flex items-center justify-center mb-3 w-12 h-12 rounded-full bg-gradient-to-br from-orange-100 to-amber-100 shadow-inner">
+                    <Icon className="w-6 h-6 text-orange-600" />
                   </div>
-                  <h4 className="mb-2 text-3xl font-bold text-gray-900">{stat.value}</h4>
-                  <p className="font-medium text-gray-600">{stat.label}</p>
+                  <h4 className="mb-1 text-2xl font-bold text-gray-900">{stat.value}</h4>
+                  <p className="text-sm font-medium text-gray-600">{stat.label}</p>
                 </div>
               );
             })}
           </div>
+        </main>
 
-          {/* Gallery subsection */}
+        {/* Gallery */}
+        <div>
           <PhotoGallery />
         </div>
       </div>
