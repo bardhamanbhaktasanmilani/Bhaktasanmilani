@@ -26,21 +26,21 @@ const religionImages: ImgItem[] = [
   { src: "/About/religious/religious5.jpg", alt: "Community chanting", title: "Community Chanting", subtitle: "Collective bhajans & kirtans", width: 1600, height: 900 },
 ];
 
-const charityImages: ImgItem[] = [
-  { src: "/About/Yoga/yoga1.jpg", alt: "Feeding the needy", title: "Community Kitchen", subtitle: "Meals prepared and shared daily", width: 1600, height: 900 },
-  { src: "/About/Yoga/yoga2.jpg", alt: "Clothes distribution", title: "Clothes Drive", subtitle: "Warm clothes distributed across cities", width: 1600, height: 900 },
-  { src: "/About/Yoga/yoga3.jpg", alt: "Medical camp", title: "Medical Camp", subtitle: "Free checkups & basic treatment", width: 1600, height: 900 },
-  { src: "/About/Yoga/yoga4.jpg", alt: "Education support", title: "Education Support", subtitle: "Stationery and tuition for children", width: 1600, height: 900 },
-  { src: "/About/Yoga/yoga5.jpg", alt: "Tree plantation", title: "Green Drive", subtitle: "Tree plantation & environmental care", width: 1600, height: 900 },
-];
+// const charityImages: ImgItem[] = [
+//   { src: "/About/Yoga/yoga1.jpg", alt: "Feeding the needy", title: "Community Kitchen", subtitle: "Meals prepared and shared daily", width: 1600, height: 900 },
+//   { src: "/About/Yoga/yoga2.jpg", alt: "Clothes distribution", title: "Clothes Drive", subtitle: "Warm clothes distributed across cities", width: 1600, height: 900 },
+//   { src: "/About/Yoga/yoga3.jpg", alt: "Medical camp", title: "Medical Camp", subtitle: "Free checkups & basic treatment", width: 1600, height: 900 },
+//   { src: "/About/Yoga/yoga4.jpg", alt: "Education support", title: "Education Support", subtitle: "Stationery and tuition for children", width: 1600, height: 900 },
+//   { src: "/About/Yoga/yoga5.jpg", alt: "Tree plantation", title: "Green Drive", subtitle: "Tree plantation & environmental care", width: 1600, height: 900 },
+// ];
 
-const covidImages: ImgItem[] = [
-  { src: "/About/charity/charity1.jpg", alt: "Vaccine awareness", title: "Vaccination Drive", subtitle: "Vaccines administered safely", width: 1600, height: 900 },
-  { src: "/About/charity/charity2.jpg", alt: "Relief supplies", title: "Relief Supplies", subtitle: "Medicine & oxygen supply distribution", width: 1600, height: 900 },
-  { src: "/About/charity/charity3.jpg", alt: "Testing camp", title: "Testing Camps", subtitle: "Rapid testing & safety education", width: 1600, height: 900 },
-  { src: "/About/charity/charity4.jpg", alt: "Volunteer support", title: "Volunteer Network", subtitle: "Volunteers coordinating aid and logistics", width: 1600, height: 900 },
-  { src: "/About/charity/charity5.jpg", alt: "Isolation care", title: "Isolation Support", subtitle: "Safe care & quarantine assistance", width: 1600, height: 900 },
-];
+// const covidImages: ImgItem[] = [
+//   { src: "/About/charity/charity1.jpg", alt: "Vaccine awareness", title: "Vaccination Drive", subtitle: "Vaccines administered safely", width: 1600, height: 900 },
+//   { src: "/About/charity/charity2.jpg", alt: "Relief supplies", title: "Relief Supplies", subtitle: "Medicine & oxygen supply distribution", width: 1600, height: 900 },
+//   { src: "/About/charity/charity3.jpg", alt: "Testing camp", title: "Testing Camps", subtitle: "Rapid testing & safety education", width: 1600, height: 900 },
+//   { src: "/About/charity/charity4.jpg", alt: "Volunteer support", title: "Volunteer Network", subtitle: "Volunteers coordinating aid and logistics", width: 1600, height: 900 },
+//   { src: "/About/charity/charity5.jpg", alt: "Isolation care", title: "Isolation Support", subtitle: "Safe care & quarantine assistance", width: 1600, height: 900 },
+// ];
 
 const usePrefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -253,8 +253,8 @@ export default function PhotoGallery() {
 
         <div className="space-y-16">
           <Subsection id="religion" title="Religion" desc="Spiritual events, rituals, and community gatherings celebrating devotion and tradition." images={religionImages} autoplayDelay={4200} />
-          <Subsection id="charity" title="Yoga Classes" desc="Programs and drives that bring food, shelter, medicine and education to those in need." images={charityImages} autoplayDelay={3800} />
-          <Subsection id="covid" title="Covid Relief & Charity" desc="Emergency response, healthcare support, and community assistance during the pandemic." images={covidImages} autoplayDelay={3600} />
+          {/* <Subsection id="charity" title="Yoga Classes" desc="Programs and drives that bring food, shelter, medicine and education to those in need." images={charityImages} autoplayDelay={3800} />
+          <Subsection id="covid" title="Covid Relief & Charity" desc="Emergency response, healthcare support, and community assistance during the pandemic." images={covidImages} autoplayDelay={3600} /> */}
         </div>
       </div>
 

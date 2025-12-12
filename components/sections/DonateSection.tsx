@@ -1,3 +1,4 @@
+// DonateSection.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -24,9 +25,42 @@ type ReceiptData = {
   createdAt?: string;
 };
 
-/* --------------------------------------------------------------------------
- * Reusable animated Modal
- * -------------------------------------------------------------------------- */
+/* ------------------ Helpers: image & font fetch ------------------ */
+
+async function fetchImageDataURL(path: string): Promise<string | null> {
+  try {
+    const res = await fetch(path);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    console.warn("Failed to fetch image:", path, e);
+    return null;
+  }
+}
+
+async function registerFontToJsPDF(doc: any, url: string, vfsName: string, fontName: string) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return;
+    const buffer = await res.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    let binary = "";
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    const base64 = btoa(binary);
+    doc.addFileToVFS(vfsName, base64);
+    doc.addFont(vfsName, fontName, "normal");
+  } catch (e) {
+    console.warn("Could not load font for jsPDF:", e);
+  }
+}
+
+/* ------------------ Modal component ------------------ */
 
 interface ModalProps {
   open: boolean;
@@ -61,9 +95,7 @@ function Modal({ open, onClose, children }: ModalProps) {
   );
 }
 
-/* --------------------------------------------------------------------------
- * Success Modal with PDF Download
- * -------------------------------------------------------------------------- */
+/* ------------------ SuccessModal with PDF generation ------------------ */
 
 function SuccessModal({
   open,
@@ -81,43 +113,10 @@ function SuccessModal({
       ? new Date(data.createdAt).toLocaleDateString()
       : new Date().toLocaleDateString();
 
-  // Helper: load a TTF font from /public/fonts and register in jsPDF
-  const loadDevanagariFont = async (doc: any) => {
-    try {
-      const res = await fetch(
-        "/fonts/NotoSansDevanagari-Bold.ttf"
-      );
-      if (!res.ok) return;
-
-      const buffer = await res.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-      let binary = "";
-      for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
-      }
-      const base64 = btoa(binary);
-
-      doc.addFileToVFS(
-        "NotoSansDevanagari-Regular.ttf",
-        base64
-      );
-      doc.addFont(
-        "NotoSansDevanagari-Regular.ttf",
-        "NotoSansDevanagari",
-        "normal"
-      );
-    } catch (e) {
-      console.error("Failed to load Devanagari font:", e);
-      // If this fails, jsPDF will fall back to default Latin font and
-      // the Sanskrit line will again look wrong – but rest of PDF is fine.
-    }
-  };
-
   const handleDownload = async () => {
     try {
       const jsPDFModule: any = await import("jspdf");
-      const jsPDF =
-        jsPDFModule.jsPDF || jsPDFModule.default || (jsPDFModule as any);
+      const jsPDF = jsPDFModule.jsPDF || jsPDFModule.default || (jsPDFModule as any);
 
       const doc = new jsPDF({
         orientation: "portrait",
@@ -128,45 +127,31 @@ function SuccessModal({
       const pageWidth = 210;
       const marginX = 10;
 
-      // Header orange band
+      // Header band
       doc.setFillColor(234, 88, 12);
       doc.rect(0, 0, pageWidth, 38, "F");
 
-      // Om logo
+      // Logo
       try {
-        const img = new Image();
-        img.src = "/Om.png";
-        await new Promise<void>((resolve) => {
-          img.onload = () => resolve();
-          img.onerror = () => resolve();
-        });
-
-        const canvas = document.createElement("canvas");
-        canvas.width = 120;
-        canvas.height = 120;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          const imgData = canvas.toDataURL("image/png");
-          doc.addImage(imgData, "PNG", marginX + 2, 6, 22, 22);
-        }
+        const omData = await fetchImageDataURL("/Om.png");
+        if (omData) doc.addImage(omData, "PNG", marginX + 2, 6, 22, 22);
       } catch {
-        /* ignore logo error */
+        /* ignore */
       }
 
       // Header text
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(15);
       doc.setFont("helvetica", "bold");
-      doc.text("SHRI RADHA KRSIHNA  TEMPLE ", marginX + 28, 13);
+      doc.text("SHRI RADHA KRISHNA  TEMPLE ", marginX + 28, 13);
 
       doc.setFontSize(11);
       doc.setFont("helvetica", "normal");
-      doc.text("by Bhakta Sammilani Foundation", marginX + 28, 18);
+      doc.text("by Bardhaman Bhaktasanmilani", marginX + 28, 18);
 
       doc.setFontSize(8);
       doc.text(
-        "25, 25, DD Tiwari Rd, Tikorhat, Raiganj, Bardhaman, West Bengal 713104",
+        "R.B Chatterjee Road , Tikorhat, Bardhaman West Bengal - 713102, India",
         marginX + 28,
         23
       );
@@ -191,15 +176,9 @@ function SuccessModal({
       doc.setTextColor(0, 0, 0);
       doc.setFontSize(9);
       doc.setFont("helvetica", "bold");
-      doc.text(
-        "Income Tax Exemption (80-G) Number: ABHCS5608RF20227",
-        marginX + 2,
-        46
-      );
+      doc.text("Income Tax Exemption (80-G) Number: ABHCS5608RF20227", marginX + 2, 46);
       doc.setFont("helvetica", "normal");
-      doc.text("Mode of Payment: Online", pageWidth - marginX - 2, 46, {
-        align: "right",
-      });
+      doc.text("Mode of Payment: Online", pageWidth - marginX - 2, 46, { align: "right" });
 
       // Donor details
       let y = 55;
@@ -226,54 +205,106 @@ function SuccessModal({
         y += 5;
       }
       y += 2;
-      doc.text(
-        "As donation for the cause of Temple Construction & Maintenance.",
-        marginX + 2,
-        y
-      );
+      doc.text("As donation for the cause of Temple Construction & Maintenance.", marginX + 2, y);
 
-      // Right transaction boxes
+      // ---------------- Transaction & Purpose boxes ----------------
       const rightBoxX = pageWidth / 2 + 2;
       const boxWidth = pageWidth - rightBoxX - marginX;
-      const boxHeight = 18;
+      const boxPadding = 3;
 
-      // Transaction detail box
+      // TRANSACTION DETAIL header + box (fixed small)
+      const transHeaderY = 55;
       doc.setFillColor(249, 115, 22);
-      doc.rect(rightBoxX, 55, boxWidth, 6, "F");
+      doc.rect(rightBoxX, transHeaderY, boxWidth, 6, "F");
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(8);
       doc.setFont("helvetica", "bold");
-      doc.text("TRANSACTION DETAIL", rightBoxX + 2, 59);
+      doc.text("TRANSACTION DETAIL", rightBoxX + 2, transHeaderY + 4);
 
       doc.setTextColor(0, 0, 0);
-      doc.rect(rightBoxX, 61, boxWidth, boxHeight, "S");
+      const transBoxY = transHeaderY + 6;
+      const transBoxHeight = 18;
+      doc.rect(rightBoxX, transBoxY, boxWidth, transBoxHeight, "S");
       doc.setFontSize(8);
-      doc.text("Amount Donated", rightBoxX + 2, 66);
+      doc.text("Amount Donated", rightBoxX + 2, transBoxY + 5);
       doc.setFontSize(12);
       doc.setFont("helvetica", "bold");
-      doc.text(`₹${data.amount.toLocaleString()}`, rightBoxX + 2, 72);
+      doc.text(`₹${data.amount.toLocaleString()}`, rightBoxX + 2, transBoxY + 11);
 
-      // Purpose box
-      const box2Y = 61 + boxHeight + 4;
+      // PURPOSE OF DONATION: dynamic wrap + dynamic height
+      const purposeHeaderY = transBoxY + transBoxHeight + 4;
       doc.setFillColor(249, 115, 22);
-      doc.rect(rightBoxX, box2Y, boxWidth, 6, "F");
+      doc.rect(rightBoxX, purposeHeaderY, boxWidth, 6, "F");
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(8);
       doc.setFont("helvetica", "bold");
-      doc.text("PURPOSE OF DONATION", rightBoxX + 2, box2Y + 4);
+      doc.text("PURPOSE OF DONATION", rightBoxX + 2, purposeHeaderY + 4);
 
+      // The long purpose text (ensure wrapping)
       doc.setTextColor(0, 0, 0);
-      doc.rect(rightBoxX, box2Y + 6, boxWidth, 14, "S");
-      doc.setFontSize(8);
-      doc.setFont("helvetica", "normal");
-      doc.text(
-        "Donation - Temple Construction & Maintenance",
-        rightBoxX + 2,
-        box2Y + 12
-      );
 
-      // Payment details box
-      const box3Y = box2Y + 6 + 14 + 4;
+      const purposeText =
+        "Donation - Temple Construction & Maintenance | Social activities and charitable purposes";
+
+      // Prepare wrapping. jsPDF has splitTextToSize utility.
+      // Use an initial fontSize and adjust if necessary to fit within a maximum box height.
+      let purposeFontSize = 8; // start
+      const lineHeightFactor = 1.15;
+      const maxPurposeBoxHeight = 36; // mm (adjust as desired) -> if text bigger, we'll reduce font or truncate
+      let purposeLines = doc.splitTextToSize(purposeText, boxWidth - boxPadding * 2);
+      let purposeHeight = purposeLines.length * purposeFontSize * (lineHeightFactor / 4.0); // rough mm estimate
+
+      // Convert font-size (pt) to mm approx: 1pt ≈ 0.3528 mm, but jsPDF text height calc often uses font size in pt.
+      const ptToMm = (pt: number) => (pt * 0.352777778);
+      const computeHeight = (linesCount: number, fSize: number) => {
+        const lineHtMm = ptToMm(fSize) * lineHeightFactor;
+        return linesCount * lineHtMm;
+      };
+
+      // Recompute with actual conversion and reduce font size to fit if needed
+      purposeLines = doc.splitTextToSize(purposeText, boxWidth - boxPadding * 2);
+      purposeHeight = computeHeight(purposeLines.length, purposeFontSize);
+
+      // If over max, try reducing font size progressively
+      while (purposeHeight > maxPurposeBoxHeight && purposeFontSize > 6) {
+        purposeFontSize -= 0.5;
+        purposeLines = doc.splitTextToSize(purposeText, boxWidth - boxPadding * 2);
+        purposeHeight = computeHeight(purposeLines.length, purposeFontSize);
+      }
+
+      // If still too large, truncate lines to fit and append ellipsis
+      const maxLinesThatFit = Math.floor(maxPurposeBoxHeight / (ptToMm(purposeFontSize) * lineHeightFactor));
+      if (purposeLines.length > maxLinesThatFit) {
+        const truncated = purposeLines.slice(0, Math.max(1, maxLinesThatFit));
+        let last = truncated[truncated.length - 1];
+        // ensure we have room for ellipsis
+        if (!last.endsWith("...")) last = last.replace(/\s*\S{0,10}$/, (m) => m.trim()) + "...";
+        truncated[truncated.length - 1] = last;
+        purposeLines = truncated;
+        purposeHeight = computeHeight(purposeLines.length, purposeFontSize);
+      }
+
+      const purposeBoxY = purposeHeaderY + 6;
+      const purposeBoxInnerY = purposeBoxY + boxPadding;
+      const purposeBoxHeight = Math.max(14, purposeHeight + boxPadding * 2); // at least a small box
+
+      // draw border for purpose box
+      doc.setFontSize(8);
+      doc.rect(rightBoxX, purposeBoxY, boxWidth, purposeBoxHeight, "S");
+
+      // render wrapped text: set the chosen font size and render lines with small top padding
+      doc.setFontSize(purposeFontSize);
+      // convert first-line baseline Y coordinate:
+      // jsPDF text uses y as baseline; to get top alignment we add the converted font-size
+      const lineHeightMm = ptToMm(purposeFontSize) * lineHeightFactor;
+      let textY = purposeBoxInnerY + (lineHeightMm - ptToMm(purposeFontSize)) / 2 + (ptToMm(purposeFontSize));
+      // Now print each line with small line spacing
+      purposeLines.forEach((line: string, idx: number) => {
+        doc.text(line, rightBoxX + boxPadding, purposeBoxInnerY + (idx * lineHeightMm) + (ptToMm(purposeFontSize) / 2));
+      });
+
+      // ---------------- PAYMENT DETAILS box placed after purpose box ----------------
+      const box3Y = purposeBoxY + purposeBoxHeight + 6;
       doc.setFillColor(249, 115, 22);
       doc.rect(rightBoxX, box3Y, boxWidth, 6, "F");
       doc.setTextColor(255, 255, 255);
@@ -286,18 +317,14 @@ function SuccessModal({
       doc.setFontSize(8);
       doc.text("Razorpay - Online Transaction", rightBoxX + 2, box3Y + 12);
 
-      // Amount big box
+      // ---------------- Amount big box (left) ----------------
       const amountBoxY = box3Y + 6 + 14 + 8;
       doc.setDrawColor(245, 158, 11);
       doc.setFillColor(255, 247, 237);
       doc.rect(marginX + 2, amountBoxY, 50, 12, "FD");
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
-      doc.text(
-        `INR ${data.amount.toLocaleString()}`,
-        marginX + 4,
-        amountBoxY + 8
-      );
+      doc.text(`INR ${data.amount.toLocaleString()}`, marginX + 4, amountBoxY + 8);
 
       // Notes block
       let notesY = amountBoxY + 20;
@@ -326,103 +353,67 @@ function SuccessModal({
       doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
       doc.text("For Bhakta Sammilan", marginX + 2, footerY);
-      doc.line(
-        pageWidth - marginX - 40,
-        footerY - 2,
-        pageWidth - marginX,
-        footerY - 2
-      );
-      doc.text("Authorised Signatory", pageWidth - marginX - 2, footerY + 3, {
-        align: "right",
-      });
 
-      // --------------------- DEVOTIONAL BOTTOM CONTENT --------------------
+      // Signature image placement (from /public/donate/signature.png)
+      const sigWidth = 40; // mm
+      const sigHeight = 12; // mm
+      const sigX = pageWidth - marginX - sigWidth;
+      const sigY = footerY - 8;
 
-      
+      try {
+        const sigData = await fetchImageDataURL("/donate/signature.png");
+        if (sigData) {
+          doc.addImage(sigData, "PNG", sigX, sigY - 2, sigWidth, sigHeight);
+        } else {
+          doc.line(pageWidth - marginX - 40, footerY - 2, pageWidth - marginX, footerY - 2);
+        }
+      } catch {
+        doc.line(pageWidth - marginX - 40, footerY - 2, pageWidth - marginX, footerY - 2);
+      }
+
+      doc.text("Authorised Signatory", pageWidth - marginX - 2, footerY + 3, { align: "right" });
+
+      // Devotional bottom content
       const devotionY = footerY + 18;
-      
 
-      // Load Devanagari font & draw heading
-      await loadDevanagariFont(doc);
-      doc.setFont("NotoSansDevanagari", "normal");
-      doc.setFontSize(12);
-      doc.setTextColor(0, 0, 0);
-      doc.text("कृष्णं वन्दे जगद्गुरुम्", pageWidth / 2, devotionY, {
-        align: "center", size : "50"
-      });
+      await registerFontToJsPDF(doc, "/fonts/NotoSansDevanagari-Bold.ttf", "NotoSansDevanagari-Bold.ttf", "NotoSansDevanagari");
+      try {
+        doc.setFont("NotoSansDevanagari", "normal");
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        doc.text("कृष्णं वन्दे जगद्गुरुम्", pageWidth / 2, devotionY, { align: "center" });
+      } catch {
+        doc.setFont("helvetica", "normal");
+        doc.text("कृष्णं वन्दे जगद्गुरुम्", pageWidth / 2, devotionY, { align: "center" });
+      }
 
-      // Return to a Latin font for any later text (if needed)
       doc.setFont("helvetica", "normal");
 
-      // Peacock feather to the right of heading
       try {
-        const featherImg = new Image();
-        featherImg.src = "/images/pea-cock (feather).png";
-        await new Promise<void>((resolve) => {
-          featherImg.onload = () => resolve();
-          featherImg.onerror = () => resolve();
-        });
-
-        const canvas = document.createElement("canvas");
-        canvas.width = 200;
-        canvas.height = 200;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(featherImg, 0, 0, canvas.width, canvas.height);
-          const featherData = canvas.toDataURL("image/png");
-
+        const featherData = await fetchImageDataURL("/images/pea-cock (feather).png");
+        if (featherData) {
           const featherWidth = 10;
           const featherHeight = 14;
           const textOffsetX = 35;
           const featherX = pageWidth / 2 + textOffsetX;
           const featherY = devotionY - featherHeight + 2;
-
-          doc.addImage(
-            featherData,
-            "PNG",
-            featherX,
-            featherY,
-            featherWidth,
-            featherHeight
-          );
+          doc.addImage(featherData, "PNG", featherX, featherY, featherWidth, featherHeight);
         }
       } catch {
-        /* ignore feather error */
+        /* ignore */
       }
 
-      // Flute image centered below the heading
       try {
-        const fluteImg = new Image();
-        fluteImg.src = "/images/flute.png";
-        await new Promise<void>((resolve) => {
-          fluteImg.onload = () => resolve();
-          fluteImg.onerror = () => resolve();
-        });
-
-        const canvas = document.createElement("canvas");
-        canvas.width = 400;
-        canvas.height = 150;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(fluteImg, 0, 0, canvas.width, canvas.height);
-          const fluteData = canvas.toDataURL("image/png");
-
+        const fluteData = await fetchImageDataURL("/images/flute.png");
+        if (fluteData) {
           const fluteWidth = 45;
           const fluteHeight = 12;
           const fluteX = (pageWidth - fluteWidth) / 2;
           const fluteY = devotionY + 8;
-
-          doc.addImage(
-            fluteData,
-            "PNG",
-            fluteX,
-            fluteY,
-            fluteWidth,
-            fluteHeight
-          );
+          doc.addImage(fluteData, "PNG", fluteX, fluteY, fluteWidth, fluteHeight);
         }
       } catch {
-        /* ignore flute error */
+        /* ignore */
       }
 
       doc.save(`BhaktaSammilan_Receipt_${data.paymentId}.pdf`);
@@ -439,45 +430,25 @@ function SuccessModal({
           <CheckCircle2 className="w-10 h-10 text-orange-600" />
         </div>
 
-        <h2 className="text-2xl font-bold text-orange-600">
-          🎉 Thank you for your donation!
-        </h2>
+        <h2 className="text-2xl font-bold text-orange-600">🎉 Thank you for your donation!</h2>
 
         <p className="text-sm text-gray-700">
-          Dear <span className="font-semibold">{data.donorName}</span>, your
-          donation of{" "}
-          <span className="font-semibold">
-            ₹{data.amount.toLocaleString()}
-          </span>{" "}
-          has been received successfully.
+          Dear <span className="font-semibold">{data.donorName}</span>, your donation of{" "}
+          <span className="font-semibold">₹{data.amount.toLocaleString()}</span> has been received successfully.
         </p>
 
         <p className="text-xs text-gray-500">
-          Payment ID:{" "}
-          <span className="font-mono break-all">{data.paymentId}</span>
+          Payment ID: <span className="font-mono break-all">{data.paymentId}</span>
           <br />
-          Order ID:{" "}
-          <span className="font-mono break-all">{data.orderId}</span>
+          Order ID: <span className="font-mono break-all">{data.orderId}</span>
         </p>
 
         <div className="w-full flex flex-col gap-3 sm:flex-row sm:justify-center pt-2">
-          <Button
-            type="button"
-            onClick={handleDownload}
-            size="lg"
-            fullWidth
-            className="bg-orange-600 hover:bg-orange-700"
-          >
+          <Button type="button" onClick={handleDownload} size="lg" fullWidth className="bg-orange-600 hover:bg-orange-700">
             <Download className="w-4 h-4 mr-2" />
             Download Receipt (PDF)
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            fullWidth
-            onClick={onClose}
-          >
+          <Button type="button" variant="outline" size="lg" fullWidth onClick={onClose}>
             Close
           </Button>
         </div>
@@ -486,9 +457,7 @@ function SuccessModal({
   );
 }
 
-/* --------------------------------------------------------------------------
- * DonateSection main component
- * -------------------------------------------------------------------------- */
+/* ------------------ Main DonateSection ------------------ */
 
 export default function DonateSection() {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
@@ -505,9 +474,7 @@ export default function DonateSection() {
     return new Promise((resolve) => {
       if (
         typeof window !== "undefined" &&
-        document.querySelector(
-          'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
-        )
+        document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]')
       ) {
         resolve(true);
         return;
@@ -522,9 +489,7 @@ export default function DonateSection() {
   };
 
   const handleDonation = async () => {
-    const amount = customAmount
-      ? Math.round(Number(customAmount))
-      : selectedAmount ?? 0;
+    const amount = customAmount ? Math.round(Number(customAmount)) : selectedAmount ?? 0;
 
     if (!amount || amount < 1) {
       alert("Please select or enter a valid donation amount");
@@ -541,9 +506,7 @@ export default function DonateSection() {
     try {
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
-        alert(
-          "Razorpay SDK failed to load. Please check your internet connection."
-        );
+        alert("Razorpay SDK failed to load. Please check your internet connection.");
         setLoading(false);
         return;
       }
@@ -612,12 +575,10 @@ export default function DonateSection() {
 
             const verifyJson = await verifyRes.json().catch(() => ({}));
             const payment = verifyJson.payment || {};
-            const paymentId =
-              payment.paymentId || response.razorpay_payment_id;
+            const paymentId = payment.paymentId || response.razorpay_payment_id;
             const orderId = payment.orderId || response.razorpay_order_id;
             const receiptNo = payment.receiptNo || undefined;
-            const createdAt =
-              payment.createdAt || new Date().toISOString();
+            const createdAt = payment.createdAt || new Date().toISOString();
 
             setReceiptData({
               donorName,
@@ -663,9 +624,7 @@ export default function DonateSection() {
   };
 
   const displayAmount =
-    customAmount && Number(customAmount) > 0
-      ? Number(customAmount)
-      : selectedAmount || null;
+    customAmount && Number(customAmount) > 0 ? Number(customAmount) : selectedAmount || null;
 
   return (
     <>
@@ -789,9 +748,7 @@ export default function DonateSection() {
                 {loading
                   ? "Processing..."
                   : `Donate ${
-                      displayAmount
-                        ? `₹${displayAmount.toLocaleString()}`
-                        : "Now"
+                      displayAmount ? `₹${displayAmount.toLocaleString()}` : "Now"
                     }`}
               </button>
 

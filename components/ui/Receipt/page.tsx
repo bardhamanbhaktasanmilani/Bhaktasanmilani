@@ -1,3 +1,8 @@
+// components/modals/ReceiptModal.tsx
+"use client";
+
+import React, { useRef, useState } from "react";
+
 type ReceiptData = {
   donorName: string;
   donorEmail: string;
@@ -7,9 +12,14 @@ type ReceiptData = {
   orderId: string;
   receiptNo?: string;
   createdAt?: string;
+  /**
+   * Optional override URL or data URI of the signature image.
+   * If absent, the component will use /donate/signature.png from public/.
+   */
+  signatureUrl?: string | null;
 };
 
-function ReceiptModal({
+export default function ReceiptModal({
   open,
   onClose,
   data,
@@ -19,15 +29,18 @@ function ReceiptModal({
   data: ReceiptData | null;
 }) {
   const printRef = useRef<HTMLDivElement | null>(null);
+  const [sigLoadError, setSigLoadError] = useState(false);
 
   if (!open || !data) return null;
 
+  const signatureSrc = data.signatureUrl && data.signatureUrl.trim().length
+    ? data.signatureUrl
+    : "/donate/signature.png"; // default you provided
+
   const downloadPdf = async () => {
     try {
-      // ✅ Robust dynamic imports for Next.js
       const html2canvasModule = await import("html2canvas");
       const { jsPDF } = await import("jspdf");
-
       const html2canvas = html2canvasModule.default;
 
       if (!printRef.current) {
@@ -36,15 +49,15 @@ function ReceiptModal({
         return;
       }
 
-      // Render the receipt container to a canvas
       const canvas = await html2canvas(printRef.current, {
         scale: 2,
         useCORS: true,
+        allowTaint: false,
+        logging: false,
       });
 
       const imgData = canvas.toDataURL("image/png");
 
-      // A4 portrait PDF
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
@@ -55,10 +68,22 @@ function ReceiptModal({
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
       pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`BhaktaSammilan_Receipt_${data.paymentId}.pdf`);
-    } catch (err) {
+      const fileName =
+        data.receiptNo && data.receiptNo.trim().length
+          ? `BhaktaSammilan_Receipt_${data.receiptNo}.pdf`
+          : `BhaktaSammilan_Receipt_${data.paymentId}.pdf`;
+      pdf.save(fileName);
+    } catch (err: any) {
       console.error("Error while generating PDF:", err);
-      alert("Unable to download the receipt right now. Please check console.");
+      const isCORS =
+        err && err.message && /tainted|cross-origin|CORS/i.test(err.message);
+      if (isCORS) {
+        alert(
+          "Failed to generate PDF due to cross-origin image restrictions. Ensure the signature image is served from the same origin or has permissive CORS headers."
+        );
+      } else {
+        alert("Unable to download the receipt right now. Please check console.");
+      }
     }
   };
 
@@ -68,7 +93,12 @@ function ReceiptModal({
       : new Date().toLocaleDateString();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 bg-black/60">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 bg-black/60"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Donation receipt dialog"
+    >
       <div className="w-full max-w-5xl overflow-hidden bg-white rounded-2xl shadow-2xl">
         {/* Header actions */}
         <div className="flex items-center justify-between px-6 py-4 border-b">
@@ -98,8 +128,9 @@ function ReceiptModal({
           <div
             ref={printRef}
             className="mx-auto bg-white border shadow-md rounded-xl overflow-hidden"
+            style={{ width: "100%", boxSizing: "border-box" }}
           >
-            {/* Top orange band similar to sample */}
+            {/* Top band */}
             <div className="px-6 py-4 bg-gradient-to-r from-orange-600 to-amber-500 text-white flex items-start justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="flex items-center justify-center w-16 h-16 bg-white rounded-full">
@@ -114,14 +145,14 @@ function ReceiptModal({
                     SHRI RAM TEMPLE KAMARPAL
                   </h1>
                   <p className="text-sm font-medium">
-                    by Bhakta Sammilan &amp; Suma Blessings Foundation
+                    by Bardhaman BhaktaSammilani &amp; Suma Blessings Foundation
                   </p>
                   <p className="mt-1 text-xs leading-snug text-orange-50">
-                    Head Office: C-49/50, Nawada Housing Complex, Near Dwarka
-                    Mor Metro, Uttam Nagar, New Delhi - 110059
+                    Head Office: R.B Chatterjee Road, Tikorhat
+                    Bardhaman, West Bengal 713102, India
                     <br />
-                    Temple Location: Kamarapal, Dagarpara, Balasore, Odisha
-                    756047
+                    Temple Location: R.B Chatterjee Road, Tikorhat
+                    Bardhaman, West Bengal 713102, India
                   </p>
                 </div>
               </div>
@@ -161,7 +192,6 @@ function ReceiptModal({
 
             {/* Donor + Transaction details */}
             <div className="grid grid-cols-1 gap-6 px-6 py-6 md:grid-cols-2">
-              {/* Donor details */}
               <div>
                 <h2 className="mb-2 text-sm font-semibold text-gray-800 uppercase">
                   Donor Details
@@ -185,7 +215,6 @@ function ReceiptModal({
                 </div>
               </div>
 
-              {/* Transaction block */}
               <div className="text-sm text-gray-900">
                 <div className="mb-3 border border-orange-400 rounded-lg">
                   <div className="px-3 py-2 text-xs font-semibold tracking-wide text-white uppercase bg-orange-500 rounded-t-lg">
@@ -204,7 +233,8 @@ function ReceiptModal({
                     Purpose of Donation
                   </div>
                   <div className="px-3 py-3 text-sm">
-                    Donation - Temple Construction &amp; Maintenance
+                    Donation - Temple Construction, Maintenance &amp; social
+                    activities and charitable purposes
                   </div>
                 </div>
 
@@ -212,14 +242,12 @@ function ReceiptModal({
                   <div className="px-3 py-2 text-xs font-semibold tracking-wide text-white uppercase bg-orange-500 rounded-t-lg">
                     Payment Details
                   </div>
-                  <div className="px-3 py-3 text-sm">
-                    Razorpay - Online Transaction
-                  </div>
+                  <div className="px-3 py-3 text-sm">Razorpay - Online Transaction</div>
                 </div>
               </div>
             </div>
 
-            {/* Amount box */}
+            {/* Amount */}
             <div className="px-6 pb-4">
               <div className="inline-block px-6 py-3 text-xl font-bold border rounded-lg border-amber-500 bg-amber-50">
                 INR {data.amount.toLocaleString()}
@@ -251,19 +279,42 @@ function ReceiptModal({
               </p>
             </div>
 
-            {/* Signature */}
-            <div className="flex items-center justify-between px-6 py-4 text-xs text-gray-800">
-              <div>
-                <p>For Bhakta Sammilan &amp; Suma Blessings Foundation</p>
-              </div>
-              <div className="text-right">
-                <div className="h-10 mb-1 border-b border-gray-600" />
-                <p className="font-medium">Authorised Signatory</p>
+            {/* Signature block */}
+            <div className="px-6 py-4">
+              <div className="flex items-center justify-between text-xs text-gray-800">
+                <div>
+                  <p>For Bardhaman Bhakta Sammilani</p>
+                </div>
+
+                <div className="text-right">
+                  {(!sigLoadError && signatureSrc) ? (
+                    <div className="flex flex-col items-end">
+                      <img
+                        src={signatureSrc}
+                        alt="Authorised signatory signature"
+                        crossOrigin="anonymous"
+                        onError={() => setSigLoadError(true)}
+                        style={{
+                          maxHeight: 72,
+                          width: "auto",
+                          display: "block",
+                          objectFit: "contain",
+                        }}
+                      />
+                      <p className="mt-2 text-xs font-medium">Authorised Signatory</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-end">
+                      <div className="h-10 mb-1 w-40 border-b border-gray-600" />
+                      <p className="font-medium">Authorised Signatory</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </div> {/* modal container */}
     </div>
   );
 }
