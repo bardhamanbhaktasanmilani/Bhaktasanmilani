@@ -434,7 +434,13 @@ export default function TempleViewer({ modelPath = "/about/temple.glb" }: { mode
 
         <Suspense fallback={null}>
           {/* Hemisphere: subtle sky-to-ground ambient */}
-          <hemisphereLight skyColor={0xfffffb} groundColor={0x3a3426} intensity={mode === "day" ? HEMI_INTENSITY_DAY : HEMI_INTENSITY_NIGHT} />
+          <hemisphereLight
+  args={[
+    0xfffffb,
+    0x3a3426,
+    mode === "day" ? HEMI_INTENSITY_DAY : HEMI_INTENSITY_NIGHT,
+  ]}
+/>
 
           {/* Primary key light (sun) — placed BEHIND the temple relative to the camera so
               temple front gets rim & backlit separation. */}
