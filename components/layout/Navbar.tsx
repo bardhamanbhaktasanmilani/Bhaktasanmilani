@@ -214,13 +214,7 @@ export default function Navbar() {
                 <span className="text-base font-semibold text-gray-900 sm:text-lg">
                   Menu
                 </span>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="p-1 text-gray-600 rounded-full hover:bg-gray-100 hover:text-orange-600"
-                  aria-label="Close navigation menu"
-                >
-                  <X size={22} />
-                </button>
+           
               </div>
 
               <nav className="px-4 pt-3 pb-6 sm:pb-7">
