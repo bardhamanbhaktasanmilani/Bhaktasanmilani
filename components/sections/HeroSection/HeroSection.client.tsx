@@ -7,25 +7,25 @@ import { Button } from "@/components/ui/button";
 
 const slides = [
   {
-    image: "/hero/Hero4.jpg",
+    image: "/hero/Hero4.AVIF",
     title: "Unite in Faith, Serve with Love",
     subtitle: "Join us in making a difference through devotion and service",
     more: "Our mission is rooted in compassion, faith, and collective service. Every contribution helps us uplift communities, preserve spiritual values, and create lasting impact through meaningful action.",
   },
   {
-    image: "/hero/bg-photo (2).jpeg",
+    image: "/hero/bg-photo (2).AVIF",
     title: "Empowering Communities",
     subtitle: "Your contribution brings hope and happiness to those in need",
     more: "Through donations and community-driven initiatives, we support education, healthcare, and social welfare programs that bring dignity and opportunity to underserved lives.",
   },
   {
-    image: "/hero/bg-photo (3).jpeg",
+    image: "/hero/bg-photo (3).AVIF",
     title: "Together We Grow",
     subtitle: "Building a stronger community through faith and compassion",
     more: "Unity and service go hand in hand. By standing together, we strengthen our collective spirit and ensure that no one is left behind on the path of progress.",
   },
   {
-    image: "/hero/bg-photo (4).jpeg",
+    image: "/hero/bg-photo (4).AVIF",
     title: "When the heart bows, blessings rise",
     subtitle: "ॐ शान्तिः शान्तिः शान्तिः — May peace dwell within.",
     more: "True peace begins within. Our initiatives encourage mindfulness, harmony, and spiritual balance while supporting those seeking guidance, relief, and hope.",

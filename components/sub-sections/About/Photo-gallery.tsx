@@ -19,27 +19,27 @@ const Carousel3D = dynamic(() => import("@/components/ui/Carousel3D"), { ssr: fa
 type ImgItem = { src: string; alt?: string; title?: string; subtitle?: string; width?: number; height?: number };
 
 const religionImages: ImgItem[] = [
-  { src: "/About/religious/religious1.jpg", alt: "Devotees in prayer", title: "Morning Prayers", subtitle: "Devotees gather for the dawn ceremony", width: 1600, height: 900 },
-  { src: "/About/religious/religious2.jpg", alt: "Temple procession", title: "Temple Procession", subtitle: "A colourful procession of faith and unity", width: 1600, height: 900 },
-  { src: "/About/religious/religious3.jpg", alt: "Ritual offerings", title: "Ritual Offerings", subtitle: "Offerings presented with reverence", width: 1600, height: 900 },
-  { src: "/About/religious/religious4.jpg", alt: "Evening aarti", title: "Evening Aarti", subtitle: "The sacred aarti at dusk", width: 1600, height: 900 },
-  { src: "/About/religious/religious5.jpg", alt: "Community chanting", title: "Community Chanting", subtitle: "Collective bhajans & kirtans", width: 1600, height: 900 },
+  { src: "/About/religious/religious1.AVIF", alt: "Devotees in prayer", title: "Morning Prayers", subtitle: "Devotees gather for the dawn ceremony", width: 1600, height: 900 },
+  { src: "/About/religious/religious2.AVIF", alt: "Temple procession", title: "Temple Procession", subtitle: "A colourful procession of faith and unity", width: 1600, height: 900 },
+  { src: "/About/religious/religious3.AVIF", alt: "Ritual offerings", title: "Ritual Offerings", subtitle: "Offerings presented with reverence", width: 1600, height: 900 },
+  { src: "/About/religious/religious4.AVIF", alt: "Evening aarti", title: "Evening Aarti", subtitle: "The sacred aarti at dusk", width: 1600, height: 900 },
+  { src: "/About/religious/religious5.AVIF", alt: "Community chanting", title: "Community Chanting", subtitle: "Collective bhajans & kirtans", width: 1600, height: 900 },
 ];
 
 const charityImages: ImgItem[] = [
-  { src: "/About/Yoga/yoga1.jpg", alt: "Feeding the needy", title: "Community Kitchen", subtitle: "Meals prepared and shared daily", width: 1600, height: 900 },
-  { src: "/About/Yoga/yoga2.jpg", alt: "Clothes distribution", title: "Clothes Drive", subtitle: "Warm clothes distributed across cities", width: 1600, height: 900 },
-  { src: "/About/Yoga/yoga3.jpg", alt: "Medical camp", title: "Medical Camp", subtitle: "Free checkups & basic treatment", width: 1600, height: 900 },
-  { src: "/About/Yoga/yoga4.jpg", alt: "Education support", title: "Education Support", subtitle: "Stationery and tuition for children", width: 1600, height: 900 },
-  { src: "/About/Yoga/yoga5.jpg", alt: "Tree plantation", title: "Green Drive", subtitle: "Tree plantation & environmental care", width: 1600, height: 900 },
+  { src: "/About/Yoga/yoga1.AVIF", alt: "Feeding the needy", title: "Community Kitchen", subtitle: "Meals prepared and shared daily", width: 1600, height: 900 },
+  { src: "/About/Yoga/yoga2.AVIF", alt: "Clothes distribution", title: "Clothes Drive", subtitle: "Warm clothes distributed across cities", width: 1600, height: 900 },
+  { src: "/About/Yoga/yoga3.AVIF", alt: "Medical camp", title: "Medical Camp", subtitle: "Free checkups & basic treatment", width: 1600, height: 900 },
+  { src: "/About/Yoga/yoga4.AVIF", alt: "Education support", title: "Education Support", subtitle: "Stationery and tuition for children", width: 1600, height: 900 },
+  { src: "/About/Yoga/yoga5.AVIF", alt: "Tree plantation", title: "Green Drive", subtitle: "Tree plantation & environmental care", width: 1600, height: 900 },
 ];
 
 const covidImages: ImgItem[] = [
-  { src: "/About/charity/charity1.jpg", alt: "Vaccine awareness", title: "Vaccination Drive", subtitle: "Vaccines administered safely", width: 1600, height: 900 },
-  { src: "/About/charity/charity2.jpg", alt: "Relief supplies", title: "Relief Supplies", subtitle: "Medicine & oxygen supply distribution", width: 1600, height: 900 },
-  { src: "/About/charity/charity3.jpg", alt: "Testing camp", title: "Testing Camps", subtitle: "Rapid testing & safety education", width: 1600, height: 900 },
-  { src: "/About/charity/charity4.jpg", alt: "Volunteer support", title: "Volunteer Network", subtitle: "Volunteers coordinating aid and logistics", width: 1600, height: 900 },
-  { src: "/About/charity/charity5.jpg", alt: "Isolation care", title: "Isolation Support", subtitle: "Safe care & quarantine assistance", width: 1600, height: 900 },
+  { src: "/About/charity/charity1.AVIF", alt: "Vaccine awareness", title: "Vaccination Drive", subtitle: "Vaccines administered safely", width: 1600, height: 900 },
+  { src: "/About/charity/charity2.AVIF", alt: "Relief supplies", title: "Relief Supplies", subtitle: "Medicine & oxygen supply distribution", width: 1600, height: 900 },
+  { src: "/About/charity/charity3.AVIF", alt: "Testing camp", title: "Testing Camps", subtitle: "Rapid testing & safety education", width: 1600, height: 900 },
+  { src: "/About/charity/charity4.AVIF", alt: "Volunteer support", title: "Volunteer Network", subtitle: "Volunteers coordinating aid and logistics", width: 1600, height: 900 },
+  { src: "/About/charity/charity5.AVIF", alt: "Isolation care", title: "Isolation Support", subtitle: "Safe care & quarantine assistance", width: 1600, height: 900 },
 ];
 
 const usePrefersReducedMotion = () =>
