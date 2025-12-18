@@ -8,6 +8,7 @@ import React, {
   useCallback,
   FormEvent,
 } from "react";
+import dynamic from "next/dynamic";
 import {
   Filter,
   RefreshCcw,
@@ -18,7 +19,6 @@ import {
   Search,
   SortAsc,
 } from "lucide-react";
-import { CSVLink } from "react-csv";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,6 +64,12 @@ type SortOption =
   | "amount-asc"
   | "amount-desc";
 
+// dynamic import of CSVLink (client-only)
+const CSVLink = dynamic(
+  () => import("react-csv").then((mod) => mod.CSVLink),
+  { ssr: false }
+);
+
 export default function AdminDashboardPage() {
   const [donations, setDonations] = useState<Donation[]>([]);
   const [rawTopDonors, setRawTopDonors] = useState<TopDonor[]>([]);
@@ -84,6 +90,12 @@ export default function AdminDashboardPage() {
 
   // admin email (fetched if API available) — fallback to known default
   const [adminEmail, setAdminEmail] = useState("admin@trust.org");
+
+  // mount guard: ensures we only render CSVLink (which creates blob URL) on the client *after* mount
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // ------------------ Fetch logic ------------------
 
@@ -118,7 +130,7 @@ export default function AdminDashboardPage() {
 
   // Try to fetch admin info (non-breaking if endpoint missing)
   useEffect(() => {
-    let mounted = true;
+    let mountedFlag = true;
     (async () => {
       try {
         const res = await fetch("/api/admin/me", {
@@ -131,17 +143,16 @@ export default function AdminDashboardPage() {
         }
         if (res.ok) {
           const json = await res.json();
-          if (mounted && json?.email) {
+          if (mountedFlag && json?.email) {
             setAdminEmail(String(json.email));
           }
         }
       } catch (err) {
         // ignore — keep fallback email
-        // console.debug("admin/me not available", err);
       }
     })();
     return () => {
-      mounted = false;
+      mountedFlag = false;
     };
   }, []);
 
@@ -268,7 +279,6 @@ export default function AdminDashboardPage() {
     const q = query.toString();
     const original = text ?? "";
 
-    // CASE-SENSITIVE match attempt (if requested)
     if (caseSensitive) {
       const idxCS = original.indexOf(q);
       if (idxCS !== -1) {
@@ -283,9 +293,7 @@ export default function AdminDashboardPage() {
           </>
         );
       }
-      // if case-sensitive requested but not found, do not fallback to case-insensitive
     } else {
-      // Case-insensitive attempt
       const lowerText = original.toLowerCase();
       const lowerQuery = q.toLowerCase();
       const idx = lowerText.indexOf(lowerQuery);
@@ -303,11 +311,9 @@ export default function AdminDashboardPage() {
       }
     }
 
-    // Numeric/digits-only fallback (works regardless of caseSensitive flag)
     const queryDigits = digitsOnly(q);
     if (!queryDigits) return original;
 
-    // Build digits-only mapping
     const originalDigitsChars: string[] = [];
     const originalDigitPositions: number[] = [];
     for (let i = 0; i < original.length; i++) {
@@ -422,6 +428,61 @@ export default function AdminDashboardPage() {
   const handleSearchInputChange = (value: string) => {
     setSearchInput(value);
     setSearchQuery(value);
+  };
+
+  // ------------------ CSV generation fallback (client-side) ------------------
+
+  const buildCsvRows = () =>
+    processedDonations.map((d) => ({
+      Donor: d.donorName || "Anonymous",
+      Email: d.donorEmail || "-",
+      Phone: d.donorPhone || "-",
+      Amount: formatAmount(d.amount),
+      Status: "SUCCESS",
+      OrderId: d.orderId || "-",
+      PaymentId: d.paymentId || "-",
+      Created: new Date(d.createdAt).toLocaleString("en-IN"),
+    }));
+
+  const downloadCsvClient = (rows: Record<string, any>[]) => {
+    if (!rows || rows.length === 0) {
+      // still produce header-only CSV
+      const header = ["Donor", "Email", "Phone", "Amount", "Status", "OrderId", "PaymentId", "Created"];
+      const csv = header.join(",") + "\n";
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.setAttribute("download", "donations.csv");
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      return;
+    }
+
+    // escape CSV fields
+    const escape = (v: any) => {
+      if (v === null || v === undefined) return '""';
+      const s = String(v);
+      return '"' + s.replace(/"/g, '""') + '"';
+    };
+
+    const headers = Object.keys(rows[0]);
+    const lines = [headers.map(escape).join(",")];
+    for (const row of rows) {
+      lines.push(headers.map((h) => escape(row[h])).join(","));
+    }
+    const csv = lines.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.setAttribute("download", "donations.csv");
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   // ------------------ UI (kept intact) ------------------
@@ -730,23 +791,28 @@ export default function AdminDashboardPage() {
 
           {/* CSV Download Button */}
           <div className="mt-4 flex justify-end">
-            <CSVLink
-              data={processedDonations.map(d => ({
-                Donor: d.donorName || "Anonymous",
-                Email: d.donorEmail || "-",
-                Phone: d.donorPhone || "-",
-                Amount: formatAmount(d.amount),
-                Status: "SUCCESS",
-                OrderId: d.orderId || "-",
-                PaymentId: d.paymentId || "-",
-                Created: new Date(d.createdAt).toLocaleString("en-IN"),
-              }))}
-              filename={"donations.csv"}
-            >
-              <Button className="bg-blue-500 text-white px-4 py-2 rounded-full">
+            {mounted ? (
+              // when mounted we can safely render the CSVLink (client-only dynamic import)
+              <CSVLink
+                data={buildCsvRows()}
+                filename={"donations.csv"}
+                // pass className to CSVLink's child anchor is not guaranteed; render child Button for consistency
+              >
+                <Button className="bg-blue-500 text-white px-4 py-2 rounded-full">
+                  Download CSV
+                </Button>
+              </CSVLink>
+            ) : (
+              // fallback for the very brief moment before mount: render a simple button that will generate CSV client-side
+              <button
+                onClick={() => downloadCsvClient(buildCsvRows())}
+                className="bg-blue-500 text-white px-4 py-2 rounded-full inline-flex items-center justify-center"
+                aria-label="Download CSV (client fallback)"
+                type="button"
+              >
                 Download CSV
-              </Button>
-            </CSVLink>
+              </button>
+            )}
           </div>
         </section>
       </main>
