@@ -48,6 +48,7 @@ export default function AdminMenuShell({ children }: { children: ReactNode }) {
 
           {/* (Right side of header empty for now, you can add user avatar later) */}
           <div />
+          
         </div>
       </header>
 
