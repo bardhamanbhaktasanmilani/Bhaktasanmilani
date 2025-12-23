@@ -234,18 +234,19 @@ export default function ContactSection() {
 
               {/* Map */}
               <div className="p-1 shadow-lg rounded-2xl bg-gradient-to-r from-orange-500/70 to-amber-500/70">
-                <div className="overflow-hidden bg-gray-200 rounded-2xl h-52 sm:h-60">
-                  <iframe
-                    title="Bhakta Sanmilan Math Location"
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d14663.981320730325!2d87.8423011!3d23.243257000000003!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39f837aa468383e5%3A0xc52f32d1cb7d0504!2sBhakta%20Sanmilan%20Math!5e0!3m2!1sen!2sin!4v1764851118712!5m2!1sen!2sin"
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    allowFullScreen
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
-                </div>
+               <div className="overflow-hidden bg-gray-200 rounded-2xl h-52 sm:h-60">
+  <iframe
+    title="Bhakta Sanmilan Math Location"
+    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3665.985670446713!2d87.83898707588611!3d23.243608508042453!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39f8363ec2137033%3A0x6a2f8d6308e7eac3!2sRB%20Chatterjee%20Rd%2C%20Raiganj%2C%20Bardhaman%2C%20West%20Bengal%20713104!5e0!3m2!1sen!2sin!4v1766492769217!5m2!1sen!2sin"
+    width="100%"
+    height="100%"
+    style={{ border: 0 }}
+    allowFullScreen
+    loading="lazy"
+    referrerPolicy="no-referrer-when-downgrade"
+  />
+</div>
+
               </div>
             </motion.div>
 
