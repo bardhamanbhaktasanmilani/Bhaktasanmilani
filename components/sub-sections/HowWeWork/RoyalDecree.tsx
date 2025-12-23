@@ -8,6 +8,7 @@ type RoyalDecreeProps = {
   description: string;
   date: string;
   time: string;
+  children?: React.ReactNode;
 };
 
 export default function RoyalDecree({
@@ -15,6 +16,7 @@ export default function RoyalDecree({
   description,
   date,
   time,
+  children,
 }: RoyalDecreeProps) {
   const decreeWrapperRef = useRef<HTMLDivElement | null>(null);
   const parchmentRef = useRef<HTMLDivElement | null>(null);
@@ -26,7 +28,6 @@ export default function RoyalDecree({
   const hasOpened = useRef(false);
 
   useEffect(() => {
-    // Initial visual state
     if (decreeWrapperRef.current) decreeWrapperRef.current.style.opacity = "0";
     if (parchmentRef.current) parchmentRef.current.style.height = "40px";
     if (scrollContentRef.current) {
@@ -62,9 +63,9 @@ export default function RoyalDecree({
 
     setIsOpen(true);
 
-    // Measure content to get natural height
+    // Measure content to get natural height (ensure we read scrollHeight)
     const contentHeight = scrollContentRef.current.scrollHeight;
-    const targetHeight = contentHeight + 64; // padding top/bottom approx
+    const targetHeight = Math.min(contentHeight + 64, 520); // keep a sane max so the elastic open stays nice
 
     anime.set(parchmentRef.current, { height: "40px", opacity: 1 });
     anime.set(scrollContentRef.current, { opacity: 0, translateY: -50 });
@@ -129,10 +130,7 @@ export default function RoyalDecree({
           duration: 450,
           easing: "easeInOutSine",
           complete: () => {
-            // allow natural height after animation
-            if (parchmentRef.current) {
-              parchmentRef.current.style.height = "auto";
-            }
+            if (parchmentRef.current) parchmentRef.current.style.height = "auto";
           },
         },
         1600
@@ -140,15 +138,9 @@ export default function RoyalDecree({
   };
 
   return (
-    <div
-      ref={decreeWrapperRef}
-      className="relative w-full max-w-md mx-auto my-8 opacity-0"
-    >
+    <div ref={decreeWrapperRef} className="relative w-full max-w-md mx-auto my-8 opacity-0">
       {/* TOP HANDLE */}
-      <div
-        ref={topHandleRef}
-        className="absolute left-0 right-0 h-6 mx-6 -top-3 z-20"
-      >
+      <div ref={topHandleRef} className="absolute left-0 right-0 h-6 mx-6 -top-3 z-20">
         <div className="w-full h-6 rounded-full bg-gradient-to-r from-amber-900 via-amber-800 to-amber-900 shadow-lg">
           <div className="w-full h-2 mt-2 rounded-full bg-gradient-to-r from-amber-700 to-amber-500 opacity-80" />
         </div>
@@ -174,31 +166,24 @@ export default function RoyalDecree({
           {/* Fancy heading + dividers */}
           <div className="flex items-center justify-center mb-3">
             <span className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
-            <span className="mx-2 text-xs tracking-[0.35em] uppercase text-amber-700">
-              ॐ कार्यक्रम
-            </span>
+            <span className="mx-2 text-xs tracking-[0.35em] uppercase text-amber-700">ॐ कार्यक्रम</span>
             <span className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
           </div>
 
-          <h3 className="text-xl font-semibold text-center text-amber-900 mb-1">
-            {title}
-          </h3>
+          <h3 className="text-xl font-semibold text-center text-amber-900 mb-1">{title}</h3>
 
-          <p className="text-center text-[13px] text-amber-800 mb-4">
-            {date} • {time} hrs
-          </p>
+          <p className="text-center text-[13px] text-amber-800 mb-4">{date} • {time} hrs</p>
 
-          <p className="text-[13px] leading-relaxed text-amber-900/90 whitespace-pre-line">
-            {description}
-          </p>
+          <p className="text-[13px] leading-relaxed text-amber-900/90 whitespace-pre-line">{description}</p>
+
+          {/* Render any children (poster block usually) */}
+          {children}
 
           {/* Ornamental footer */}
           <div className="mt-5">
             <div className="flex items-center justify-center mb-2">
               <span className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
-              <span className="mx-2 text-[11px] text-amber-800">
-                All devotees invited — with love &amp; seva 🙏
-              </span>
+              <span className="mx-2 text-[11px] text-amber-800">All devotees invited — with love &amp; seva 🙏</span>
               <span className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
             </div>
           </div>
@@ -209,10 +194,7 @@ export default function RoyalDecree({
       </div>
 
       {/* BOTTOM HANDLE */}
-      <div
-        ref={bottomHandleRef}
-        className="absolute left-0 right-0 h-6 mx-6 -bottom-3 z-20"
-      >
+      <div ref={bottomHandleRef} className="absolute left-0 right-0 h-6 mx-6 -bottom-3 z-20">
         <div className="w-full h-6 rounded-full bg-gradient-to-r from-amber-900 via-amber-800 to-amber-900 shadow-lg">
           <div className="w-full h-2 rounded-full bg-gradient-to-r from-amber-700 to-amber-500 opacity-80" />
         </div>

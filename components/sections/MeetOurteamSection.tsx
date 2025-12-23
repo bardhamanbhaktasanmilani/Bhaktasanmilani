@@ -1,3 +1,4 @@
+// components/sections/MeetOurteamSection.tsx
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
@@ -109,9 +110,7 @@ export default function MeetOurteamSection() {
     if (!el) return;
 
     const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) setVisible(true);
-      },
+      ([entry]) => entry.isIntersecting && setVisible(true),
       { threshold: 0.2 }
     );
 
@@ -122,7 +121,7 @@ export default function MeetOurteamSection() {
   return (
     <section
       ref={sectionRef}
-      id="team"
+      id="team" // ✅ Navbar: Meet Our Organizers
       className="py-16 bg-gradient-to-br from-orange-50 to-amber-50"
     >
       <div className="max-w-6xl mx-auto px-4">
@@ -142,7 +141,7 @@ export default function MeetOurteamSection() {
         </div>
 
         {/* ---------------------------------
-            TEAM SECTION (UNCHANGED)
+            TEAM SECTION
         ---------------------------------- */}
         <div
           className={`grid md:grid-cols-[1fr_1.4fr] gap-10 transition-all duration-700 ${
@@ -169,7 +168,7 @@ export default function MeetOurteamSection() {
             </p>
             <p className="mt-4 text-gray-700">{selectedMember.bio}</p>
 
-            <div className="grid grid-cols-4 gap-4 mt-8">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
               {teamMembers.map((m) => (
                 <button
                   key={m.id}
@@ -190,11 +189,19 @@ export default function MeetOurteamSection() {
         </div>
 
         {/* ---------------------------------
-            TESTIMONIAL CARDS (NEW)
+            TESTIMONIALS SECTION
+            ✅ REQUIRED ID FOR NAVBAR
         ---------------------------------- */}
-        <div className="mt-24">
-          <h3 className="text-3xl font-bold text-center">Testimonials</h3>
+        <div
+          id="testimonials" // ✅ Navbar submenu anchor
+          className="mt-24 scroll-mt-28"
+        >
+          <h3 className="text-3xl font-bold text-center">
+            Testimonials
+          </h3>
+
           <div className="w-24 h-1 mx-auto mt-3 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full" />
+
           <p className="mt-4 text-center text-gray-600 max-w-xl mx-auto">
             Real voices from people whose lives have been touched by our work.
           </p>
@@ -213,10 +220,8 @@ export default function MeetOurteamSection() {
                 whileHover={{ y: -8 }}
                 className="relative bg-white rounded-3xl shadow-xl p-6 text-center"
               >
-                {/* Wing effect */}
                 <div className="absolute inset-0 -z-10 rounded-3xl bg-gradient-to-br from-orange-100 to-amber-100 blur-xl opacity-60" />
 
-                {/* Photo */}
                 <div className="w-24 h-24 mx-auto rounded-full overflow-hidden ring-4 ring-amber-400 mb-4">
                   <Image
                     src={t.image}
@@ -227,9 +232,10 @@ export default function MeetOurteamSection() {
                   />
                 </div>
 
-                {/* Text */}
                 <h4 className="font-bold text-lg">{t.name}</h4>
-                <p className="text-xs uppercase text-orange-600">{t.role}</p>
+                <p className="text-xs uppercase text-orange-600">
+                  {t.role}
+                </p>
 
                 <p className="mt-4 text-gray-700 text-sm leading-relaxed">
                   “{t.comment}”

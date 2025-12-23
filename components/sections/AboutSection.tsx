@@ -1,23 +1,132 @@
 // components/sections/AboutSection.tsx
 "use client";
 
-import React, { useEffect, useRef, useState, Suspense, useCallback } from "react";
-import { Users, Heart, Globe, Award } from "lucide-react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  Suspense,
+  useCallback,
+  MutableRefObject,
+} from "react";
+import { Users, Heart } from "lucide-react";
 const TempleViewer = React.lazy(() => import("@/components/ui/TempleViewer"));
 import PhotoGallery from "../sub-sections/About/Photo-gallery";
 
-/* ---------- stats data ---------- */
-const stats = [
-  { icon: Users, value: "10,000+", label: "Devotees Connected" },
-  { icon: Heart, value: "₹50L+", label: "Funds Raised" },
-  { icon: Globe, value: "25+", label: "Cities Reached" },
-  { icon: Award, value: "100+", label: "Projects Completed" },
-];
+/* ------------------------ Helpers / Formatting ------------------------ */
 
-/* ---------- user prefers reduced motion ---------- */
 const usePrefersReducedMotion = () =>
   typeof window !== "undefined" &&
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const parseAmount = (raw: any): number => {
+  if (raw == null) return 0;
+  if (typeof raw === "number") return raw;
+  if (typeof raw === "string") {
+    const cleaned = raw.replace(/[^\d.-]/g, "");
+    const n = parseFloat(cleaned);
+    return isNaN(n) ? 0 : Math.round(n);
+  }
+  try {
+    const n = Number(raw);
+    return isNaN(n) ? 0 : Math.round(n);
+  } catch {
+    return 0;
+  }
+};
+
+const formatCompactINR = (value: number) => {
+  try {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      notation: "compact",
+      compactDisplay: "short",
+      maximumFractionDigits: value >= 1000 ? 1 : 0,
+    }).format(value);
+  } catch {
+    return `₹${Math.round(value).toLocaleString("en-IN")}`;
+  }
+};
+
+const formatINRPlain = (value: number) =>
+  new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(value);
+
+/* ------------------------ Animated Number Component ------------------------ */
+
+function AnimatedNumber({
+  value,
+  isCurrency = false,
+  compact = false,
+  duration = 1000,
+  onFinish,
+}: {
+  value: number | null;
+  isCurrency?: boolean;
+  compact?: boolean;
+  duration?: number;
+  onFinish?: () => void;
+}) {
+  const rafRef = useRef<number | null>(null);
+  const startRef = useRef<number | null>(null);
+  const fromRef = useRef<number>(0);
+  const [display, setDisplay] = useState<string>(() => {
+    if (value == null) return "…";
+    if (isCurrency && compact) return formatCompactINR(value);
+    if (isCurrency) return `₹${formatINRPlain(value)}`;
+    return formatINRPlain(value);
+  });
+
+  useEffect(() => {
+    if (value == null) {
+      setDisplay("…");
+      fromRef.current = 0;
+      return;
+    }
+    const to = Math.round(value);
+    const from = fromRef.current || 0;
+    const start = (ts: number) => {
+      startRef.current = ts;
+      const step = (now: number) => {
+        if (startRef.current == null) {
+          return;
+        }
+        const t = Math.min(1, (now - startRef.current) / duration);
+        const curr = Math.round(from + (to - from) * t);
+        if (isCurrency && compact) {
+          setDisplay(formatCompactINR(curr));
+        } else if (isCurrency) {
+          setDisplay(`₹${formatINRPlain(curr)}`);
+        } else {
+          setDisplay(formatINRPlain(curr));
+        }
+        if (t < 1) {
+          rafRef.current = requestAnimationFrame(step);
+        } else {
+          fromRef.current = to;
+          if (onFinish) onFinish();
+        }
+      };
+      rafRef.current = requestAnimationFrame(step);
+    };
+    // cancel ongoing
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    // start
+    requestAnimationFrame(start);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [value, isCurrency, compact, duration, onFinish]);
+
+  return <>{display}</>;
+}
+
+/* ------------------------ Constants for client caching ------------------------ */
+
+const STATS_CACHE_KEY = "bhakta_stats_v1";
+const STATS_TTL_MS = 60 * 1000; // 60s TTL — adjust as desired
+
+/* ------------------------ Component ------------------------ */
 
 const AboutSection: React.FC = () => {
   const sectionRef = useRef<HTMLElement | null>(null);
@@ -27,16 +136,6 @@ const AboutSection: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [visible, setVisible] = useState(false);
 
-  /**
-   * load3D:
-   *  - null = not decided yet (SSR-safe)
-   *  - false = show placeholder (mobile or not allowed)
-   *  - true = render the <TempleViewer />
-   *
-   * userRequested3D: once user manually clicks "Load 3D" we keep the viewer on
-   *
-   * viewerKey: used to force a controlled remount (e.g. on context loss)
-   */
   const [load3D, setLoad3D] = useState<null | boolean>(null);
   const [userRequested3D, setUserRequested3D] = useState(false);
   const [viewerKey, setViewerKey] = useState(0);
@@ -44,32 +143,31 @@ const AboutSection: React.FC = () => {
   const statRefs = useRef<Array<HTMLDivElement | null>>([]);
   const prefersReducedMotion = usePrefersReducedMotion();
 
-  /* ---------- enable 3D only after hydration (and respect user requests) ---------- */
+  /* ---------- Live stats state ---------- */
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [statsError, setStatsError] = useState<string | null>(null);
+  const [devoteesCount, setDevoteesCount] = useState<number | null>(null);
+  const [fundsRaised, setFundsRaised] = useState<number | null>(null);
+  const [isLiveData, setIsLiveData] = useState(false);
+  const [scriptCacheUsed, setScriptCacheUsed] = useState(false);
+
+  /* ---------- 3D viewer mount policy ---------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
-
     const mq = window.matchMedia("(min-width: 768px)");
-    // initial decision: if wide screen, enable by default
     setLoad3D(mq.matches);
-
-    // handler: only disable when user hasn't explicitly requested 3D
     const handler = (e: MediaQueryListEvent) => {
-      // if user already requested 3D, keep it enabled
       if (userRequested3D) {
-        if (e.matches) {
-          setLoad3D(true);
-        }
+        if (e.matches) setLoad3D(true);
         return;
       }
       setLoad3D(e.matches);
     };
-
-    // older browsers might not have addEventListener on MediaQueryList
     if (typeof mq.addEventListener === "function") {
       mq.addEventListener("change", handler);
       return () => mq.removeEventListener("change", handler);
     } else {
-      // fallback
+      // legacy
       // @ts-ignore
       mq.addListener(handler);
       // @ts-ignore
@@ -77,7 +175,7 @@ const AboutSection: React.FC = () => {
     }
   }, [userRequested3D]);
 
-  /* ---------- IntersectionObserver for reveal animation (optimized) ---------- */
+  /* ---------- IntersectionObserver for reveal animation ---------- */
   useEffect(() => {
     const el = sectionRef.current;
     if (!el) return;
@@ -88,17 +186,12 @@ const AboutSection: React.FC = () => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             setVisible(true);
-
-            // animate stats (lightweight, only set style once)
             statRefs.current.forEach((statEl, idx) => {
               if (!statEl) return;
-              statEl.style.transition = `opacity 520ms cubic-bezier(.25,.85,.32,1) ${
-                idx * 120
-              }ms, transform 520ms cubic-bezier(.25,.85,.32,1) ${idx * 120}ms`;
+              statEl.style.transition = `opacity 520ms cubic-bezier(.25,.85,.32,1) ${idx * 120}ms, transform 520ms cubic-bezier(.25,.85,.32,1) ${idx * 120}ms`;
               statEl.style.opacity = "1";
               statEl.style.transform = "translateY(0) scale(1)";
             });
-
             if (!opened && !prefersReducedMotion) {
               opened = true;
               setTimeout(() => setIsOpen(true), 420);
@@ -113,63 +206,47 @@ const AboutSection: React.FC = () => {
     return () => io.disconnect();
   }, [prefersReducedMotion]);
 
-  /* ---------- Preload placeholder image (no-op if already present) ---------- */
+  /* ---------- Preload placeholder image ---------- */
   useEffect(() => {
     if (typeof document === "undefined") return;
     const link = document.createElement("link");
     link.rel = "preload";
     link.as = "image";
-    link.href = "/images/temple-placeholder.jpg";
+    link.href = "/images/temple-placeholder.svg";
     document.head.appendChild(link);
     return () => {
       try {
         document.head.removeChild(link);
-      } catch {
-        // ignore
-      }
+      } catch {}
     };
   }, []);
 
-  /* ---------- handle webglcontextlost to gracefully remount the viewer ---------- */
+  /* ---------- webglcontextlost handlers ---------- */
   useEffect(() => {
     const container = viewerContainerRef.current;
     if (!container) return;
-
     const onContextLost = (e: Event) => {
-      // try to recover: prevent default behaviour and remount the viewer
       try {
         // @ts-ignore
         if (e && typeof e.preventDefault === "function") e.preventDefault();
       } catch {}
-
-      // force a remount: bump viewerKey (small delay to ensure cleanup)
-      setTimeout(() => {
-        setViewerKey((k) => k + 1);
-      }, 60);
+      setTimeout(() => setViewerKey((k) => k + 1), 60);
     };
-
     const onContextRestored = () => {
-      // restore: bump key once to ensure fresh init
-      setTimeout(() => {
-        setViewerKey((k) => k + 1);
-      }, 60);
+      setTimeout(() => setViewerKey((k) => k + 1), 60);
     };
-
     container.addEventListener("webglcontextlost", onContextLost as EventListener, { passive: false, capture: true });
     container.addEventListener("webglcontextrestored", onContextRestored as EventListener, { capture: true });
-
     return () => {
-      container.removeEventListener("webglcontextlost", onContextLost as EventListener, { capture: true } as any);
+      container.removeEventListener("webglcontextlost", onContextLost as EventListener as any);
       container.removeEventListener("webglcontextrestored", onContextRestored as EventListener as any);
     };
   }, [viewerContainerRef.current]);
 
-  /* ---------- visibilitychange: remount on resume if necessary ---------- */
   useEffect(() => {
     if (typeof document === "undefined") return;
     const onVisibility = () => {
       if (document.visibilityState === "visible") {
-        // small remount to ensure GL context reinitializes when tab becomes visible
         setTimeout(() => setViewerKey((k) => k + 1), 80);
       }
     };
@@ -179,18 +256,195 @@ const AboutSection: React.FC = () => {
 
   /* ---------- public actions ---------- */
   const toggleDecree = () => setIsOpen((v) => !v);
-
   const request3D = useCallback(() => {
     setUserRequested3D(true);
     setLoad3D(true);
   }, []);
 
+  /* ---------- Fetch + Client Cache + Live detection ---------- */
+  useEffect(() => {
+    let mounted = true;
+    const fetchAndCompute = async () => {
+      setLoadingStats(true);
+      setStatsError(null);
+      setIsLiveData(false);
+      setScriptCacheUsed(false);
+
+      // try client cache first
+      try {
+        const raw = localStorage.getItem(STATS_CACHE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed?.ts && Date.now() - parsed.ts < STATS_TTL_MS) {
+            if (!mounted) return;
+            setScriptCacheUsed(true);
+            const cached = parsed.data;
+            // cached may be of shape { devotees, funds } or list of donations
+            if (cached && (typeof cached.devotees === "number" || typeof cached.funds === "number")) {
+              setDevoteesCount(typeof cached.devotees === "number" ? cached.devotees : null);
+              setFundsRaised(typeof cached.funds === "number" ? cached.funds : null);
+              setLoadingStats(false);
+              return;
+            }
+            const list = Array.isArray(cached) ? cached : Array.isArray(cached?.donations) ? cached.donations : [];
+            if (list.length) {
+              // compute donors & total
+              const donors = new Set<string>();
+              let total = 0;
+              for (const item of list) {
+                const possibleAmount =
+                  item.amount ||
+                  item.value ||
+                  item.donationAmount ||
+                  item.donation ||
+                  item.amt ||
+                  item.total ||
+                  item.amount_paid ||
+                  item.paid_amount ||
+                  0;
+                total += parseAmount(possibleAmount);
+                const donorKey =
+                  (item.email && String(item.email).trim().toLowerCase()) ||
+                  (item.donor_email && String(item.donor_email).trim().toLowerCase()) ||
+                  (item.name && String(item.name).trim()) ||
+                  (item.donorId && String(item.donorId)) ||
+                  (item.id && String(item.id)) ||
+                  JSON.stringify({ maybeName: item.name, maybeEmail: item.email }).slice(0, 200);
+                if (donorKey) donors.add(donorKey);
+              }
+              if (!mounted) return;
+              setDevoteesCount(donors.size);
+              setFundsRaised(total);
+              setLoadingStats(false);
+              return;
+            }
+          } else {
+            // stale or not present, continue to network fetch
+          }
+        }
+      } catch (e) {
+        // ignore cache errors
+      }
+
+      // Preferred endpoints order
+      const endpoints = ["/api/stats", "/api/admin/donations", "/api/donations", "/api/donations/list"];
+      for (const ep of endpoints) {
+        try {
+          const res = await fetch(ep, { credentials: "include" });
+          if (!res.ok) {
+            // try next
+            continue;
+          }
+          const data = await res.json();
+
+          // if /api/stats-like response with explicit fields
+          if (data && (typeof data.devotees === "number" || typeof data.funds === "number")) {
+            if (!mounted) return;
+            setDevoteesCount(typeof data.devotees === "number" ? data.devotees : null);
+            setFundsRaised(typeof data.funds === "number" ? data.funds : null);
+            setIsLiveData(ep === "/api/stats"); // true if directly from aggregator
+            setLoadingStats(false);
+            // cache the raw data
+            try {
+              localStorage.setItem(STATS_CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
+            } catch {}
+            return;
+          }
+
+          // otherwise expect array or { donations: [...] }
+          const list: any[] = Array.isArray(data) ? data : Array.isArray(data?.donations) ? data.donations : [];
+
+          if (!list.length) {
+            // try next endpoint
+            continue;
+          }
+
+          const donors = new Set<string>();
+          let total = 0;
+          for (const item of list) {
+            const possibleAmount =
+              item.amount ||
+              item.value ||
+              item.donationAmount ||
+              item.donation ||
+              item.amt ||
+              item.total ||
+              item.amount_paid ||
+              item.paid_amount ||
+              0;
+            total += parseAmount(possibleAmount);
+            const donorKey =
+              (item.email && String(item.email).trim().toLowerCase()) ||
+              (item.donor_email && String(item.donor_email).trim().toLowerCase()) ||
+              (item.name && String(item.name).trim()) ||
+              (item.donorId && String(item.donorId)) ||
+              (item.id && String(item.id)) ||
+              JSON.stringify({ maybeName: item.name, maybeEmail: item.email }).slice(0, 200);
+            if (donorKey) donors.add(donorKey);
+          }
+
+          if (!mounted) return;
+          setDevoteesCount(donors.size);
+          setFundsRaised(total);
+          setIsLiveData(false); // computed from lists, not aggregator
+          setLoadingStats(false);
+          // cache
+          try {
+            localStorage.setItem(STATS_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: list }));
+          } catch {}
+          return;
+        } catch (err) {
+          // continue to next endpoint
+          continue;
+        }
+      }
+
+      // all failed
+      if (mounted) {
+        setLoadingStats(false);
+        setStatsError("Unable to load donation stats — showing approximate values.");
+        setDevoteesCount(null);
+        setFundsRaised(null);
+      }
+    };
+
+    fetchAndCompute();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  /* ------------------------ Build stats list and hide zeros ------------------------ */
+  const computedDevotees = devoteesCount;
+  const computedFunds = fundsRaised;
+
+  const statsToRenderRaw = [
+    {
+      icon: Users,
+      value: computedDevotees,
+      label: "Devotees Connected",
+      isCurrency: false,
+      compact: false,
+    },
+    {
+      icon: Heart,
+      value: computedFunds,
+      label: "Funds Raised",
+      isCurrency: true,
+      compact: true,
+    },
+  ];
+
+  // hide numeric zeros automatically, but keep placeholders ("…" or null) visible while loading
+  const statsToRender = statsToRenderRaw.filter((s) => {
+    // if numeric 0 -> hide
+    if (typeof s.value === "number" && s.value === 0) return false;
+    return true;
+  });
+
+  /* ------------------------ Render ------------------------ */
   return (
-    <section
-      id="about"
-      ref={sectionRef}
-      className="py-16 sm:py-20 bg-gradient-to-br from-orange-50 to-amber-50"
-    >
+    <section id="about" ref={sectionRef} className="py-16 sm:py-20 bg-gradient-to-br from-orange-50 to-amber-50">
       <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
         {/* Header */}
         <header className="mb-8 text-center">
@@ -217,7 +471,6 @@ const AboutSection: React.FC = () => {
                   display: "flex",
                 }}
               >
-                {/* Consistent fallback area to avoid layout shift */}
                 {load3D === null && (
                   <div className="w-full h-full flex items-center justify-center text-sm text-gray-400">
                     Loading…
@@ -227,7 +480,7 @@ const AboutSection: React.FC = () => {
                 {load3D === false && (
                   <div className="w-full h-full flex flex-col items-center justify-center p-4">
                     <img
-                      src="/images/temple-placeholder.jpg"
+                      src="/images/temple-placeholder.svg"
                       alt="Temple"
                       width={1600}
                       height={900}
@@ -250,7 +503,6 @@ const AboutSection: React.FC = () => {
                       </div>
                     }
                   >
-                    {/* viewerKey forces a controlled remount when bumped */}
                     <div key={`temple-viewer-${viewerKey}`} style={{ width: "100%", height: "100%" }}>
                       <TempleViewer />
                     </div>
@@ -259,6 +511,7 @@ const AboutSection: React.FC = () => {
               </div>
             </div>
 
+            <br />
             {/* ROYAL DECREE — BELOW THE VIEWER */}
             <div className="w-full flex justify-center">
               <div className="relative w-full max-w-3xl">
@@ -294,7 +547,6 @@ const AboutSection: React.FC = () => {
                       transition: "opacity 420ms ease, transform 420ms ease",
                     }}
                   >
-                    {/* Custom Scrollbar */}
                     <style>{`
                       #decree-content::-webkit-scrollbar { width: 8px; }
                       #decree-content::-webkit-scrollbar-track { background: #fbe8c2; border-radius: 4px; }
@@ -302,20 +554,18 @@ const AboutSection: React.FC = () => {
                       #decree-content::-webkit-scrollbar-thumb:hover { background: #92400e; }
                     `}</style>
 
-                    {/* Content */}
                     <div className="space-y-4 font-serif text-amber-900">
                       <h3 className="text-2xl text-center sm:text-3xl font-bold">Compassion & Purpose ॐ</h3>
 
                       <p className="leading-relaxed text-[15px] sm:text-base">
-                        Bardhaman Bhakta Sanmilani is committed to uplifting society through
-                        cultural, moral, social, and spiritual development built upon compassion,
-                        service, and collective responsibility.
+                        Bardhaman Bhakta Sanmilani is committed to uplifting society through cultural, moral, social,
+                        and spiritual development built upon compassion, service, and collective responsibility.
                       </p>
 
                       <p className="leading-relaxed text-[15px] sm:text-base">
-                        Our efforts support the elderly, empower the underprivileged, promote
-                        education, expand medical care, encourage yoga, and uplift women through
-                        self-reliance programs cultivating harmony and human values.
+                        Our efforts support the elderly, empower the underprivileged, promote education, expand medical
+                        care, encourage yoga, and uplift women through self-reliance programs cultivating harmony and
+                        human values.
                       </p>
 
                       <h4 className="font-bold text-lg pt-2">Our Core Objectives:</h4>
@@ -332,9 +582,9 @@ const AboutSection: React.FC = () => {
                       </ul>
 
                       <p className="leading-relaxed text-[15px] sm:text-base pt-2">
-                        To strengthen these initiatives, we are developing essential infrastructure —
-                        including a community hall and the <b>largest Krishna Temple in Purba Bardhaman</b>.
-                        With collective support, we aim to build a society rooted in dignity, harmony, and shared values.
+                        To strengthen these initiatives, we are developing essential infrastructure — including a
+                        community hall and the <b>largest Krishna Temple in Purba Bardhaman</b>. With collective support,
+                        we aim to build a society rooted in dignity, harmony, and shared values.
                       </p>
                     </div>
                   </div>
@@ -355,10 +605,32 @@ const AboutSection: React.FC = () => {
             </div>
           </div>
 
-          {/* Stats Section */}
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6 my-8">
-            {stats.map((stat, index) => {
-              const Icon = stat.icon;
+          <br />
+
+          {/* Stats Section header with live badge */}
+          <div className="flex items-center justify-center mb-3">
+            <div className="inline-flex items-center gap-3">
+              <h3 className="text-lg font-semibold text-gray-700">Community Stats</h3>
+              {isLiveData && !loadingStats && (
+                <span className="inline-flex items-center gap-2 px-2 py-0.5 text-xs font-medium text-emerald-800 bg-emerald-100 rounded-full">
+                  <span className="w-2 h-2 rounded-full bg-emerald-600 inline-block" />
+                  Live
+                </span>
+              )}
+              {scriptCacheUsed && !isLiveData && (
+                <span className="px-2 py-0.5 text-xs text-gray-700 bg-gray-100 rounded-full">cached</span>
+              )}
+            </div>
+          </div>
+
+          {/* Stats grid */}
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-2 md:gap-6 my-8">
+            {statsToRender.length === 0 && !loadingStats ? (
+              <div className="col-span-2 text-center text-sm text-gray-500">No community stats to display.</div>
+            ) : null}
+
+            {statsToRender.map((stat, index) => {
+              const Icon = stat.icon as React.ComponentType<any>;
               return (
                 <div
                   key={index}
@@ -371,12 +643,34 @@ const AboutSection: React.FC = () => {
                   <div className="w-12 h-12 mx-auto mb-3 flex items-center justify-center rounded-full bg-gradient-to-br from-orange-100 to-amber-100 shadow-inner">
                     <Icon className="w-6 h-6 text-orange-600" />
                   </div>
-                  <h4 className="text-2xl font-bold">{stat.value}</h4>
+
+                  <h4 className="text-2xl font-bold">
+                    {loadingStats && stat.value == null ? (
+                      "…"
+                    ) : typeof stat.value === "number" ? (
+                      // If currency + compact, animate numeric then show compact formatting
+                      stat.isCurrency ? (
+                        <AnimatedNumber value={stat.value ?? 0} isCurrency compact duration={1200} />
+                      ) : (
+                        <AnimatedNumber value={stat.value ?? 0} duration={1000} />
+                      )
+                    ) : (
+                      "…"
+                    )}
+                  </h4>
+
                   <p className="text-sm text-gray-600">{stat.label}</p>
                 </div>
               );
             })}
           </div>
+
+          {/* display error note if fetch failed */}
+          {statsError && (
+            <div className="text-sm text-center text-rose-600 mb-4">
+              {statsError} (inspect <code>/api/stats</code> or <code>/api/admin/donations</code>)
+            </div>
+          )}
         </main>
 
         <PhotoGallery />

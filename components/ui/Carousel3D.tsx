@@ -6,8 +6,18 @@ type ImgItem = { src: string; alt?: string; title?: string; subtitle?: string };
 
 export default function Carousel3D({
   images = [
-    { src: "/about/guardians.jpg", alt: "Guardians Of The Galaxy", title: "Guardians Of The Galaxy", subtitle: "A group of intergalactic criminals..." },
-    { src: "/about/thor.jpg", alt: "Thor: Ragnarok", title: "Thor: Ragnarok", subtitle: "Imprisoned on the planet Sakaar..." },
+    {
+      src: "/about/guardians.jpg",
+      alt: "Guardians Of The Galaxy",
+      title: "Guardians Of The Galaxy",
+      subtitle: "A group of intergalactic criminals...",
+    },
+    {
+      src: "/about/thor.jpg",
+      alt: "Thor: Ragnarok",
+      title: "Thor: Ragnarok",
+      subtitle: "Imprisoned on the planet Sakaar...",
+    },
     { src: "/about/batman.jpg", alt: "Batman", title: "Batman", subtitle: "Dark knight protects the city..." },
     { src: "/about/spiderman.jpg", alt: "Spiderman", title: "Spiderman", subtitle: "Friendly neighbourhood hero..." },
     { src: "/about/wonder.jpg", alt: "Wonder Woman", title: "Wonder Woman", subtitle: "Amazonian warrior princess..." },
@@ -19,11 +29,21 @@ export default function Carousel3D({
   autoplay?: boolean;
   autoplayDelay?: number;
 }) {
-  const count = images.length;
+  const count = (images || []).length;
   const [index, setIndex] = useState(0);
   const autoplayRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  // ready -> true after mount to avoid initial transition "flash"
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    // small tick to enable transitions after initial paint
+    const id = window.setTimeout(() => setReady(true), 50);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  // keyboard handlers
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "ArrowLeft") prev();
@@ -37,15 +57,32 @@ export default function Carousel3D({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Autoplay control (only depends on autoplay, delay, count)
   useEffect(() => {
-    if (!autoplay) return;
-    if (autoplayRef.current) window.clearInterval(autoplayRef.current);
-    autoplayRef.current = window.setInterval(() => next(), autoplayDelay);
+    if (autoplayRef.current) {
+      window.clearInterval(autoplayRef.current);
+      autoplayRef.current = null;
+    }
+
+    if (!autoplay || count <= 1) return;
+
+    autoplayRef.current = window.setInterval(() => {
+      setIndex((s) => (s + 1) % count);
+    }, autoplayDelay);
+
     return () => {
-      if (autoplayRef.current) window.clearInterval(autoplayRef.current);
+      if (autoplayRef.current) {
+        window.clearInterval(autoplayRef.current);
+        autoplayRef.current = null;
+      }
     };
+  }, [autoplay, autoplayDelay, count]);
+
+  // clamp index when images change
+  useEffect(() => {
+    if (index >= count) setIndex(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index, autoplay, autoplayDelay]);
+  }, [count]);
 
   function prev() {
     setIndex((s) => (s - 1 + count) % count);
@@ -54,7 +91,7 @@ export default function Carousel3D({
     setIndex((s) => (s + 1) % count);
   }
   function goTo(i: number) {
-    setIndex(i % count);
+    setIndex(((i % count) + count) % count);
   }
 
   function cardStyleFor(pos: number, total: number) {
@@ -80,6 +117,7 @@ export default function Carousel3D({
       transform: `translateX(${x}px) translateZ(${z}px) translateY(${translateY}px) rotateY(${rotY}deg) scale(${scale})`,
       zIndex,
       opacity,
+      // allow the arrow to receive pointer events above cards by setting lower pointer events for non-center if needed
     } as React.CSSProperties;
   }
 
@@ -97,17 +135,21 @@ export default function Carousel3D({
           position: relative;
           perspective: 1800px;
           user-select: none;
+          overflow: visible; /* ensure arrows are visible and not clipped */
         }
 
+        /* We only enable stage/card transitions when data-ready="true" to avoid initial jump */
         .stage {
           width: 100%;
           height: 380px; /* increased */
           position: relative;
           transform-style: preserve-3d;
-          transition: transform 600ms cubic-bezier(.2,.8,.2,1);
           display: flex;
           align-items: center;
           justify-content: center;
+        }
+        .stage[data-ready="true"] {
+          transition: transform 600ms cubic-bezier(.2,.8,.2,1);
         }
 
         .card {
@@ -117,7 +159,6 @@ export default function Carousel3D({
           border-radius: 12px;
           overflow: hidden;
           box-shadow: 0 22px 70px rgba(0,0,0,0.6);
-          transition: transform 700ms cubic-bezier(.2,.8,.2,1), opacity 380ms ease, filter 380ms ease;
           background: #0b0b0b;
           display: flex;
           align-items: flex-end;
@@ -127,14 +168,21 @@ export default function Carousel3D({
           will-change: transform, opacity;
         }
 
+        /* apply transitions for card only when ready to avoid initial animation */
+        .card[data-ready="true"] {
+          transition: transform 700ms cubic-bezier(.2,.8,.2,1), opacity 380ms ease, filter 380ms ease;
+        }
+
         .card .image {
           position: absolute;
           inset: 0;
           background-size: cover;
           background-position: center;
           filter: saturate(0.98) contrast(1.02);
-          transition: transform 700ms cubic-bezier(.2,.8,.2,1);
           transform-origin: center;
+        }
+        .card[data-ready="true"] .image {
+          transition: transform 700ms cubic-bezier(.2,.8,.2,1);
         }
 
         .card .overlay {
@@ -178,6 +226,7 @@ export default function Carousel3D({
           box-shadow: 0 6px 60px rgba(255,255,255,0.03) inset, 0 20px 80px rgba(0,0,0,0.45);
         }
 
+        /* Arrows: ensure they are above everything and clickable */
         .arrow {
           width: 64px;
           height: 64px;
@@ -193,11 +242,22 @@ export default function Carousel3D({
           cursor: pointer;
           transition: transform 160ms ease, background 160ms ease;
           box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+          z-index: 99999; /* very high so cards don't intercept clicks */
+          pointer-events: auto; /* ensure arrows receive clicks */
         }
-        .arrow:hover { transform: translateY(-50%) scale(1.06); background: rgba(255,255,255,0.07); }
+        .arrow:hover {
+          transform: translateY(-50%) scale(1.06);
+          background: rgba(255,255,255,0.07);
+        }
 
-        .arrow.left { left: -88px; }
-        .arrow.right { right: -88px; }
+        /* push them slightly toward ends by moving outward (negative offsets)
+           since container uses overflow: visible */
+        .arrow.left {
+          left: -22px;
+        }
+        .arrow.right {
+          right: -22px;
+        }
 
         .chev {
           width: 20px;
@@ -206,7 +266,9 @@ export default function Carousel3D({
           border-bottom: 2.5px solid rgba(255,255,255,0.95);
           transform: rotate(-45deg);
         }
-        .arrow.right .chev { transform: rotate(135deg); }
+        .arrow.right .chev {
+          transform: rotate(135deg);
+        }
 
         .dots {
           position: absolute;
@@ -227,30 +289,77 @@ export default function Carousel3D({
           cursor: pointer;
           transition: transform 140ms ease, background 140ms ease, opacity 120ms;
         }
-        .dot.active { transform: scale(1.28); background: rgba(255,255,255,0.95); }
+        .dot.active {
+          transform: scale(1.28);
+          background: rgba(255,255,255,0.95);
+        }
 
         @media (max-width: 1200px) {
-          .carousel-wrap { max-width: 980px; height: 460px; }
-          .stage { height: 340px; }
-          .card { width: 520px; height: 320px; }
-          .arrow.left { left: -68px; } .arrow.right { right: -68px; }
+          .carousel-wrap {
+            max-width: 980px;
+            height: 460px;
+          }
+          .stage {
+            height: 340px;
+          }
+          .card {
+            width: 520px;
+            height: 320px;
+          }
+          .arrow.left {
+            left: -14px;
+          }
+          .arrow.right {
+            right: -14px;
+          }
         }
 
         @media (max-width: 900px) {
-          .carousel-wrap { max-width: 820px; height: 420px; }
-          .stage { height: 320px; }
-          .card { width: 460px; height: 300px; }
-          .arrow.left { left: -56px; } .arrow.right { right: -56px; }
+          .carousel-wrap {
+            max-width: 820px;
+            height: 420px;
+          }
+          .stage {
+            height: 320px;
+          }
+          .card {
+            width: 460px;
+            height: 300px;
+          }
+          .arrow.left {
+            left: -10px;
+          }
+          .arrow.right {
+            right: -10px;
+          }
         }
 
         @media (max-width: 640px) {
-          .carousel-wrap { max-width: 100%; padding: 0 18px; height: 320px; }
-          .stage { height: 260px; }
-          .card { width: 360px; height: 240px; }
-          .arrow { display: none; }
-          .card .overlay { padding: 12px; }
-          .title { font-size: 16px; }
-          .subtitle { font-size: 12px; max-width: 100%; }
+          .carousel-wrap {
+            max-width: 100%;
+            padding: 0 18px;
+            height: 320px;
+          }
+          .stage {
+            height: 260px;
+          }
+          .card {
+            width: 360px;
+            height: 240px;
+          }
+          .arrow {
+            display: none;
+          }
+          .card .overlay {
+            padding: 12px;
+          }
+          .title {
+            font-size: 16px;
+          }
+          .subtitle {
+            font-size: 12px;
+            max-width: 100%;
+          }
         }
       `}</style>
 
@@ -263,14 +372,29 @@ export default function Carousel3D({
         onMouseLeave={() => {
           if (!autoplay) return;
           if (autoplayRef.current) window.clearInterval(autoplayRef.current);
-          autoplayRef.current = window.setInterval(() => next(), autoplayDelay);
+          autoplayRef.current = window.setInterval(() => {
+            setIndex((s) => (s + 1) % count);
+          }, autoplayDelay);
         }}
       >
-        <div className="arrow left" onClick={prev} aria-label="previous">
+        <div
+          className="arrow left"
+          onClick={(e) => {
+            e.stopPropagation();
+            prev();
+          }}
+          aria-label="previous"
+          role="button"
+          title="Previous"
+        >
           <span className="chev" />
         </div>
 
-        <div className="stage" aria-hidden={false}>
+        <div
+          className="stage"
+          aria-hidden={false}
+          data-ready={ready ? "true" : "false"}
+        >
           {images.map((it, i) => {
             const style = cardStyleFor(i, count);
             const isCenter = i === index;
@@ -282,10 +406,16 @@ export default function Carousel3D({
                 onClick={() => goTo(i)}
                 role="button"
                 aria-label={it.alt || `slide-${i}`}
+                data-ready={ready ? "true" : "false"}
               >
                 <div
                   className="image"
-                  style={{ backgroundImage: `url(${it.src})` }}
+                  style={{
+                    backgroundImage: `url(${it.src})`,
+                    // ensure the image element isn't intercepting arrow clicks: allow pointer-events none
+                    pointerEvents: "none",
+                  }}
+                  aria-hidden
                 />
                 <div className="overlay">
                   <div className="title">{it.title || it.alt || ""}</div>
@@ -296,7 +426,16 @@ export default function Carousel3D({
           })}
         </div>
 
-        <div className="arrow right" onClick={next} aria-label="next">
+        <div
+          className="arrow right"
+          onClick={(e) => {
+            e.stopPropagation();
+            next();
+          }}
+          aria-label="next"
+          role="button"
+          title="Next"
+        >
           <span className="chev" />
         </div>
 

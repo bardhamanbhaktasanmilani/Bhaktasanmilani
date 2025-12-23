@@ -1,3 +1,4 @@
+// components/sections/HowWeWorkSection.tsx
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
@@ -75,10 +76,14 @@ const causes = [
 
 /* ----------------------------------------------------
    COMPONENT
+   - Adds anchor id "events"
+   - Emits & listens for navigation events to open EventsSection
+   - Preserves all original animations & layout
 ---------------------------------------------------- */
 
 export default function HowWeWorkSection() {
   const sectionRef = useRef<HTMLDivElement | null>(null);
+  const eventsAnchorRef = useRef<HTMLDivElement | null>(null);
 
   // Track reveal of each step
   const [visible, setVisible] = useState<boolean[]>(
@@ -112,6 +117,87 @@ export default function HowWeWorkSection() {
     );
 
     observer.observe(target);
+    return () => observer.disconnect();
+  }, []);
+
+  /* -------------------------------
+     Hash + custom-event navigation
+     - Navbar uses href="#events" to jump to the events anchor.
+     - We also listen for custom events so the navbar (or other code)
+       can dispatch programmatic navigation:
+         window.dispatchEvent(new CustomEvent("nav:gotoEvents"));
+       OR
+         window.dispatchEvent(new CustomEvent("howwework:navigate", { detail: { section: 'events' } }));
+     - When received we will:
+       1) scrollIntoView the events anchor
+       2) dispatch a custom event 'howwework:open' so EventsSection (if it listens) can open specific content/panels.
+  --------------------------------*/
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const scrollToEvents = (detail?: any) => {
+      const el = document.getElementById("events");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        // small delay for DOM painting and for EventsSection to attach its listeners
+        setTimeout(() => {
+          window.dispatchEvent(
+            new CustomEvent("howwework:navigate", { detail: detail || {} })
+          );
+          // legacy/fallback event name so other parts can listen easily
+          window.dispatchEvent(
+            new CustomEvent("howwework:open", { detail: detail || {} })
+          );
+        }, 160);
+      }
+    };
+
+    const onHash = () => {
+      try {
+        const h = location.hash.replace("#", "");
+        // If user used #events or #events/someSub we trigger open
+        if (h === "events" || h.startsWith("events/")) {
+          const parts = h.split("/");
+          const section = parts[1] || null;
+          scrollToEvents(section ? { section } : {});
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+
+    // custom event listeners
+    const navGotoEvents = () => scrollToEvents({});
+    const howWeWorkNavigate = (e: Event) => {
+      const d = (e as CustomEvent).detail || {};
+      scrollToEvents(d);
+    };
+
+    window.addEventListener("nav:gotoEvents", navGotoEvents as EventListener);
+    window.addEventListener(
+      "howwework:navigate",
+      howWeWorkNavigate as EventListener
+    );
+    window.addEventListener("howwework:open", howWeWorkNavigate as EventListener);
+
+    // react to direct hash changes
+    window.addEventListener("hashchange", onHash);
+
+    // run once on mount (in case page loaded with #events)
+    setTimeout(onHash, 40);
+
+    return () => {
+      window.removeEventListener("nav:gotoEvents", navGotoEvents as EventListener);
+      window.removeEventListener(
+        "howwework:navigate",
+        howWeWorkNavigate as EventListener
+      );
+      window.removeEventListener(
+        "howwework:open",
+        howWeWorkNavigate as EventListener
+      );
+      window.removeEventListener("hashchange", onHash);
+    };
   }, []);
 
   return (
@@ -119,13 +205,12 @@ export default function HowWeWorkSection() {
       id="how-we-work"
       className="py-20 bg-gradient-to-br from-orange-50 to-amber-50"
       ref={sectionRef}
+      aria-labelledby="howwework-heading"
     >
       <div className="max-w-7xl px-4 mx-auto sm:px-6 lg:px-8">
-        {/* -------------------------------------------- */}
         {/* HEADING */}
-        {/* -------------------------------------------- */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          <h2 id="howwework-heading" className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             How We{" "}
             <span className="text-transparent bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text">
               Work
@@ -135,17 +220,14 @@ export default function HowWeWorkSection() {
           <div className="h-1 w-24 mx-auto mb-6 bg-gradient-to-r from-orange-600 to-amber-600" />
 
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Our systematic approach ensures every donation creates maximum
-            impact.
+            Our systematic approach ensures every donation creates maximum impact.
           </p>
         </div>
 
-        {/* -------------------------------------------- */}
         {/* TIMELINE (ZIG-ZAG) */}
-        {/* -------------------------------------------- */}
         <div className="relative max-w-5xl mx-auto mb-20">
           {/* Center spine (desktop only) */}
-          <div className="hidden lg:block absolute inset-y-6 left-1/2 w-px -translate-x-1/2 border-l-2 border-dashed border-orange-300/70"></div>
+          <div className="hidden lg:block absolute inset-y-6 left-1/2 w-px -translate-x-1/2 border-l-2 border-dashed border-orange-300/70" />
 
           <div className="space-y-14">
             {steps.map((step, index) => {
@@ -180,9 +262,7 @@ export default function HowWeWorkSection() {
           </div>
         </div>
 
-        {/* -------------------------------------------- */}
         {/* FOCUS AREAS */}
-        {/* -------------------------------------------- */}
         <div className="mb-16">
           <h3 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-12">
             Our Focus Areas
@@ -200,29 +280,19 @@ export default function HowWeWorkSection() {
                   <cause.icon className="w-8 h-8 text-white" />
                 </div>
 
-                <h4 className="text-xl font-bold text-gray-900 mb-3">
-                  {cause.title}
-                </h4>
-                <p className="text-gray-600 leading-relaxed">
-                  {cause.description}
-                </p>
+                <h4 className="text-xl font-bold text-gray-900 mb-3">{cause.title}</h4>
+                <p className="text-gray-600 leading-relaxed">{cause.description}</p>
               </div>
             ))}
           </div>
         </div>
 
-        {/* -------------------------------------------- */}
         {/* TRANSPARENCY BLOCK */}
-        {/* -------------------------------------------- */}
         <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white p-8 md:p-12 rounded-3xl text-center">
-          <h3 className="text-3xl md:text-4xl font-bold mb-4">
-            Transparency & Accountability
-          </h3>
+          <h3 className="text-3xl md:text-4xl font-bold mb-4">Transparency & Accountability</h3>
 
           <p className="max-w-3xl mx-auto text-xl mb-8 opacity-95">
-            We maintain complete transparency in our operations. Regular reports
-            and updates ensure you know exactly how your contributions are
-            making a difference.
+            We maintain complete transparency in our operations. Regular reports and updates ensure you know exactly how your contributions are making a difference.
           </p>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto text-white">
@@ -232,10 +302,13 @@ export default function HowWeWorkSection() {
           </div>
         </div>
 
-        {/* -------------------------------------------- */}
         {/* EVENTS SECTION */}
-        {/* -------------------------------------------- */}
-        <div className="mt-20">
+        <div className="mt-20" id="events" ref={eventsAnchorRef} aria-labelledby="events-heading">
+          {/* Put an H4 heading anchor so navbar can jump and screen readers can detect */}
+          <h3 id="events-heading" className="sr-only">Events</h3>
+
+          {/* EventsSection should listen for 'howwework:navigate' or 'howwework:open' to open a particular panel.
+              We dispatch those events from the top-level listeners above when the user navigates via the navbar. */}
           <EventsSection />
         </div>
       </div>
@@ -244,7 +317,7 @@ export default function HowWeWorkSection() {
 }
 
 /* ----------------------------------------------------
-   SUB COMPONENTS
+   SUB COMPONENTS (unchanged visuals, same behavior)
 ---------------------------------------------------- */
 
 // Timeline center node
@@ -275,9 +348,7 @@ function StepCard({
   return (
     <div
       className={`relative max-w-md transition-all duration-700 ease-out ${
-        show
-          ? "opacity-100 translate-y-0 scale-100"
-          : "opacity-0 translate-y-6 scale-95"
+        show ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-6 scale-95"
       }`}
     >
       {/* connector */}
@@ -301,9 +372,7 @@ function StepCard({
             </div>
 
             <h3 className="text-xl font-bold text-gray-900">{step.title}</h3>
-            <p className="text-gray-600 mt-1 leading-relaxed">
-              {step.description}
-            </p>
+            <p className="text-gray-600 mt-1 leading-relaxed">{step.description}</p>
           </div>
         </div>
       </div>

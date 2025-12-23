@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// GET /api/events  → list only upcoming events
+// GET /api/events → list only upcoming events
 export async function GET() {
   try {
     const now = new Date();
@@ -27,13 +27,15 @@ export async function GET() {
   }
 }
 
+// POST /api/events → create event (with optional poster)
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { title, description, dateTime } = body as {
+    const { title, description, dateTime, posterUrl } = body as {
       title?: string;
       description?: string;
       dateTime?: string;
+      posterUrl?: string;
     };
 
     if (!title || !description || !dateTime) {
@@ -56,6 +58,7 @@ export async function POST(req: Request) {
         title,
         description,
         date: eventDate,
+        posterUrl: posterUrl ?? null,
       },
     });
 

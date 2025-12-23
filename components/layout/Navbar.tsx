@@ -1,272 +1,437 @@
+// components/ui/Navbar.tsx
 "use client";
 
 import React, {
-  useState,
   useEffect,
   useRef,
-  type MouseEvent,
-  type KeyboardEvent,
+  useState,
+  type MouseEvent as ReactMouseEvent,
 } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ChevronDown, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
-export default function Navbar() {
+
+
+/* ---------- small helper ---------- */
+const cn = (...parts: Array<string | false | null | undefined>) =>
+  parts.filter(Boolean).join(" ");
+
+export default function Navbar(): JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  // For animating the drawer AFTER it mounts
-  const [drawerAnimatedIn, setDrawerAnimatedIn] = useState(false);
+  /* Desktop dropdown */
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  /* Desktop side submenu */
+  const [openSideMenu, setOpenSideMenu] = useState<string | null>(null);
+  /* Mobile accordion expansion state */
+  const [mobileOpen, setMobileOpen] = useState<Record<string, boolean>>({});
 
-  // refs for accessibility
-  const firstLinkRef = useRef<HTMLAnchorElement | null>(null);
+  const navRef = useRef<HTMLDivElement | null>(null);
+  const mobileCloseBtnRef = useRef<HTMLButtonElement | null>(null);
 
+  /* ---------------- scroll detection ---------------- */
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const navLinks = [
+  /* ---------------- outside click closes menus ---------------- */
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (!navRef.current) return;
+      if (!navRef.current.contains(e.target as Node)) {
+        setOpenDropdown(null);
+        setOpenSideMenu(null);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  /* ---------------- close on Escape ---------------- */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsOpen(false);
+        setOpenDropdown(null);
+        setOpenSideMenu(null);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  /* ---------------- smooth scroll helper (preserves behavior) ---------------- */
+  const scrollToSection = (e: ReactMouseEvent<HTMLAnchorElement> | React.MouseEvent, href: string) => {
+    if (!href.startsWith("#")) {
+      // normal link (external / page nav)
+      return;
+    }
+    e.preventDefault();
+
+    const el = document.querySelector(href) as HTMLElement | null;
+    if (!el) return;
+
+    const offset = 80; // header offset
+    const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
+    window.scrollTo({ top: y, behavior: "smooth" });
+
+    // close menus on navigation
+    setIsOpen(false);
+    setOpenDropdown(null);
+    setOpenSideMenu(null);
+  };
+
+  /* ---------------- nav structure (unchanged) ---------------- */
+  const nav = [
     { name: "Home", href: "#home" },
-    { name: "About", href: "#about" },
-    { name: "How We Work", href: "#how-we-work" },
+
+    {
+      name: "About",
+      children: [
+        {
+          name: "Gallery",
+          key: "gallery",
+          children: [
+            { name: "Religion", href: "#gallery-religion" },
+            { name: "Yoga Classes", href: "#gallery-yoga" },
+            { name: "Covid Reliefs", href: "#gallery-covid" },
+          ],
+        },
+      ],
+    },
+
+    {
+      name: "How We Work",
+      children: [{ name: "Events", href: "#events" }],
+    },
+
     { name: "Donate", href: "#donate" },
-    { name: "MeetTeam", href: "#team" },
+
+    {
+      name: "Meet Our Organizers",
+      children: [{ name: "Testimonials", href: "#testimonials" }],
+    },
+
     { name: "Contact Us", href: "#contact" },
   ];
 
-  const scrollToSection = (e: MouseEvent<HTMLAnchorElement>, href: string) => {
-    if (!href.startsWith("#")) return;
-    e.preventDefault();
-    const element = document.querySelector(href);
-    if (element) {
-      const offset = 80;
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - offset;
+  const linkColor = scrolled ? "text-gray-900" : "text-white";
 
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: "smooth",
-      });
-      setIsOpen(false);
-    }
+  /* ---------------- animation variants ---------------- */
+  const dropdownVariant = {
+    hidden: { opacity: 0, y: -6, scale: 0.98 },
+    visible: { opacity: 1, y: 0, scale: 1 },
+    exit: { opacity: 0, y: -6, scale: 0.98 },
   };
 
-  // Close with Escape
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKeyDown = (e: KeyboardEvent | KeyboardEventInit) => {
-      // @ts-ignore
-      if (e.key === "Escape") setIsOpen(false);
-    };
-    window.addEventListener("keydown", onKeyDown as any);
-    return () => window.removeEventListener("keydown", onKeyDown as any);
-  }, [isOpen]);
+  const sideMenuVariant = {
+    hidden: { opacity: 0, x: -8 },
+    visible: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: -8 },
+  };
 
-  // Focus first nav link when menu opens
-  useEffect(() => {
-    if (!isOpen) return;
-    const t = setTimeout(() => {
-      firstLinkRef.current?.focus();
-    }, 180);
-    return () => clearTimeout(t);
-  }, [isOpen]);
-
-  // Lock body scroll when drawer open
-  useEffect(() => {
-    if (!isOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev || "";
-    };
-  }, [isOpen]);
-
-  // Handle drawer slide-in animation AFTER mount
-  useEffect(() => {
-    if (!isOpen) {
-      setDrawerAnimatedIn(false);
-      return;
-    }
-    setDrawerAnimatedIn(false);
-    const t = setTimeout(() => {
-      setDrawerAnimatedIn(true);
-    }, 30); // tiny delay so browser sees the start state
-    return () => clearTimeout(t);
-  }, [isOpen]);
-
-  const linkBaseClasses =
-    "relative font-medium transition-colors duration-300 group";
-  const linkColorClasses = scrolled ? "text-gray-900" : "text-white";
-  const linkHoverClasses = "hover:text-orange-600";
-
-  const mobileMenuButtonClasses =
-    scrolled || isOpen
-      ? "text-gray-900 hover:text-orange-600"
-      : "text-white hover:text-orange-600";
+  const drawerVariant = {
+    hidden: { x: "100%" },
+    visible: { x: 0 },
+  };
 
   return (
     <>
-      {/* NAVBAR */}
       <nav
-        className={`fixed inset-x-0 top-0 z-50 w-full transition-all duration-500 ${
+        ref={navRef}
+        className={cn(
+          "fixed inset-x-0 top-0 z-50 transition-all duration-500",
           scrolled
-            ? "bg-white/90 backdrop-blur-xl border-b border-gray-200"
+            ? "bg-white/90 backdrop-blur-xl border-b border-gray-200 shadow-sm"
             : "bg-transparent"
-        }`}
-        aria-label="Primary"
+        )}
+        aria-label="Primary Navigation"
       >
-        <div className="flex items-center justify-between h-16 px-3 mx-auto max-w-6xl sm:h-20 sm:px-4 lg:px-6 xl:px-8 2xl:max-w-7xl">
-          {/* Logo */}
-          <div className="flex-shrink-0">
-            <h1 className="text-lg font-bold text-transparent bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text sm:text-xl md:text-2xl xl:text-3xl">
-              Bhakta Sammilan ॐ
-            </h1>
-          </div>
-
-          {/* Desktop Nav (only on xl and above) */}
-          <div className="items-center hidden space-x-5 xl:flex 2xl:space-x-8">
-            {navLinks.map((link) => (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-between h-16 sm:h-20">
+            {/* Logo */}
+            <div className="flex items-center gap-4">
               <a
-                key={link.name}
-                href={link.href}
-                onClick={(e) => scrollToSection(e, link.href)}
-                className={`${linkBaseClasses} ${linkColorClasses} ${linkHoverClasses} text-sm 2xl:text-base`}
+                href="#home"
+                onClick={(e) => scrollToSection(e as any, "#home")}
+                className="inline-flex items-center gap-2"
+                aria-label="Bhakta Sammilan - Home"
               >
-                {link.name}
-                <span className="absolute bottom-0 left-0 h-0.5 w-0 bg-orange-600 transition-all duration-300 group-hover:w-full" />
+                <span className="text-lg font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-orange-600 to-amber-500">
+                  Bhakta Sammilan ॐ
+                </span>
               </a>
-            ))}
+            </div>
 
-            {/* Admin login button (desktop) */}
-            <a
-              href="/admin/login"
-              className="rounded-full border border-orange-500/80 px-4 py-1.5 text-xs font-semibold text-orange-600 bg-white/80 backdrop-blur hover:bg-orange-50 hover:border-orange-600 transition-all duration-300 2xl:px-5 2xl:py-2 2xl:text-sm"
-            >
-              Admin Login
-            </a>
+            {/* Desktop nav */}
+            <div className="hidden xl:flex items-center gap-6">
+              {nav.map((item) =>
+                item.children ? (
+                  <div key={item.name} className="relative">
+                    <button
+                      aria-haspopup="true"
+                      aria-expanded={openDropdown === item.name}
+                      onClick={() =>
+                        setOpenDropdown((prev) => (prev === item.name ? null : item.name))
+                      }
+                      className={cn("flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium", linkColor)}
+                    >
+                      <span>{item.name}</span>
+                      <motion.span
+                        animate={{ rotate: openDropdown === item.name ? 180 : 0 }}
+                        transition={{ duration: 0.25 }}
+                        aria-hidden
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </motion.span>
+                    </button>
 
-            <a
-              href="#donate"
-              onClick={(e) => scrollToSection(e, "#donate")}
-              className="rounded-full bg-gradient-to-r from-orange-600 to-amber-600 px-4 py-1.5 text-xs font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-lg 2xl:px-6 2xl:py-2.5 2xl:text-sm"
-            >
-              Donate Now
-            </a>
-          </div>
+                    <AnimatePresence>
+                      {openDropdown === item.name && (
+                        <motion.div
+                          initial="hidden"
+                          animate="visible"
+                          exit="exit"
+                          variants={dropdownVariant}
+                          transition={{ duration: 0.18 }}
+                          className="absolute top-full left-0 mt-3 w-64 rounded-xl bg-white shadow-2xl border border-gray-100 p-2 z-50"
+                          role="menu"
+                          aria-label={`${item.name} submenu`}
+                        >
+                          {item.children!.map((sub) =>
+                            sub.children ? (
+                              <div key={sub.key} className="relative">
+                                <button
+                                  onClick={() =>
+                                    setOpenSideMenu((prev) => (prev === sub.key ? null : sub.key))
+                                  }
+                                  className="flex w-full items-center justify-between px-3 py-2 rounded-md hover:bg-gray-50 text-sm font-semibold"
+                                  aria-haspopup="true"
+                                  aria-expanded={openSideMenu === sub.key}
+                                  role="menuitem"
+                                >
+                                  <span>{sub.name}</span>
+                                  <motion.span
+                                    animate={{ rotate: openSideMenu === sub.key ? 90 : 0 }}
+                                    transition={{ duration: 0.18 }}
+                                  >
+                                    <ChevronRight className="w-4 h-4" />
+                                  </motion.span>
+                                </button>
 
-          {/* Mobile / Tablet Menu Button (up to lg & xl) */}
-          <div className="flex items-center xl:hidden">
-            <button
-              onClick={() => setIsOpen((prev) => !prev)}
-              className={`transition-colors ${mobileMenuButtonClasses} focus:outline-none focus:ring-2 focus:ring-orange-300/60 rounded-md p-1.5`}
-              aria-label={isOpen ? "Close menu" : "Open menu"}
-              aria-expanded={isOpen}
-            >
-              <span
-                className={`inline-block transform transition-transform duration-400 ${
-                  isOpen ? "rotate-90" : "rotate-0"
-                }`}
+                                <AnimatePresence>
+                                  {openSideMenu === sub.key && (
+                                    <motion.div
+                                      initial="hidden"
+                                      animate="visible"
+                                      exit="exit"
+                                      variants={sideMenuVariant}
+                                      transition={{ duration: 0.16 }}
+                                      className="absolute left-full top-0 ml-3 w-56 rounded-xl bg-white shadow-2xl border border-gray-100 p-2"
+                                      role="menu"
+                                      aria-label={`${sub.name} submenu`}
+                                    >
+                                      {sub.children!.map((c) => (
+                                        <a
+                                          key={c.name}
+                                          href={c.href}
+                                          onClick={(e) => scrollToSection(e, c.href!)}
+                                          className="block px-3 py-2 text-sm rounded-md hover:bg-orange-50"
+                                          role="menuitem"
+                                        >
+                                          {c.name}
+                                        </a>
+                                      ))}
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              </div>
+                            ) : (
+                              <a
+                                key={sub.name}
+                                href={sub.href}
+                                onClick={(e) => scrollToSection(e, sub.href!)}
+                                className="block px-3 py-2 text-sm rounded-md hover:bg-orange-50"
+                                role="menuitem"
+                              >
+                                {sub.name}
+                              </a>
+                            )
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                ) : (
+                  <a
+                    key={item.name}
+                    href={item.href}
+                    onClick={(e) => scrollToSection(e as any, item.href!)}
+                    className={cn("text-sm font-medium px-2 py-1.5 rounded-md transition", linkColor)}
+                  >
+                    {item.name}
+                  </a>
+                )
+              )}
+
+              <a
+                href="/admin/login"
+                className="rounded-full border border-orange-500 px-4 py-1.5 text-sm text-orange-600 hover:bg-orange-50 transition"
               >
-                {isOpen ? <X size={26} /> : <Menu size={26} />}
-              </span>
-            </button>
+                Admin Login
+              </a>
+
+              <a
+                href="#donate"
+                onClick={(e) => scrollToSection(e as any, "#donate")}
+                className="rounded-full bg-gradient-to-r from-orange-600 to-amber-600 px-5 py-2 text-sm text-white transform transition hover:scale-[1.03] shadow-sm"
+              >
+                Donate Now
+              </a>
+            </div>
+
+            {/* Mobile toggle */}
+            <div className="xl:hidden">
+              <button
+                aria-label={isOpen ? "Close menu" : "Open menu"}
+                onClick={() => {
+                  setIsOpen((p) => !p);
+                  // focus close button when opened
+                  setTimeout(() => {
+                    if (!isOpen && mobileCloseBtnRef.current) mobileCloseBtnRef.current.focus();
+                  }, 120);
+                }}
+                className={cn("p-2 rounded-md", scrolled ? "bg-white/20" : "bg-white/10")}
+              >
+                {isOpen ? <X size={22} /> : <Menu size={22} />}
+              </button>
+            </div>
           </div>
         </div>
       </nav>
 
-      {/* MOBILE / TABLET RIGHT-SIDE DRAWER */}
-      {isOpen && (
-        <div className="fixed inset-0 z-40 xl:hidden">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/60"
-            style={{
-              opacity: drawerAnimatedIn ? 1 : 0,
-              transition: "opacity 500ms ease-out",
-            }}
-            onClick={() => setIsOpen(false)}
-          />
+      {/* ---------------- MOBILE DRAWER ---------------- */}
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+              onClick={() => setIsOpen(false)}
+              aria-hidden
+            />
 
-          {/* Drawer with 3D slide-in */}
-          <div
-            className="absolute inset-y-0 right-0 flex max-w-full"
-            style={{ perspective: "1400px" }}
-          >
-            <div
-              className="w-[82vw] max-w-xs sm:w-72 bg-white/95 border-l border-gray-200 shadow-xl flex flex-col origin-right"
-              style={{
-                transform: drawerAnimatedIn
-                  ? "translateX(0) rotateY(0deg) scale(1)"
-                  : "translateX(100%) rotateY(-18deg) scale(0.96)",
-                transition:
-                  "transform 650ms cubic-bezier(0.21, 0.9, 0.24, 1), box-shadow 650ms",
-                boxShadow: drawerAnimatedIn
-                  ? "0 24px 60px rgba(15,23,42,0.35)"
-                  : "0 10px 30px rgba(15,23,42,0.15)",
-                backdropFilter: "blur(6px)",
-              }}
+            {/* Drawer */}
+            <motion.aside
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              variants={drawerVariant}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="fixed right-0 top-0 z-50 h-full w-[78vw] max-w-xs bg-white shadow-2xl p-4 overflow-y-auto"
               role="dialog"
               aria-modal="true"
             >
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 sm:py-4">
-                <span className="text-base font-semibold text-gray-900 sm:text-lg">
-                  Menu
-                </span>
-           
+              <div className="flex items-center justify-between mb-4">
+                <div className="font-semibold text-lg">Menu</div>
+                <button
+                  ref={mobileCloseBtnRef}
+                  onClick={() => setIsOpen(false)}
+                  aria-label="Close menu"
+                  className="p-2 rounded-md hover:bg-gray-50"
+                >
+                  <X size={20} />
+                </button>
               </div>
 
-              <nav className="px-4 pt-3 pb-6 sm:pb-7">
-                <ul className="space-y-2 sm:space-y-3">
-                  {navLinks.map((link, idx) => (
-                    <li
-                      key={link.name}
-                      style={{
-                        opacity: drawerAnimatedIn ? 1 : 0,
-                        transform: drawerAnimatedIn
-                          ? "translateY(0)"
-                          : "translateY(8px)",
-                        transition:
-                          "opacity 420ms ease-out, transform 420ms ease-out",
-                        transitionDelay: `${140 + idx * 70}ms`,
-                      }}
-                    >
+              <nav aria-label="Mobile Primary Navigation" className="space-y-3">
+                {nav.map((item) => (
+                  <div key={item.name}>
+                    {item.children ? (
+                      <>
+                        <button
+                          onClick={() =>
+                            setMobileOpen((p) => ({ ...p, [item.name]: !p[item.name] }))
+                          }
+                          className="flex w-full items-center justify-between py-2 px-2 rounded-md text-left font-medium hover:bg-gray-50"
+                          aria-expanded={!!mobileOpen[item.name]}
+                        >
+                          <span>{item.name}</span>
+                          <motion.span
+                            animate={{ rotate: mobileOpen[item.name] ? 180 : 0 }}
+                            transition={{ duration: 0.18 }}
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                          </motion.span>
+                        </button>
+
+                        {mobileOpen[item.name] &&
+                          item.children.map((sub) =>
+                            sub.children ? (
+                              <div key={sub.key} className="pl-4 mt-2">
+                                <div className="text-xs font-semibold text-gray-700 mb-1">{sub.name}</div>
+                                <div className="space-y-1">
+                                  {sub.children.map((c) => (
+                                    <a
+                                      key={c.name}
+                                      href={c.href}
+                                      onClick={(e) => scrollToSection(e as any, c.href!)}
+                                      className="block py-1 px-2 rounded-md text-sm hover:bg-gray-50"
+                                    >
+                                      {c.name}
+                                    </a>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <a
+                                key={sub.name}
+                                href={sub.href}
+                                onClick={(e) => scrollToSection(e as any, sub.href!)}
+                                className="block py-2 px-2 rounded-md hover:bg-gray-50"
+                              >
+                                {sub.name}
+                              </a>
+                            )
+                          )}
+                      </>
+                    ) : (
                       <a
-                        ref={idx === 0 ? firstLinkRef : undefined}
-                        href={link.href}
-                        onClick={(e) => scrollToSection(e, link.href)}
-                        className="block py-2 px-2 rounded-md text-sm font-medium text-gray-800 transition-colors hover:text-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-300/60"
+                        href={item.href}
+                        onClick={(e) => scrollToSection(e as any, item.href!)}
+                        className="block py-2 px-2 rounded-md hover:bg-gray-50 font-medium"
                       >
-                        {link.name}
+                        {item.name}
                       </a>
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="mt-4 space-y-2 sm:space-y-3">
-                  <a
-                    href="/admin/login"
-                    className="block w-full px-6 py-2.5 text-center text-sm font-semibold text-orange-600 border border-orange-500/80 rounded-full bg-white hover:bg-orange-50 hover:border-orange-600 transition-all"
-                  >
-                    Admin Login
-                  </a>
-
-                  <a
-                    href="#donate"
-                    onClick={(e) => scrollToSection(e, "#donate")}
-                    className="block w-full px-6 py-2.5 text-center text-sm font-semibold text-white transition-all rounded-full bg-gradient-to-r from-orange-600 to-amber-600 hover:shadow-lg"
-                  >
-                    Donate Now
-                  </a>
-                </div>
+                    )}
+                  </div>
+                ))}
               </nav>
 
-              <div className="mt-auto h-4 bg-gradient-to-t from-white/80 to-transparent pointer-events-none" />
-            </div>
-          </div>
-        </div>
-      )}
+              <div className="mt-6 border-t border-gray-100 pt-4">
+                <a href="/admin/login" className="block text-sm px-2 py-2 rounded-md hover:bg-gray-50">
+                  Admin Login
+                </a>
+                <a
+                  href="#donate"
+                  onClick={(e) => scrollToSection(e as any, "#donate")}
+                  className="mt-3 inline-block w-full text-center rounded-md bg-gradient-to-r from-orange-600 to-amber-500 px-4 py-2 text-white font-semibold"
+                >
+                  Donate Now
+                </a>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 }

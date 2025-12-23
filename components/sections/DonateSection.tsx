@@ -1,7 +1,8 @@
-// DonateSection.tsx
+// components/sections/DonateSection.tsx
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import Script from "next/script";
 import { Heart, IndianRupee, CheckCircle2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AnimatePresence, motion } from "framer-motion";
@@ -467,21 +468,40 @@ export default function DonateSection() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
-  const loadRazorpayScript = (): Promise<boolean> => {
+  // Razorpay script state
+  const [razorpayReady, setRazorpayReady] = useState(false);
+  const [scriptFailed, setScriptFailed] = useState(false);
+  const waitTimeoutRef = useRef<number | null>(null);
+
+  // If SDK is already present (e.g., cached), mark ready
+  useEffect(() => {
+    if (typeof window !== "undefined" && (window as any).Razorpay) {
+      setRazorpayReady(true);
+    }
+    return () => {
+      if (waitTimeoutRef.current) {
+        window.clearTimeout(waitTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Wait-for-Razorpay helper: polls for a short time to avoid race
+  const waitForRazorpay = (timeout = 5000): Promise<boolean> => {
     return new Promise((resolve) => {
-      if (
-        typeof window !== "undefined" &&
-        document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]')
-      ) {
+      if (typeof window !== "undefined" && (window as any).Razorpay) {
         resolve(true);
         return;
       }
-
-      const script = document.createElement("script");
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
+      const start = Date.now();
+      const interval = setInterval(() => {
+        if ((window as any).Razorpay) {
+          clearInterval(interval);
+          resolve(true);
+        } else if (Date.now() - start > timeout) {
+          clearInterval(interval);
+          resolve(false);
+        }
+      }, 100);
     });
   };
 
@@ -501,13 +521,18 @@ export default function DonateSection() {
     setLoading(true);
 
     try {
-      const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded) {
-        alert("Razorpay SDK failed to load. Please check your internet connection.");
-        setLoading(false);
-        return;
+      // Ensure Razorpay SDK is ready: prefer the next/script onLoad flag but also poll briefly
+      if (!razorpayReady) {
+        const ready = await waitForRazorpay(4000);
+        if (!ready) {
+          alert("Payment system is still loading. Please try again in a moment.");
+          setLoading(false);
+          return;
+        }
+        setRazorpayReady(true);
       }
 
+      // Create order on server
       const createRes = await fetch("/api/donations/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -611,7 +636,14 @@ export default function DonateSection() {
         },
       };
 
-      const paymentObject = new window.Razorpay(options);
+      // Final guard: ensure constructor exists
+      if (typeof window === "undefined" || !(window as any).Razorpay) {
+        alert("Payment system is still loading. Please try again in a moment.");
+        setLoading(false);
+        return;
+      }
+
+      const paymentObject = new (window as any).Razorpay(options);
       paymentObject.open();
     } catch (error) {
       console.error("Donation initiation error:", error);
@@ -625,10 +657,22 @@ export default function DonateSection() {
 
   return (
     <>
-      <section
-        id="donate"
-        className="py-16 bg-gradient-to-br from-orange-50 to-amber-50"
-      >
+      {/* Razorpay SDK loader — next/script ensures it loads client-side and is deduped by Next */}
+      <Script
+        src="https://checkout.razorpay.com/v1/checkout.js"
+        strategy="afterInteractive"
+        onLoad={() => {
+          console.log("Razorpay SDK loaded");
+          setRazorpayReady(true);
+        }}
+        onError={() => {
+          console.error("Failed to load Razorpay SDK");
+          setScriptFailed(true);
+          setRazorpayReady(false);
+        }}
+      />
+
+      <section id="donate" className="py-16 bg-gradient-to-br from-orange-50 to-amber-50">
         <div className="max-w-6xl px-4 mx-auto sm:px-6 lg:px-8">
           <div className="mb-10 text-center">
             <h2 className="mb-4 text-4xl font-bold text-gray-900 md:text-5xl">
@@ -690,14 +734,10 @@ export default function DonateSection() {
               </div>
 
               <div className="mb-6 space-y-4">
-                <h3 className="mb-2 text-2xl font-bold text-gray-900">
-                  Your Details
-                </h3>
+                <h3 className="mb-2 text-2xl font-bold text-gray-900">Your Details</h3>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="md:col-span-2">
-                    <label className="block mb-1 text-sm font-medium text-gray-700">
-                      Full Name *
-                    </label>
+                    <label className="block mb-1 text-sm font-medium text-gray-700">Full Name *</label>
                     <input
                       type="text"
                       value={donorName}
@@ -707,9 +747,7 @@ export default function DonateSection() {
                     />
                   </div>
                   <div>
-                    <label className="block mb-1 text-sm font-medium text-gray-700">
-                      Email *
-                    </label>
+                    <label className="block mb-1 text-sm font-medium text-gray-700">Email *</label>
                     <input
                       type="email"
                       value={donorEmail}
@@ -719,9 +757,7 @@ export default function DonateSection() {
                     />
                   </div>
                   <div>
-                    <label className="block mb-1 text-sm font-medium text-gray-700">
-                      Phone Number *
-                    </label>
+                    <label className="block mb-1 text-sm font-medium text-gray-700">Phone Number *</label>
                     <input
                       type="tel"
                       value={donorPhone}
@@ -736,18 +772,24 @@ export default function DonateSection() {
               <button
                 type="button"
                 onClick={handleDonation}
-                disabled={loading}
+                disabled={loading || scriptFailed}
                 className={`flex items-center justify-center w-full gap-3 py-4 text-lg font-bold text-white rounded-xl transition-all duration-300 transform bg-gradient-to-r from-orange-600 to-amber-600 hover:shadow-2xl hover:scale-105 ${
                   loading ? "opacity-80 cursor-not-allowed" : ""
                 }`}
               >
                 <Heart className="w-6 h-6" />
-                {loading
-                  ? "Processing..."
-                  : `Donate ${
-                      displayAmount ? `₹${displayAmount.toLocaleString()}` : "Now"
-                    }`}
+                {loading ? (
+                  "Processing..."
+                ) : (
+                  `Donate ${displayAmount ? `₹${displayAmount.toLocaleString()}` : "Now"}`
+                )}
               </button>
+
+              {scriptFailed && (
+                <p className="mt-2 text-sm text-red-600">
+                  Payment system failed to load. Please check your connection or try later.
+                </p>
+              )}
 
               <p className="mt-4 text-sm text-center text-gray-600 md:text-base">
                 Your donation is secure and processed via Razorpay.
@@ -759,34 +801,22 @@ export default function DonateSection() {
                 <div className="inline-flex items-center justify-center mb-3 rounded-full w-14 h-14 bg-gradient-to-br from-orange-100 to-amber-100">
                   <Heart className="text-orange-600 w-7 h-7" />
                 </div>
-                <h4 className="mb-1 text-lg font-bold text-gray-900">
-                  Secure Payments
-                </h4>
-                <p className="text-sm text-gray-600">
-                  All transactions are encrypted and secured via Razorpay.
-                </p>
+                <h4 className="mb-1 text-lg font-bold text-gray-900">Secure Payments</h4>
+                <p className="text-sm text-gray-600">All transactions are encrypted and secured via Razorpay.</p>
               </div>
               <div className="flex flex-col items-center px-6 py-5 text-center bg-white shadow-xl rounded-2xl">
                 <div className="inline-flex items-center justify-center mb-3 rounded-full w-14 h-14 bg-gradient-to-br from-orange-100 to-amber-100">
                   <IndianRupee className="text-orange-600 w-7 h-7" />
                 </div>
-                <h4 className="mb-1 text-lg font-bold text-gray-900">
-                  Tax Benefits
-                </h4>
-                <p className="text-sm text-gray-600">
-                  Get 80G tax exemption certificate for your eligible donations.
-                </p>
+                <h4 className="mb-1 text-lg font-bold text-gray-900">Tax Benefits</h4>
+                <p className="text-sm text-gray-600">Get 80G tax exemption certificate for your eligible donations.</p>
               </div>
               <div className="flex flex-col items-center px-6 py-5 text-center bg-white shadow-xl rounded-2xl">
                 <div className="inline-flex items-center justify-center mb-3 rounded-full w-14 h-14 bg-gradient-to-br from-orange-100 to-amber-100">
                   <Heart className="text-orange-600 w-7 h-7" />
                 </div>
-                <h4 className="mb-1 text-lg font-bold text-gray-900">
-                  100% Utilized
-                </h4>
-                <p className="text-sm text-gray-600">
-                  Every rupee goes directly towards our charitable causes.
-                </p>
+                <h4 className="mb-1 text-lg font-bold text-gray-900">100% Utilized</h4>
+                <p className="text-sm text-gray-600">Every rupee goes directly towards our charitable causes.</p>
               </div>
             </div>
           </div>
