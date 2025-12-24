@@ -1,14 +1,14 @@
 // app/api/events/[id]/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 // PATCH /api/events/:id → update poster
 export async function PATCH(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
+    const { id } = await context.params;
 
     const eventId = Number(id);
     if (!id || Number.isNaN(eventId)) {
@@ -18,7 +18,7 @@ export async function PATCH(
       );
     }
 
-    const body = await req.json();
+    const body = await request.json();
     const { posterUrl } = body as { posterUrl?: string };
 
     if (!posterUrl) {
@@ -29,7 +29,7 @@ export async function PATCH(
     }
 
     const event = await prisma.event.update({
-      where: { id: eventId }, // ✅ always number
+      where: { id: eventId },
       data: { posterUrl },
     });
 
@@ -51,10 +51,12 @@ export async function PATCH(
 }
 
 // DELETE /api/events/:id → delete event
-export async function DELETE(req: Request) {
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
-    const url = new URL(req.url);
-    const id = url.pathname.split("/").pop();
+    const { id } = await context.params;
 
     const eventId = Number(id);
     if (!id || Number.isNaN(eventId)) {
@@ -65,7 +67,7 @@ export async function DELETE(req: Request) {
     }
 
     await prisma.event.delete({
-      where: { id: eventId }, // ✅ always number
+      where: { id: eventId },
     });
 
     return NextResponse.json({ ok: true });
