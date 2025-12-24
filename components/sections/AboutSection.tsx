@@ -504,7 +504,7 @@ const AboutSection: React.FC = () => {
                     }
                   >
                     <div key={`temple-viewer-${viewerKey}`} style={{ width: "100%", height: "100%" }}>
-                      <TempleViewer />
+                      {/* <TempleViewer /> */}
                     </div>
                   </Suspense>
                 )}
