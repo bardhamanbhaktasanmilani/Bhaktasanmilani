@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export const revalidate = 300; // 5 minutes
+// ⛔ prevent build-time execution
+export const dynamic = "force-dynamic";
+
+// ⛔ do NOT use ISR for Prisma APIs
+export const revalidate = 0;
 
 export async function GET() {
   const result = await prisma.donation.aggregate({
@@ -17,10 +21,11 @@ export async function GET() {
     {
       devotees,
       funds,
-      live: true, // 👈 used by frontend badge
+      live: true,
     },
     {
       headers: {
+        // ✅ CDN-level caching (Vercel / Netlify / Cloudflare)
         "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
       },
     }

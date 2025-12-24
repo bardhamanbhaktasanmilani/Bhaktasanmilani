@@ -1,3 +1,4 @@
+// components/sub-sections/HowWeWork/RoyalDecree.tsx
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
@@ -315,7 +316,9 @@ export default function RoyalDecree({
         // check common signs of an image element
         const typeName =
           typeof c.type === "string" ? (c.type as string).toLowerCase() : "";
-        if (typeName === "img" || (c.props && c.props.src)) {
+        // Guard: only read props if React element
+        const hasSrc = !!((c.props as any)?.src);
+        if (typeName === "img" || hasSrc) {
           imageChildIndex = i;
           break;
         }
@@ -328,27 +331,36 @@ export default function RoyalDecree({
       "mx-auto mt-4 w-[240px] h-[340px] sm:w-[320px] sm:h-[420px] rounded-lg overflow-hidden border-2 border-amber-200 shadow-inner flex items-center justify-center bg-amber-50";
 
     if (imageChildIndex >= 0) {
-      const imgElement = childArray[imageChildIndex] as React.ReactElement;
-      // Merge/append className and force style for perfect fit & centering.
-      const existingClass = imgElement.props?.className || "";
-      const mergedClass = `${existingClass} block w-full h-full object-cover`;
-      const mergedStyle = {
-        ...(imgElement.props?.style || {}),
-        width: "100%",
-        height: "100%",
-        objectFit: "cover" as const,
-        display: "block",
-      };
+  const imgElement =
+    childArray[imageChildIndex] as React.ReactElement<
+      React.ImgHTMLAttributes<HTMLImageElement>
+    >;
 
-      const cloned = React.cloneElement(imgElement, {
-        className: mergedClass,
-        style: mergedStyle,
-        loading: imgElement.props?.loading || "lazy",
-        alt: imgElement.props?.alt || `${title} poster`,
-      });
+  const existingClass = imgElement.props.className || "";
+  const mergedClass = `${existingClass} block w-full h-full object-cover`;
 
-      return <div className={frameClass} aria-hidden={false}>{cloned}</div>;
-    }
+  const mergedStyle = {
+    ...(imgElement.props.style || {}),
+    width: "100%",
+    height: "100%",
+    objectFit: "cover" as const,
+    display: "block",
+  };
+
+  const cloned = React.cloneElement(imgElement, {
+    className: mergedClass,
+    style: mergedStyle,
+    loading: imgElement.props.loading || "lazy",
+    alt: imgElement.props.alt || `${title} poster`,
+  });
+
+  return (
+    <div className={frameClass} aria-hidden={false}>
+      {cloned}
+    </div>
+  );
+}
+
 
     // No image-like child found — render all children inside the frame, centered.
     return (

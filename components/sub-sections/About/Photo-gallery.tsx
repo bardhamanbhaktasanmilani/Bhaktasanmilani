@@ -1,3 +1,4 @@
+// components/sub-sections/About/Photo-gallery.tsx
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
@@ -57,7 +58,6 @@ export default function PhotoGallery() {
 
   const [mount3D, setMount3D] = useState(false);
 
-  // mount 3D only for wider screens
   useEffect(() => {
     if (typeof window === "undefined") return;
     const mq = window.matchMedia("(min-width:768px)");
@@ -69,7 +69,6 @@ export default function PhotoGallery() {
     };
   }, []);
 
-  // Observe when section enters viewport — used to gate autoplay & animations
   useEffect(() => {
     if (!rootRef.current || typeof IntersectionObserver === "undefined") return;
     const io = new IntersectionObserver(
@@ -87,10 +86,9 @@ export default function PhotoGallery() {
     return () => io.disconnect();
   }, []);
 
-  // Mobile scroller autoplay — START only after gallery is visible (fixes early first-image flashes)
   useEffect(() => {
     if (prefersReducedMotion) return;
-    if (!isVisible) return; // <-- only start when visible
+    if (!isVisible) return;
     const timer = setInterval(() => setMobileIndex((s) => (s + 1) % 5), 4500);
     return () => clearInterval(timer);
   }, [prefersReducedMotion, isVisible]);
@@ -118,9 +116,6 @@ export default function PhotoGallery() {
     return () => window.removeEventListener("keydown", onKey);
   }, [isLightboxOpen, lightboxImages]);
 
-  /* ---------------------------
-     SUBMENU DECLARATION
-     --------------------------- */
   const submenus = [
     { id: "religion", label: "Religion" },
     { id: "yoga", label: "Yoga Classes" },
@@ -132,9 +127,6 @@ export default function PhotoGallery() {
     window.dispatchEvent(new CustomEvent("gallery:submenus", { detail: submenus }));
   }, []);
 
-  /* ---------------------------
-     Navigation events (scrolling)
-     --------------------------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -187,13 +179,10 @@ export default function PhotoGallery() {
     };
   }, []);
 
-  /* ---------------------------
-     Subsection helper
-     --------------------------- */
   function Subsection({ id, title, desc, images, autoplayDelay }: { id: string; title: string; desc: string; images: ImgItem[]; autoplayDelay?: number }) {
     const revealClass = isVisible ? "gallery-reveal" : "gallery-hidden";
 
-    const refMap: Record<string, React.RefObject<HTMLElement> | null> = {
+    const refMap: Record<string, React.RefObject<HTMLElement | null>> = {
       religion: religionRef,
       charity: charityRef,
       covid: covidRef,
@@ -218,7 +207,6 @@ export default function PhotoGallery() {
 
         <div className="mt-6">
           {mount3D ? (
-            // Important: gate autoplay on `isVisible` to prevent early first-image jumps
             <div className="w-full rounded-xl shadow-lg overflow-visible carousel-wrap" aria-hidden={!isVisible} style={{ transition: "transform 420ms ease, opacity 420ms ease" }}>
               <Carousel3D images={images} autoplay={!prefersReducedMotion && isVisible} autoplayDelay={autoplayDelay ?? 4200} />
             </div>
@@ -274,7 +262,6 @@ export default function PhotoGallery() {
         </div>
       </div>
 
-      {/* Lightbox modal */}
       {isLightboxOpen && (
         <div role="dialog" aria-modal="true" aria-label="Image gallery" className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={closeLightbox} style={{ background: "rgba(2,6,23,0.7)" }}>
           <div className="max-w-[90vw] max-h-[90vh] w-full bg-transparent outline-none" onClick={(e) => e.stopPropagation()}>
@@ -310,7 +297,6 @@ export default function PhotoGallery() {
         .hide-scrollbar::-webkit-scrollbar {
           display: none;
         }
-        /* highlight when navigated to a subsection */
         .gallery-scroll-highlight {
           box-shadow: 0 10px 40px rgba(245, 158, 11, 0.12), 0 0 0 6px rgba(245, 158, 11, 0.06) !important;
           transform: translateY(-4px);

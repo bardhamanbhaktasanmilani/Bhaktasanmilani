@@ -21,7 +21,8 @@ type Event = {
   posterUrl?: string | null;
 };
 
-export default function AdminEventsPage(): JSX.Element {
+export default function AdminEventsPage() {
+
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);

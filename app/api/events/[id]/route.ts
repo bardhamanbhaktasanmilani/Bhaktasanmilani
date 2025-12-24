@@ -1,15 +1,17 @@
+// app/api/events/[id]/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 // PATCH /api/events/:id → update poster
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
 
-    if (!id) {
+    const eventId = Number(id);
+    if (!id || Number.isNaN(eventId)) {
       return NextResponse.json(
         { error: "Invalid event id" },
         { status: 400 }
@@ -27,15 +29,13 @@ export async function PATCH(
     }
 
     const event = await prisma.event.update({
-      where: isNaN(Number(id))
-        ? { id }
-        : { id: Number(id) },
+      where: { id: eventId }, // ✅ always number
       data: { posterUrl },
     });
 
     return NextResponse.json({ ok: true, event });
   } catch (error: any) {
-    if (error.code === "P2025") {
+    if (error?.code === "P2025") {
       return NextResponse.json(
         { error: "Event not found" },
         { status: 404 }
@@ -53,29 +53,24 @@ export async function PATCH(
 // DELETE /api/events/:id → delete event
 export async function DELETE(req: Request) {
   try {
-    // ✅ Extract ID directly from URL
     const url = new URL(req.url);
     const id = url.pathname.split("/").pop();
 
-    if (!id) {
+    const eventId = Number(id);
+    if (!id || Number.isNaN(eventId)) {
       return NextResponse.json(
-        { error: "Missing event id" },
+        { error: "Invalid event id" },
         { status: 400 }
       );
     }
 
-    // Try numeric first, fallback to string
-    const whereClause = isNaN(Number(id))
-      ? { id }
-      : { id: Number(id) };
-
     await prisma.event.delete({
-      where: whereClause as any,
+      where: { id: eventId }, // ✅ always number
     });
 
     return NextResponse.json({ ok: true });
   } catch (error: any) {
-    if (error.code === "P2025") {
+    if (error?.code === "P2025") {
       return NextResponse.json(
         { error: "Event not found" },
         { status: 404 }
