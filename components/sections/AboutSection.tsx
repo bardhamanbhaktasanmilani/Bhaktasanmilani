@@ -10,7 +10,19 @@ import React, {
   MutableRefObject,
 } from "react";
 import { Users, Heart } from "lucide-react";
-const TempleViewer = React.lazy(() => import("@/components/ui/TempleViewer"));
+import dynamic from "next/dynamic";
+
+const TempleViewer = dynamic(
+  () => import("@/components/ui/TempleViewer"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full flex items-center justify-center text-sm text-gray-500">
+        Loading 3D…
+      </div>
+    ),
+  }
+);
 import PhotoGallery from "../sub-sections/About/Photo-gallery";
 
 /* ------------------------ Helpers / Formatting ------------------------ */
@@ -141,7 +153,8 @@ const AboutSection: React.FC = () => {
   const [viewerKey, setViewerKey] = useState(0);
 
   const statRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const prefersReducedMotion = usePrefersReducedMotion();
+ const prefersReducedMotion = usePrefersReducedMotionSafe();
+
 
   /* ---------- Live stats state ---------- */
   const [loadingStats, setLoadingStats] = useState(true);
@@ -260,6 +273,17 @@ const AboutSection: React.FC = () => {
     setUserRequested3D(true);
     setLoad3D(true);
   }, []);
+function usePrefersReducedMotionSafe() {
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(mq.matches);
+  }, []);
+
+  return reduced;
+}
 
   /* ---------- Fetch + Client Cache + Live detection ---------- */
   useEffect(() => {
@@ -494,20 +518,12 @@ const AboutSection: React.FC = () => {
                     </button>
                   </div>
                 )}
+{load3D === true && (
+  <div key={`temple-viewer-${viewerKey}`} style={{ width: "100%", height: "100%" }}>
+    <TempleViewer />
+  </div>
+)}
 
-                {load3D === true && (
-                  <Suspense
-                    fallback={
-                      <div className="w-full h-full flex items-center justify-center text-sm text-gray-500">
-                        Loading 3D…
-                      </div>
-                    }
-                  >
-                    <div key={`temple-viewer-${viewerKey}`} style={{ width: "100%", height: "100%" }}>
-                      <TempleViewer />
-                    </div>
-                  </Suspense>
-                )}
               </div>
             </div>
 
