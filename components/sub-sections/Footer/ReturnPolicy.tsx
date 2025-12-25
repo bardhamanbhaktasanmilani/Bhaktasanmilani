@@ -22,7 +22,7 @@ export default function ReturnPolicy() {
         <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-10 space-y-8 text-gray-700 leading-relaxed">
           {/* Introduction */}
           <p>
-            Bhakta Sammilan receives donations in the form of voluntary offerings
+            Bardhaman BhaktaSanmilani receives donations in the form of voluntary offerings
             made for religious, spiritual, and charitable purposes. Such
             contributions are treated with sanctity and are typically allocated
             immediately towards ongoing and planned welfare activities.
@@ -74,7 +74,7 @@ export default function ReturnPolicy() {
             <li>Disagreement with the trust’s fund allocation decisions</li>
             <li>
               Delays caused by banks or payment gateways beyond the control of
-              Bhakta Sammilan
+              Bardhaman BhaktaSanmilani
             </li>
           </ul>
 
@@ -101,7 +101,7 @@ export default function ReturnPolicy() {
           </h2>
           <p>
             All refund requests are carefully reviewed. The decision to approve
-            or decline a refund rests solely with Bhakta Sammilan and is based
+            or decline a refund rests solely with Bardhaman BhaktaSanmilani and is based
             on verification of the transaction and the validity of the claim.
           </p>
 

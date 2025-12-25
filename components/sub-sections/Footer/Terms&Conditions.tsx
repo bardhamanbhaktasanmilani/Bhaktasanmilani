@@ -22,7 +22,7 @@ export default function TermsAndConditions() {
         <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-10 space-y-8 text-gray-700 leading-relaxed">
           {/* Introduction */}
           <p>
-            Welcome to the Bhakta Sammilan website. These Terms and Conditions
+            Welcome to the Bardhaman BhaktaSanmilani website. These Terms and Conditions
             govern your access to and use of this website, including any
             donations made through it. By accessing, browsing, or making a
             contribution on this platform, you acknowledge that you have read,
@@ -31,7 +31,7 @@ export default function TermsAndConditions() {
 
           <p>
             These terms exist to ensure transparency, protect the sanctity of
-            donations, and maintain trust between Bhakta Sammilan and its
+            donations, and maintain trust between Bardhaman BhaktaSanmilani and its
             devotees, donors, and visitors.
           </p>
 
@@ -45,7 +45,7 @@ export default function TermsAndConditions() {
             </li>
 
             <li>
-              Contributions received by Bhakta Sammilan are utilized strictly
+              Contributions received by Bardhaman BhaktaSanmilani are utilized strictly
               for religious, spiritual, charitable, cultural, and community
               welfare activities aligned with the objectives of the trust.
             </li>
@@ -59,7 +59,7 @@ export default function TermsAndConditions() {
             <li>
               Donors are responsible for ensuring that all personal and payment
               information provided during the donation process is accurate and
-              complete. Bhakta Sammilan shall not be held responsible for errors
+              complete. Bardhaman BhaktaSanmilani shall not be held responsible for errors
               arising from incorrect information submitted by users.
             </li>
 
@@ -78,13 +78,13 @@ export default function TermsAndConditions() {
 
             <li>
               The content, images, text, and materials available on this
-              website are the intellectual property of Bhakta Sammilan and may
+              website are the intellectual property of Bardhaman BhaktaSanmilani and may
               not be reproduced, modified, or distributed without prior
               written permission.
             </li>
 
             <li>
-              Bhakta Sammilan shall not be liable for any indirect, incidental,
+              Bardhaman BhaktaSanmilani shall not be liable for any indirect, incidental,
               or consequential damages arising from the use of this website or
               from delays or interruptions in service beyond reasonable
               control.
@@ -93,7 +93,7 @@ export default function TermsAndConditions() {
 
           {/* Nature of Trust */}
           <p>
-            Bhakta Sammilan functions as a religious and charitable trust.
+            Bardhaman BhaktaSanmilani functions as a religious and charitable trust.
             Donations received are acts of devotion and humanitarian service,
             intended to support spiritual activities, social upliftment, and
             community welfare initiatives.
@@ -115,7 +115,7 @@ export default function TermsAndConditions() {
             Amendments to Terms
           </h2>
           <p>
-            Bhakta Sammilan reserves the right to update or modify these Terms
+            Bardhaman BhaktaSanmilani reserves the right to update or modify these Terms
             and Conditions at any time to reflect legal, operational, or
             organizational changes. Continued use of the website after such
             updates constitutes acceptance of the revised terms.

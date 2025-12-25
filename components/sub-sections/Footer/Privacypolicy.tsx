@@ -22,7 +22,7 @@ export default function PrivacyPolicy() {
         <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-10 space-y-8 text-gray-700 leading-relaxed">
           {/* Introduction */}
           <p>
-            Bhakta Sammilan is founded on principles of trust, devotion, and
+            Bardhaman BhaktaSanmilani is founded on principles of trust, devotion, and
             service. We deeply respect the privacy of every devotee, donor, and
             visitor who interacts with our platform. This Privacy Policy
             explains, in a transparent manner, how your personal information is
@@ -95,7 +95,7 @@ export default function PrivacyPolicy() {
           </h2>
           <p>
             All monetary transactions are processed through trusted and
-            PCI-DSS–compliant payment gateways such as Razorpay. Bhakta Sammilan
+            PCI-DSS–compliant payment gateways such as Razorpay. Bardhaman BhaktaSanmilani
             does not store or process sensitive financial information on its own
             servers. Your payment data remains fully encrypted and handled
             directly by the gateway provider.
@@ -161,7 +161,7 @@ export default function PrivacyPolicy() {
             Policy Updates
           </h2>
           <p>
-            Bhakta Sammilan reserves the right to update this Privacy Policy
+            Bardhaman BhaktaSanmilani reserves the right to update this Privacy Policy
             from time to time to reflect legal, operational, or technological
             changes. Any updates will be posted on this page with the revised
             effective date.

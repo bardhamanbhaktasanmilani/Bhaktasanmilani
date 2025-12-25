@@ -6,14 +6,14 @@ import { ChevronDown } from "lucide-react";
 
 const faqs = [
   {
-    question: "What is Bhakta Sammilan?",
+    question: "What is Bardhaman BhaktaSanmilani?",
     answer:
-      "Bhakta Sammilan is a religious and charitable trust dedicated to spiritual activities, community welfare, and humanitarian service. The organization operates on principles of devotion, transparency, and service to society.",
+      "Bardhaman BhaktaSanmilani is a religious and charitable trust dedicated to spiritual activities, community welfare, and humanitarian service. The organization operates on principles of devotion, transparency, and service to society.",
   },
   {
     question: "Are donations mandatory to access the website?",
     answer:
-      "No. Accessing and browsing the Bhakta Sammilan website is completely free. Donations are entirely voluntary and are made as offerings in support of religious and charitable activities.",
+      "No. Accessing and browsing the Bardhaman BhaktaSanmilani website is completely free. Donations are entirely voluntary and are made as offerings in support of religious and charitable activities.",
   },
   {
     question: "How are donations used?",
@@ -23,7 +23,7 @@ const faqs = [
   {
     question: "Is my donation secure?",
     answer:
-      "Yes. All payments are processed through secure and trusted payment gateways such as Razorpay. Bhakta Sammilan does not store sensitive financial details like card numbers or bank credentials.",
+      "Yes. All payments are processed through secure and trusted payment gateways such as Razorpay. Bardhaman BhaktaSanmilani does not store sensitive financial details like card numbers or bank credentials.",
   },
   {
     question: "Will I receive a donation receipt?",
@@ -43,10 +43,10 @@ const faqs = [
   {
     question: "Is my personal information safe?",
     answer:
-      "Yes. Bhakta Sammilan takes data privacy seriously and implements appropriate safeguards to protect personal information. Data is used only for legitimate purposes such as donation processing and communication.",
+      "Yes. Bardhaman BhaktaSanmilani takes data privacy seriously and implements appropriate safeguards to protect personal information. Data is used only for legitimate purposes such as donation processing and communication.",
   },
   {
-    question: "Can I contact Bhakta Sammilan for queries or concerns?",
+    question: "Can I contact Bardhaman BhaktaSanmilani for queries or concerns?",
     answer:
       "Absolutely. If you have any questions, concerns, or require clarification regarding donations, policies, or activities, you may contact us through the official email provided on the website.",
   },
