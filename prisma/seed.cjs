@@ -22,8 +22,8 @@ async function main() {
     },
   });
 
-  console.log("✔ Admin created:", email);
-  console.log("✔ Password:", plainPassword);
+  console.log("Admin created:", email);
+  console.log(" Password:", plainPassword);
 }
 
 main()
