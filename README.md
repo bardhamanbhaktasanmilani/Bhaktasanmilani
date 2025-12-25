@@ -182,7 +182,7 @@ ORG_CONTACT_EMAIL=
 
 ADMIN_JWT_SECRET=
 INIT_ADMIN_PASSWORD=
-#password : BhaktaSanmilan@12345
+
 
 ```
 
@@ -274,5 +274,6 @@ If contributions are enabled in the future:
 > _“Service to humanity is service to the divine.”_
 
 🙏 Thank you for supporting our mission.
+
 
 
