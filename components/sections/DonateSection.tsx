@@ -821,6 +821,7 @@ export default function DonateSection() {
             </div>
           </div>
         </div>
+        <marquee className="text-red-500 text-4xl">The website is under maintainence and testing. You will not be able to make any donations right now. </marquee>
       </section>
 
       <SuccessModal
