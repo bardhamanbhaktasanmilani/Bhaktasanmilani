@@ -87,7 +87,7 @@ export default function Navbar() {
   };
 
   const nav: NavItem[] = [
-    { name: "Home", href: "#home" },
+    { name: "Home", href: "/#home" },
 
     {
       name: "About",
@@ -96,9 +96,9 @@ export default function Navbar() {
           name: "Gallery",
           key: "gallery",
           children: [
-            { name: "Religion", href: "#gallery-religion" },
-            { name: "Yoga Classes", href: "#gallery-yoga" },
-            { name: "Covid Reliefs", href: "#gallery-covid" },
+            { name: "Religion", href: "/#gallery-religion" },
+            { name: "Yoga Classes", href: "/#gallery-yoga" },
+            { name: "Covid Reliefs", href: "/#gallery-covid" },
           ],
         },
       ],
@@ -106,17 +106,17 @@ export default function Navbar() {
 
     {
       name: "How We Work",
-      children: [{ name: "Events", href: "#events" }],
+      children: [{ name: "Events", href: "/#events" }],
     },
 
-    { name: "Donate", href: "#donate" },
+    { name: "Donate", href: "/#donate" },
 
     {
       name: "Meet Our Organizers",
-      children: [{ name: "Testimonials", href: "#testimonials" }],
+      children: [{ name: "Testimonials", href: "/#testimonials" }],
     },
 
-    { name: "Contact Us", href: "#contact" },
+    { name: "Contact Us", href: "/#contact" },
   ];
 
   const linkColor = scrolled ? "text-gray-900" : "text-white";

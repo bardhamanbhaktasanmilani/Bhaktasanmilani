@@ -1,7 +1,9 @@
 "use client";
+
 import { Facebook, Twitter, Instagram, Youtube } from "lucide-react";
 import { motion } from "framer-motion";
 import React from "react";
+import Link from "next/link";
 
 export default function Footer() {
   const scrollToSection = (href: string) => {
@@ -14,7 +16,7 @@ export default function Footer() {
     }
   };
 
-  // contact values - keep in one place so they can be updated easily
+  // Contact values
   const PHONE = "+91 84369 22630";
   const TEL_HREF = "tel:+918436922630";
   const EMAIL = "bardhamanbhaktasanmilani@gmail.com";
@@ -27,9 +29,16 @@ export default function Footer() {
     { Icon: Youtube, label: "YouTube", href: "#" },
   ];
 
+  const policyLinks = [
+    { label: "Privacy Policy", href: "/privacy-policy" },
+    { label: "Terms & Conditions", href: "/terms-and-conditions" },
+    { label: "Return Policy", href: "/return-policy" },
+    {label :"FAQ",href:"/faq"},
+  ];
+
   return (
     <footer className="relative pt-16 pb-10 overflow-hidden text-white bg-gray-950">
-      {/* Floating Ambient Background Blobs */}
+      {/* Ambient Blobs */}
       <motion.div
         className="absolute rounded-full -top-20 -left-20 w-72 h-72 bg-orange-600/20 blur-3xl"
         animate={{ x: [0, 40, -20, 0], y: [0, -20, 20, 0] }}
@@ -42,7 +51,7 @@ export default function Footer() {
       />
 
       <div className="relative z-20 px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
-        {/* Animated Grid */}
+        {/* Grid */}
         <motion.div
           initial="hidden"
           whileInView="show"
@@ -55,12 +64,10 @@ export default function Footer() {
               transition: { duration: 0.7, staggerChildren: 0.15 },
             },
           }}
-          className="grid gap-10 mb-10 md:grid-cols-2 lg:grid-cols-4"
+          className="grid gap-10 mb-10 sm:grid-cols-2 lg:grid-cols-5"
         >
-          {/* Column 1 */}
-          <motion.div
-            variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0 } }}
-          >
+          {/* Brand */}
+          <motion.div variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0 } }}>
             <h3 className="mb-4 text-2xl font-bold text-transparent bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text">
               Bhakta Sammilan ॐ
             </h3>
@@ -69,17 +76,16 @@ export default function Footer() {
               through devotion and service.
             </p>
 
-            {/* Social Icons */}
             <div className="flex gap-3">
               {socialLinks.map(({ Icon, label, href }, i) => (
                 <motion.a
                   key={i}
                   href={href}
                   aria-label={label}
-                  rel="noopener noreferrer"
                   target={href.startsWith("#") ? undefined : "_blank"}
+                  rel="noopener noreferrer"
                   whileHover={{ scale: 1.15, rotate: 5 }}
-                  className="flex items-center justify-center w-10 h-10 transition-all bg-gray-800 rounded-full hover:bg-gradient-to-r hover:from-orange-600 hover:to-amber-600"
+                  className="flex items-center justify-center w-10 h-10 bg-gray-800 rounded-full hover:bg-gradient-to-r hover:from-orange-600 hover:to-amber-600"
                 >
                   <Icon className="w-5 h-5" />
                 </motion.a>
@@ -87,10 +93,8 @@ export default function Footer() {
             </div>
           </motion.div>
 
-          {/* Column 2 */}
-          <motion.div
-            variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0 } }}
-          >
+          {/* Quick Links */}
+          <motion.div variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0 } }}>
             <h4 className="mb-4 text-lg font-bold">Quick Links</h4>
             <ul className="space-y-3 text-gray-400">
               {[
@@ -104,20 +108,18 @@ export default function Footer() {
                 <li key={i}>
                   <button
                     onClick={() => scrollToSection(item.href)}
-                    className="relative text-gray-400 transition-colors group hover:text-orange-400"
+                    className="relative group hover:text-orange-400"
                   >
                     {item.label}
-                    <span className="absolute left-0 -bottom-1 w-0 h-[2px] bg-orange-400 transition-all duration-300 group-hover:w-full"></span>
+                    <span className="absolute left-0 -bottom-1 w-0 h-[2px] bg-orange-400 transition-all group-hover:w-full" />
                   </button>
                 </li>
               ))}
             </ul>
           </motion.div>
 
-          {/* Column 3 */}
-          <motion.div
-            variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0 } }}
-          >
+          {/* Causes */}
+          <motion.div variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0 } }}>
             <h4 className="mb-4 text-lg font-bold">Our Causes</h4>
             <ul className="space-y-3 text-gray-400">
               <li>Education for All</li>
@@ -128,33 +130,39 @@ export default function Footer() {
             </ul>
           </motion.div>
 
-          {/* Column 4 */}
-          <motion.div
-            variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0 } }}
-          >
+          {/* Legal */}
+          <motion.div variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0 } }}>
+            <h4 className="mb-4 text-lg font-bold">Legal</h4>
+            <ul className="space-y-3 text-gray-400">
+              {policyLinks.map((item, i) => (
+                <li key={i}>
+                  <motion.div whileHover={{ x: 6 }}>
+                    <Link
+                      href={item.href}
+                      className="relative inline-block hover:text-orange-400 group"
+                    >
+                      {item.label}
+                      <span className="absolute left-0 -bottom-1 w-0 h-[2px] bg-orange-400 transition-all group-hover:w-full" />
+                    </Link>
+                  </motion.div>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+
+          {/* Contact */}
+          <motion.div variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0 } }}>
             <h4 className="mb-4 text-lg font-bold">Contact Info</h4>
             <ul className="space-y-3 text-gray-400">
-              <li>R.B Chatterjee Road , Tikorhat, Bardhaman</li>
-              <li> West Bengal - 713102, India</li>
-
-              {/* Click-to-call */}
+              <li>R.B Chatterjee Road, Tikorhat</li>
+              <li>Bardhaman, West Bengal – 713102</li>
               <li className="mt-4">
-                <a
-                  href={TEL_HREF}
-                  aria-label={`Call ${PHONE}`}
-                  className="inline-block text-gray-300 hover:text-orange-400 transition-colors"
-                >
+                <a href={TEL_HREF} className="hover:text-orange-400">
                   {PHONE}
                 </a>
               </li>
-
-              {/* Mailto link */}
               <li>
-                <a
-                  href={MAILTO_HREF}
-                  aria-label={`Email ${EMAIL}`}
-                  className="inline-block text-gray-300 hover:text-orange-400 transition-colors break-all"
-                >
+                <a href={MAILTO_HREF} className="hover:text-orange-400 break-all">
                   {EMAIL}
                 </a>
               </li>
@@ -162,7 +170,7 @@ export default function Footer() {
           </motion.div>
         </motion.div>
 
-        {/* Bottom Section */}
+        {/* Bottom */}
         <motion.div
           initial={{ opacity: 0, y: 25 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -170,10 +178,8 @@ export default function Footer() {
           transition={{ duration: 0.8 }}
           className="flex flex-col items-center justify-between gap-4 pt-8 border-t border-gray-800 md:flex-row"
         >
-          <p className="text-center text-gray-500 md:text-left">
-            © 2024 Bhakta Sammilan. All rights reserved.
-          </p>
-          <p className="flex items-center gap-2 text-gray-400">Sankha Subhra Das</p>
+          <p className="text-gray-500">© 2024 Bhakta Sammilan. All rights reserved.</p>
+          <p className="text-gray-400">Sankha Subhra Das</p>
         </motion.div>
       </div>
     </footer>
