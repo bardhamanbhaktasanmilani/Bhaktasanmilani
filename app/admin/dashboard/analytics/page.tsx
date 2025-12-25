@@ -1,12 +1,6 @@
 "use client";
 
-import React, {
-  useEffect,
-  useState,
-  useMemo,
-  useRef,
-  MouseEvent,
-} from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import {
   LineChart,
   Line,
@@ -28,7 +22,6 @@ import {
   Activity,
 } from "lucide-react";
 import html2canvas from "html2canvas";
-
 
 /* ---------------- Types ---------------- */
 
@@ -235,8 +228,6 @@ export default function AnalyticsPage() {
     URL.revokeObjectURL(url);
   };
 
- 
-
   /* ---------------- UI (UNCHANGED) ---------------- */
 
   return (
@@ -267,172 +258,170 @@ export default function AnalyticsPage() {
               <FileSpreadsheet className="h-4 w-4" />
               CSV
             </button>
-            
           </div>
         </div>
       </header>
 
-   
-
-
-      <section className="max-w-6xl mx-auto px-4 py-6 space-y-8">
-        {/* Controls */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
-          <div className="flex flex-wrap gap-3 items-center">
-            {(["daily", "monthly", "yearly"] as Timeframe[]).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTimeframe(t)}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-                  timeframe === t
-                    ? "bg-slate-900 text-white"
-                    : "bg-slate-100 hover:bg-slate-200"
-                }`}
-              >
-                {t.toUpperCase()}
-              </button>
-            ))}
-
-            {timeframe === "daily" && !fromDate && (
-              <div className="flex gap-2">
-                {[30, 60, 90].map((d) => (
-                  <button
-                    key={d}
-                    onClick={() => setDailyRange(d as DailyRange)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-                      dailyRange === d
-                        ? "bg-sky-600 text-white"
-                        : "bg-slate-100 hover:bg-slate-200"
-                    }`}
-                  >
-                    Last {d} days
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <div className="flex gap-1 rounded-full border p-1 text-xs">
-              {(["amount", "count", "stacked"] as MetricMode[]).map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setMetric(m)}
-                  className={`rounded-full px-3 py-1 font-semibold ${
-                    metric === m ? "bg-slate-900 text-white" : ""
-                  }`}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-2 text-xs">
-              <Calendar className="h-4 w-4 text-slate-500" />
-              <input
-                type="date"
-                value={fromDate || ""}
-                onChange={(e) => setFromDate(e.target.value || null)}
-                className="border rounded px-2 py-1"
-              />
-              <span>to</span>
-              <input
-                type="date"
-                value={toDate || ""}
-                onChange={(e) => setToDate(e.target.value || null)}
-                className="border rounded px-2 py-1"
-              />
-              {(fromDate || toDate) && (
-                <button
-                  onClick={() => {
-                    setFromDate(null);
-                    setToDate(null);
-                  }}
-                  className="underline ml-2"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Comparison cards */}
-        {comparison30 && (
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-              <p className="text-[11px] text-slate-500 uppercase">
-                Current 30 Days
-              </p>
-              <p className="text-lg font-semibold mt-1">
-                {formatAmount(comparison30.current)}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-              <p className="text-[11px] text-slate-500 uppercase">
-                Previous 30 Days
-              </p>
-              <p className="text-lg font-semibold mt-1">
-                {formatAmount(comparison30.previous)}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm flex items-center gap-2">
-              {comparison30.delta >= 0 ? (
-                <TrendingUp className="text-emerald-600" />
-              ) : (
-                <TrendingDown className="text-rose-600" />
-              )}
-              <span
-                className={`text-lg font-semibold ${
-                  comparison30.delta >= 0
-                    ? "text-emerald-600"
-                    : "text-rose-600"
-                }`}
-              >
-                {comparison30.delta.toFixed(1)}%
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Chart */}
-        <div
-          ref={chartRef}
-          className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm h-80"
+  <section className="max-w-6xl mx-auto px-4 py-6 space-y-8">
+  {/* Controls */}
+  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+    <div className="flex flex-wrap gap-3 items-center">
+      {(["daily", "monthly", "yearly"] as Timeframe[]).map((t) => (
+        <button
+          key={t}
+          onClick={() => setTimeframe(t)}
+          className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+            timeframe === t
+              ? "bg-slate-900 text-white"
+              : "bg-slate-100 hover:bg-slate-200"
+          }`}
         >
-          {loading ? (
-            <div className="h-full flex items-center justify-center text-sm text-slate-500">
-              Loading analytics…
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              {metric === "stacked" ? (
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="label" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="totalAmount" stackId="a" fill="#0f172a" />
-                  <Bar dataKey="count" stackId="a" fill="#38bdf8" />
-                </BarChart>
-              ) : (
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="label" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey={metric === "amount" ? "totalAmount" : "count"}
-                    stroke="#0f172a"
-                    strokeWidth={2}
-                    dot={{ r: 3 }}
-                    animationDuration={600}
-                  />
-                </LineChart>
-              )}
-            </ResponsiveContainer>
-          )}
+          {t.toUpperCase()}
+        </button>
+      ))}
+
+      {timeframe === "daily" && !fromDate && (
+        <div className="flex gap-2 flex-wrap">
+          {[30, 60, 90].map((d) => (
+            <button
+              key={d}
+              onClick={() => setDailyRange(d as DailyRange)}
+              className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+                dailyRange === d
+                  ? "bg-sky-600 text-white"
+                  : "bg-slate-100 hover:bg-slate-200"
+              }`}
+            >
+              Last {d} days
+            </button>
+          ))}
         </div>
-      </section>
+      )}
+
+      <div className="flex gap-1 rounded-full border p-1 text-xs flex-wrap">
+        {(["amount", "count", "stacked"] as MetricMode[]).map((m) => (
+          <button
+            key={m}
+            onClick={() => setMetric(m)}
+            className={`rounded-full px-3 py-1 font-semibold ${
+              metric === m ? "bg-slate-900 text-white" : ""
+            }`}
+          >
+            {m}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-col sm:flex-row items-center gap-2 text-xs">
+        <Calendar className="h-4 w-4 text-slate-500" />
+        <input
+          type="date"
+          value={fromDate || ""}
+          onChange={(e) => setFromDate(e.target.value || null)}
+          className="border rounded px-2 py-1 w-full sm:w-auto"
+        />
+        <span>to</span>
+        <input
+          type="date"
+          value={toDate || ""}
+          onChange={(e) => setToDate(e.target.value || null)}
+          className="border rounded px-2 py-1 w-full sm:w-auto"
+        />
+        {(fromDate || toDate) && (
+          <button
+            onClick={() => {
+              setFromDate(null);
+              setToDate(null);
+            }}
+            className="underline ml-2"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+
+  {/* Comparison Cards */}
+  {comparison30 && (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <p className="text-[11px] text-slate-500 uppercase">
+          Current 30 Days
+        </p>
+        <p className="text-lg font-semibold mt-1">
+          {formatAmount(comparison30.current)}
+        </p>
+      </div>
+      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <p className="text-[11px] text-slate-500 uppercase">
+          Previous 30 Days
+        </p>
+        <p className="text-lg font-semibold mt-1">
+          {formatAmount(comparison30.previous)}
+        </p>
+      </div>
+      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm flex items-center gap-2">
+        {comparison30.delta >= 0 ? (
+          <TrendingUp className="text-emerald-600" />
+        ) : (
+          <TrendingDown className="text-rose-600" />
+        )}
+        <span
+          className={`text-lg font-semibold ${
+            comparison30.delta >= 0
+              ? "text-emerald-600"
+              : "text-rose-600"
+          }`}
+        >
+          {comparison30.delta.toFixed(1)}%
+        </span>
+      </div>
+    </div>
+  )}
+
+  {/* Chart */}
+  <div
+    ref={chartRef}
+    className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm h-80"
+  >
+    {loading ? (
+      <div className="h-full flex items-center justify-center text-sm text-slate-500">
+        Loading analytics…
+      </div>
+    ) : (
+      <ResponsiveContainer width="100%" height="100%">
+        {metric === "stacked" ? (
+          <BarChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="label" />
+            <YAxis />
+            <Tooltip />
+            <Bar dataKey="totalAmount" stackId="a" fill="#0f172a" />
+            <Bar dataKey="count" stackId="a" fill="#38bdf8" />
+          </BarChart>
+        ) : (
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="label" />
+            <YAxis />
+            <Tooltip />
+            <Line
+              type="monotone"
+              dataKey={metric === "amount" ? "totalAmount" : "count"}
+              stroke="#0f172a"
+              strokeWidth={2}
+              dot={{ r: 3 }}
+              animationDuration={600}
+            />
+          </LineChart>
+        )}
+      </ResponsiveContainer>
+    )}
+  </div>
+</section>
+
+
     </main>
   );
 }

@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/logout/page";
 import { Button } from "@/components/ui/button";
 
+/* ---------------- Types ---------------- */
+
 type DonationStatus = "PENDING" | "SUCCESS" | "FAILED" | "REFUNDED";
 
 type Donation = {
@@ -64,11 +66,15 @@ type SortOption =
   | "amount-asc"
   | "amount-desc";
 
+/* ---------------- Dynamic imports ---------------- */
+
 // dynamic import of CSVLink (client-only)
 const CSVLink = dynamic(
   () => import("react-csv").then((mod) => mod.CSVLink),
   { ssr: false }
 );
+
+/* ---------------- Component ---------------- */
 
 export default function AdminDashboardPage() {
   const [donations, setDonations] = useState<Donation[]>([]);
@@ -186,6 +192,7 @@ export default function AdminDashboardPage() {
 
   const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
+    // searchQuery already set via handleSearchInputChange
   };
 
   const performLogout = async () => {
@@ -485,7 +492,7 @@ export default function AdminDashboardPage() {
     URL.revokeObjectURL(url);
   };
 
-  // ------------------ UI (kept intact) ------------------
+  // ------------------ UI (kept intact, but responsive) ------------------
 
   return (
     <>
@@ -511,10 +518,10 @@ export default function AdminDashboardPage() {
               <span className="rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-[11px] text-slate-700 flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                 <span>Logged in as:</span>
-                <span className="font-semibold">{adminEmail}</span>
+                <span className="font-semibold truncate max-w-[10rem]">{adminEmail}</span>
               </span>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap justify-end">
                 <Button
                   variant="outline"
                   onClick={() =>
@@ -545,7 +552,8 @@ export default function AdminDashboardPage() {
         </header>
 
         <section className="max-w-6xl mx-auto px-4 py-6 space-y-8">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
+          {/* Top stats */}
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
             <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 flex items-center justify-between shadow-sm">
               <div>
                 <p className="text-[11px] text-slate-500 uppercase tracking-wide">
@@ -574,7 +582,8 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-[1.7fr,1.3fr]">
+          {/* Filters + Top donors */}
+          <div className="grid gap-4 grid-cols-1 lg:grid-cols-[1.7fr,1.3fr]">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm font-semibold flex items-center gap-2">
@@ -591,8 +600,9 @@ export default function AdminDashboardPage() {
                 )}
               </div>
 
+              {/* Filter form - stacks on mobile */}
               <form onSubmit={handleFilter} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <label className="block text-[11px] mb-1 text-slate-500">Min Amount (₹)</label>
                   <input
                     type="number"
@@ -603,7 +613,7 @@ export default function AdminDashboardPage() {
                     placeholder="e.g. 300"
                   />
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <label className="block text-[11px] mb-1 text-slate-500">Max Amount (₹)</label>
                   <input
                     type="number"
@@ -614,11 +624,12 @@ export default function AdminDashboardPage() {
                     placeholder="e.g. 2000"
                   />
                 </div>
-                <div className="flex gap-2">
+
+                <div className="flex gap-2 flex-wrap sm:flex-nowrap">
                   <button
                     type="submit"
                     disabled={loading}
-                    className="mt-1 sm:mt-0 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:shadow disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full sm:w-auto mt-1 sm:mt-0 inline-flex items-center gap-2 justify-center rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:shadow disabled:opacity-70 disabled:cursor-not-allowed"
                   >
                     Apply Filter
                   </button>
@@ -626,7 +637,7 @@ export default function AdminDashboardPage() {
                     type="button"
                     onClick={handleResetFilters}
                     disabled={loading}
-                    className="mt-1 sm:mt-0 inline-flex items-center gap-2 rounded-full border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full sm:w-auto mt-1 sm:mt-0 inline-flex items-center gap-2 justify-center rounded-full border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-70 disabled:cursor-not-allowed"
                   >
                     <RefreshCcw className="h-3 w-3" />
                     Reset
@@ -660,13 +671,13 @@ export default function AdminDashboardPage() {
                 <ul className="space-y-2 text-xs">
                   {topDonors.map((d, idx) => (
                     <li key={`${d.email || d.name || "donor"}-${idx}`} className="flex items-center justify-between rounded-xl bg-slate-50 border border-slate-200 px-3 py-2">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
                         <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white border border-slate-200 text-[11px] font-semibold text-slate-700">
                           #{idx + 1}
                         </span>
-                        <div>
-                          <p className="font-semibold text-slate-900">{d.name || d.email || "Anonymous Devotee"}</p>
-                          <p className="text-[11px] text-slate-500">{d.email ?? d.phone ?? ""}</p>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-slate-900 truncate">{d.name || d.email || "Anonymous Devotee"}</p>
+                          <p className="text-[11px] text-slate-500 truncate">{d.email ?? d.phone ?? ""}</p>
                         </div>
                       </div>
                       <p className="text-xs font-semibold text-emerald-600">{formatAmount(d.totalAmount)}</p>
@@ -677,6 +688,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
+          {/* Completed Donations list + search/sort controls */}
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
               <div>
@@ -684,35 +696,40 @@ export default function AdminDashboardPage() {
                 <p className="text-[11px] text-slate-500 mt-1">Only successful Razorpay transactions that have been fully captured and settled.</p>
               </div>
 
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <form onSubmit={handleSearchSubmit} className="flex items-center gap-1">
-                  <div className="flex items-center rounded-full border border-slate-300 bg-slate-50 px-3 py-1.5">
+              <div className="flex flex-col gap-2 w-full md:w-auto">
+                <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row sm:items-center gap-2 w-full">
+                  <div className="flex items-center rounded-full border border-slate-300 bg-slate-50 px-3 py-1.5 flex-1 min-w-0">
                     <Search className="h-3.5 w-3.5 text-slate-500 mr-2" />
                     <input
                       type="text"
                       value={searchInput}
                       onChange={(e) => handleSearchInputChange(e.target.value)}
                       placeholder="Search by name, email, year, amount..."
-                      className="bg-transparent text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none w-48 sm:w-64"
+                      className="bg-transparent text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none w-full min-w-0"
                     />
                   </div>
-                  <button type="submit" className="ml-2 inline-flex items-center gap-1 rounded-full bg-slate-900 text-white text-xs font-medium px-3 py-1.5 hover:bg-slate-800">
+
+                  {/* Search button: full width on xs, inline on sm+ */}
+                  <button
+                    type="submit"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-1 rounded-full bg-slate-900 text-white text-xs font-medium px-3 py-2 hover:bg-slate-800"
+                  >
                     Search
                   </button>
-                </form>
 
-                <div className="flex items-center gap-1">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-50 px-3 py-1.5">
-                    <SortAsc className="h-3.5 w-3.5 text-slate-500" />
-                    <select value={sortOption} onChange={(e) => setSortOption(e.target.value as SortOption)} className="bg-transparent text-xs text-slate-800 focus:outline-none">
-                      <option value="default">Newest first</option>
-                      <option value="name-asc">Name · A → Z</option>
-                      <option value="name-desc">Name · Z → A</option>
-                      <option value="amount-asc">Amount · Low → High</option>
-                      <option value="amount-desc">Amount · High → Low</option>
-                    </select>
+                  <div className="flex items-center gap-1">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-50 px-3 py-1.5">
+                      <SortAsc className="h-3.5 w-3.5 text-slate-500" />
+                      <select value={sortOption} onChange={(e) => setSortOption(e.target.value as SortOption)} className="bg-transparent text-xs text-slate-800 focus:outline-none">
+                        <option value="default">Newest first</option>
+                        <option value="name-asc">Name · A → Z</option>
+                        <option value="name-desc">Name · Z → A</option>
+                        <option value="amount-asc">Amount · Low → High</option>
+                        <option value="amount-desc">Amount · High → Low</option>
+                      </select>
+                    </div>
                   </div>
-                </div>
+                </form>
               </div>
             </div>
 
@@ -727,8 +744,9 @@ export default function AdminDashboardPage() {
                 )}
               </div>
             ) : (
+              /* Table wrapper: allow horizontal scrolling on small screens */
               <div className="relative max-h-[520px] overflow-auto rounded-xl border border-slate-200">
-                <table className="min-w-full text-xs">
+                <table className="min-w-[900px] w-full text-xs">
                   <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur border-b border-slate-200">
                     <tr className="text-[11px] text-slate-500">
                       <th className="text-left px-3 py-2 font-medium">Donor</th>
@@ -748,15 +766,19 @@ export default function AdminDashboardPage() {
 
                       return (
                         <tr key={d.id ?? index} className="border-b border-slate-100 last:border-0 odd:bg-white even:bg-slate-50 hover:bg-slate-100 transition-colors">
-                          <td className="px-3 py-2 align-top">
-                            <div className="flex flex-col">
-                              <span className="font-semibold text-slate-900">
+                          <td className="px-3 py-2 align-top max-w-[180px]">
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-semibold text-slate-900 truncate">
                                 {highlightText(d.donorName || "Anonymous", searchQuery)}
                               </span>
                             </div>
                           </td>
-                          <td className="px-3 py-2 align-top text-slate-800">{highlightText(d.donorEmail || "-", searchQuery)}</td>
-                          <td className="px-3 py-2 align-top text-slate-800">{highlightText(d.donorPhone || "-", searchQuery)}</td>
+                          <td className="px-3 py-2 align-top text-slate-800 max-w-[200px]">
+                            <div className="truncate">{highlightText(d.donorEmail || "-", searchQuery)}</div>
+                          </td>
+                          <td className="px-3 py-2 align-top text-slate-800 max-w-[120px]">
+                            <div className="truncate">{highlightText(d.donorPhone || "-", searchQuery)}</div>
+                          </td>
                           <td className="px-3 py-2 align-top font-semibold text-slate-900 whitespace-nowrap">{highlightText(formatAmount(d.amount), searchQuery)}</td>
                           <td className="px-3 py-2 align-top">
                             <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold border bg-emerald-50 text-emerald-700 border-emerald-200">
@@ -796,7 +818,6 @@ export default function AdminDashboardPage() {
               <CSVLink
                 data={buildCsvRows()}
                 filename={"donations.csv"}
-                // pass className to CSVLink's child anchor is not guaranteed; render child Button for consistency
               >
                 <Button className="bg-blue-500 text-white px-4 py-2 rounded-full">
                   Download CSV
@@ -817,6 +838,7 @@ export default function AdminDashboardPage() {
         </section>
       </main>
 
+      {/* Logout dialog */}
       <AlertDialog open={logoutOpen} onOpenChange={setLogoutOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

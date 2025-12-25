@@ -821,11 +821,7 @@ export default function DonateSection() {
             </div>
           </div>
         </div>
-        <div className="overflow-hidden whitespace-nowrap">
-  <div className="inline-block animate-marquee text-red-500 text-4xl font-semibold">
-    ⚠️ The website is under maintenance and testing. Donations are temporarily disabled.
-  </div>
-</div>
+        
 
       </section>
 

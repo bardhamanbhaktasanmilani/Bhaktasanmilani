@@ -8,21 +8,10 @@ import React, {
   Suspense,
   useCallback,
   MutableRefObject,
+  ReactNode,
 } from "react";
 import { Users, Heart } from "lucide-react";
 import dynamic from "next/dynamic";
-
-const TempleViewer = dynamic(
-  () => import("@/components/ui/TempleViewer"),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="w-full h-full flex items-center justify-center text-sm text-gray-500">
-        Loading 3D…
-      </div>
-    ),
-  }
-);
 import PhotoGallery from "../sub-sections/About/Photo-gallery";
 
 /* ------------------------ Helpers / Formatting ------------------------ */
@@ -121,9 +110,7 @@ function AnimatedNumber({
       };
       rafRef.current = requestAnimationFrame(step);
     };
-    // cancel ongoing
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    // start
     requestAnimationFrame(start);
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -138,12 +125,48 @@ function AnimatedNumber({
 const STATS_CACHE_KEY = "bhakta_stats_v1";
 const STATS_TTL_MS = 60 * 1000; // 60s TTL — adjust as desired
 
+/* ------------------------ Dynamic 3D Viewer ------------------------ */
+
+const TempleViewer = dynamic(() => import("@/components/ui/TempleViewer"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center text-sm text-gray-500">
+      Loading 3D…
+    </div>
+  ),
+});
+
+/* ------------------------ Simple Error Boundary for Viewer ------------------------ */
+
+class SimpleErrorBoundary extends React.Component<
+  { children: ReactNode; fallback?: ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch() {
+    // swallow; parent will show fallback
+  }
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback ?? null;
+    }
+    return this.props.children;
+  }
+}
+
 /* ------------------------ Component ------------------------ */
 
 const AboutSection: React.FC = () => {
   const sectionRef = useRef<HTMLElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const viewerContainerRef = useRef<HTMLDivElement | null>(null);
+  const viewerWrapperRef = useRef<HTMLDivElement | null>(null); // <- ensure this exists
 
   const [isOpen, setIsOpen] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -151,10 +174,10 @@ const AboutSection: React.FC = () => {
   const [load3D, setLoad3D] = useState<null | boolean>(null);
   const [userRequested3D, setUserRequested3D] = useState(false);
   const [viewerKey, setViewerKey] = useState(0);
+  const [viewerError, setViewerError] = useState<string | null>(null);
 
   const statRefs = useRef<Array<HTMLDivElement | null>>([]);
- const prefersReducedMotion = usePrefersReducedMotionSafe();
-
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   /* ---------- Live stats state ---------- */
   const [loadingStats, setLoadingStats] = useState(true);
@@ -164,34 +187,43 @@ const AboutSection: React.FC = () => {
   const [isLiveData, setIsLiveData] = useState(false);
   const [scriptCacheUsed, setScriptCacheUsed] = useState(false);
 
-  /* ---------- 3D viewer mount policy ---------- */
+  /* ---------- 3D viewer mount policy (responsive) ---------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const mq = window.matchMedia("(min-width: 768px)");
-    setLoad3D(mq.matches);
-    const handler = (e: MediaQueryListEvent) => {
-      if (userRequested3D) {
-        if (e.matches) setLoad3D(true);
-        return;
+    try {
+      const mq = window.matchMedia("(min-width: 768px)");
+      setLoad3D(!!mq.matches);
+      const handler = (e: MediaQueryListEvent) => {
+        if (userRequested3D) {
+          if (e.matches) setLoad3D(true);
+          return;
+        }
+        setLoad3D(!!e.matches);
+      };
+      if (typeof mq.addEventListener === "function") {
+        mq.addEventListener("change", handler);
+        return () => mq.removeEventListener("change", handler);
+      } else {
+        // legacy
+        // @ts-ignore
+        mq.addListener(handler);
+        // @ts-ignore
+        return () => mq.removeListener(handler);
       }
-      setLoad3D(e.matches);
-    };
-    if (typeof mq.addEventListener === "function") {
-      mq.addEventListener("change", handler);
-      return () => mq.removeEventListener("change", handler);
-    } else {
-      // legacy
-      // @ts-ignore
-      mq.addListener(handler);
-      // @ts-ignore
-      return () => mq.removeListener(handler);
+    } catch {
+      // fallback: allow 3D but user must request
+      setLoad3D(false);
     }
   }, [userRequested3D]);
 
   /* ---------- IntersectionObserver for reveal animation ---------- */
   useEffect(() => {
     const el = sectionRef.current;
-    if (!el) return;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      // fallback: mark visible immediately
+      setVisible(true);
+      return;
+    }
 
     let opened = false;
     const io = new IntersectionObserver(
@@ -219,40 +251,44 @@ const AboutSection: React.FC = () => {
     return () => io.disconnect();
   }, [prefersReducedMotion]);
 
-  /* ---------- Preload placeholder image ---------- */
+  /* ---------- Preload placeholder image (safe) ---------- */
   useEffect(() => {
     if (typeof document === "undefined") return;
-    const link = document.createElement("link");
-    link.rel = "preload";
-    link.as = "image";
-    link.href = "/images/temple-placeholder.svg";
-    document.head.appendChild(link);
-    return () => {
-      try {
-        document.head.removeChild(link);
-      } catch {}
-    };
+    try {
+      const link = document.createElement("link");
+      link.rel = "preload";
+      link.as = "image";
+      link.href = "/images/temple-placeholder.svg";
+      document.head.appendChild(link);
+      return () => {
+        try {
+          document.head.removeChild(link);
+        } catch {}
+      };
+    } catch {}
   }, []);
 
-  /* ---------- webglcontextlost handlers ---------- */
+  /* ---------- webglcontextlost handlers (safe) ---------- */
   useEffect(() => {
     const container = viewerContainerRef.current;
     if (!container) return;
     const onContextLost = (e: Event) => {
       try {
+        // prevent default to stop browser from doing weird things
         // @ts-ignore
         if (e && typeof e.preventDefault === "function") e.preventDefault();
       } catch {}
-      setTimeout(() => setViewerKey((k) => k + 1), 60);
+      // re-key to force remount
+      setTimeout(() => setViewerKey((k) => k + 1), 80);
     };
-    const onContextRestored = () => {
-      setTimeout(() => setViewerKey((k) => k + 1), 60);
-    };
-    container.addEventListener("webglcontextlost", onContextLost as EventListener, { passive: false, capture: true });
-    container.addEventListener("webglcontextrestored", onContextRestored as EventListener, { capture: true });
+    const onContextRestored = () => setTimeout(() => setViewerKey((k) => k + 1), 80);
+    container.addEventListener("webglcontextlost", onContextLost as EventListener, { passive: false, capture: true } as any);
+    container.addEventListener("webglcontextrestored", onContextRestored as EventListener);
     return () => {
-      container.removeEventListener("webglcontextlost", onContextLost as EventListener as any);
-      container.removeEventListener("webglcontextrestored", onContextRestored as EventListener as any);
+      try {
+        container.removeEventListener("webglcontextlost", onContextLost as EventListener as any);
+        container.removeEventListener("webglcontextrestored", onContextRestored as EventListener as any);
+      } catch {}
     };
   }, [viewerContainerRef.current]);
 
@@ -273,17 +309,6 @@ const AboutSection: React.FC = () => {
     setUserRequested3D(true);
     setLoad3D(true);
   }, []);
-function usePrefersReducedMotionSafe() {
-  const [reduced, setReduced] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
-  }, []);
-
-  return reduced;
-}
 
   /* ---------- Fetch + Client Cache + Live detection ---------- */
   useEffect(() => {
@@ -303,7 +328,6 @@ function usePrefersReducedMotionSafe() {
             if (!mounted) return;
             setScriptCacheUsed(true);
             const cached = parsed.data;
-            // cached may be of shape { devotees, funds } or list of donations
             if (cached && (typeof cached.devotees === "number" || typeof cached.funds === "number")) {
               setDevoteesCount(typeof cached.devotees === "number" ? cached.devotees : null);
               setFundsRaised(typeof cached.funds === "number" ? cached.funds : null);
@@ -312,7 +336,6 @@ function usePrefersReducedMotionSafe() {
             }
             const list = Array.isArray(cached) ? cached : Array.isArray(cached?.donations) ? cached.donations : [];
             if (list.length) {
-              // compute donors & total
               const donors = new Set<string>();
               let total = 0;
               for (const item of list) {
@@ -342,8 +365,6 @@ function usePrefersReducedMotionSafe() {
               setLoadingStats(false);
               return;
             }
-          } else {
-            // stale or not present, continue to network fetch
           }
         }
       } catch (e) {
@@ -356,30 +377,24 @@ function usePrefersReducedMotionSafe() {
         try {
           const res = await fetch(ep, { credentials: "include" });
           if (!res.ok) {
-            // try next
             continue;
           }
           const data = await res.json();
 
-          // if /api/stats-like response with explicit fields
           if (data && (typeof data.devotees === "number" || typeof data.funds === "number")) {
             if (!mounted) return;
             setDevoteesCount(typeof data.devotees === "number" ? data.devotees : null);
             setFundsRaised(typeof data.funds === "number" ? data.funds : null);
-            setIsLiveData(ep === "/api/stats"); // true if directly from aggregator
+            setIsLiveData(ep === "/api/stats");
             setLoadingStats(false);
-            // cache the raw data
             try {
               localStorage.setItem(STATS_CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
             } catch {}
             return;
           }
 
-          // otherwise expect array or { donations: [...] }
           const list: any[] = Array.isArray(data) ? data : Array.isArray(data?.donations) ? data.donations : [];
-
           if (!list.length) {
-            // try next endpoint
             continue;
           }
 
@@ -410,20 +425,17 @@ function usePrefersReducedMotionSafe() {
           if (!mounted) return;
           setDevoteesCount(donors.size);
           setFundsRaised(total);
-          setIsLiveData(false); // computed from lists, not aggregator
+          setIsLiveData(false);
           setLoadingStats(false);
-          // cache
           try {
             localStorage.setItem(STATS_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: list }));
           } catch {}
           return;
         } catch (err) {
-          // continue to next endpoint
           continue;
         }
       }
 
-      // all failed
       if (mounted) {
         setLoadingStats(false);
         setStatsError("Unable to load donation stats — showing approximate values.");
@@ -459,16 +471,19 @@ function usePrefersReducedMotionSafe() {
     },
   ];
 
-  // hide numeric zeros automatically, but keep placeholders ("…" or null) visible while loading
   const statsToRender = statsToRenderRaw.filter((s) => {
-    // if numeric 0 -> hide
     if (typeof s.value === "number" && s.value === 0) return false;
     return true;
   });
 
   /* ------------------------ Render ------------------------ */
   return (
-    <section id="about" ref={sectionRef} className="py-16 sm:py-20 bg-gradient-to-br from-orange-50 to-amber-50">
+    <section
+      id="about"
+      ref={sectionRef}
+      className="py-16 sm:py-20 bg-gradient-to-br from-orange-50 to-amber-50 overflow-hidden"
+      style={{ boxSizing: "border-box" }}
+    >
       <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
         {/* Header */}
         <header className="mb-8 text-center">
@@ -485,7 +500,11 @@ function usePrefersReducedMotionSafe() {
         <main className="mb-12" aria-labelledby="about-heading">
           <div className="flex flex-col gap-6">
             {/* FULL-WIDTH 3D Viewer */}
-            <div className="w-full flex items-center justify-center" style={{ minWidth: 0 }}>
+            <div
+              ref={viewerWrapperRef}
+              className="w-full flex items-center justify-center"
+              style={{ minWidth: 0 }} // IMPORTANT: allow children to shrink
+            >
               <div
                 ref={viewerContainerRef}
                 className="w-full rounded-2xl overflow-hidden shadow-lg bg-white"
@@ -493,22 +512,36 @@ function usePrefersReducedMotionSafe() {
                   height: "clamp(360px, 64vh, 820px)",
                   margin: "0 auto",
                   display: "flex",
+                  width: "100%",
                 }}
               >
-                {load3D === null && (
-                  <div className="w-full h-full flex items-center justify-center text-sm text-gray-400">
-                    Loading…
+                {/* Safeguard: if viewer had an error show fallback */}
+                {viewerError ? (
+                  <div className="w-full h-full flex items-center justify-center p-6 text-center">
+                    <div>
+                      <p className="mb-2 text-sm text-rose-600">3D viewer failed to load.</p>
+                      <button
+                        className="px-4 py-2 rounded-md bg-amber-600 text-white text-sm"
+                        onClick={() => {
+                          setViewerError(null);
+                          setViewerKey((k) => k + 1);
+                        }}
+                      >
+                        Retry Viewer
+                      </button>
+                    </div>
                   </div>
-                )}
-
-                {load3D === false && (
-                  <div className="w-full h-full flex flex-col items-center justify-center p-4">
+                ) : load3D === null ? (
+                  <div className="w-full h-full flex items-center justify-center text-sm text-gray-400">Loading…</div>
+                ) : load3D === false ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center p-4" style={{ minWidth: 0 }}>
                     <img
                       src="/images/temple-placeholder.svg"
                       alt="Temple"
                       width={1600}
                       height={900}
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      loading="lazy"
+                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                     />
                     <button
                       onClick={request3D}
@@ -517,17 +550,37 @@ function usePrefersReducedMotionSafe() {
                       Load 3D Viewer
                     </button>
                   </div>
+                ) : (
+                  <div key={`temple-viewer-${viewerKey}`} style={{ width: "100%", height: "100%", minWidth: 0 }}>
+                    <SimpleErrorBoundary
+                      fallback={
+                        <div className="w-full h-full flex items-center justify-center">
+                          <div>
+                            <p className="text-sm text-rose-600">3D viewer could not initialize.</p>
+                            <button
+                              onClick={() => setViewerKey((k) => k + 1)}
+                              className="mt-2 px-3 py-2 rounded bg-amber-600 text-white text-sm"
+                            >
+                              Retry
+                            </button>
+                          </div>
+                        </div>
+                      }
+                    >
+                      <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-sm">Loading 3D…</div>}>
+                        <TempleViewer
+                          // if TempleViewer exposes any props you can forward them. Catch errors via window handlers as well.
+                          // Add a quick try-catch guard: TempleViewer itself should not throw; if it does, the boundary will catch it.
+                        />
+                      </Suspense>
+                    </SimpleErrorBoundary>
+                  </div>
                 )}
-{load3D === true && (
-  <div key={`temple-viewer-${viewerKey}`} style={{ width: "100%", height: "100%" }}>
-    <TempleViewer />
-  </div>
-)}
-
               </div>
             </div>
 
             <br />
+
             {/* ROYAL DECREE — BELOW THE VIEWER */}
             <div className="w-full flex justify-center">
               <div className="relative w-full max-w-3xl">
@@ -664,7 +717,6 @@ function usePrefersReducedMotionSafe() {
                     {loadingStats && stat.value == null ? (
                       "…"
                     ) : typeof stat.value === "number" ? (
-                      // If currency + compact, animate numeric then show compact formatting
                       stat.isCurrency ? (
                         <AnimatedNumber value={stat.value ?? 0} isCurrency compact duration={1200} />
                       ) : (
@@ -681,7 +733,6 @@ function usePrefersReducedMotionSafe() {
             })}
           </div>
 
-          {/* display error note if fetch failed */}
           {statsError && (
             <div className="text-sm text-center text-rose-600 mb-4">
               {statsError} (inspect <code>/api/stats</code> or <code>/api/admin/donations</code>)

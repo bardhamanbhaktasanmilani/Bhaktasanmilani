@@ -142,7 +142,7 @@ export default function ContactSection() {
       {/* Main section */}
       <section
         id="contact"
-        className="relative flex items-center justify-center py-12 sm:py-16 bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100"
+        className="overflow-hidden relative flex items-center justify-center py-12 sm:py-16 bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100"
       >
         {/* soft glowing background orbs */}
         <div className="absolute inset-0 pointer-events-none -z-10">
