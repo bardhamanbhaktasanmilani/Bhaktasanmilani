@@ -362,7 +362,7 @@ function Moon({ position = [6, 5, -6], radius = 0.55 }: { position?: [number, nu
   );
 }
 
-export default function TempleViewer({ modelPath = "/about/temple.glb" }: { modelPath?: string }) {
+export default function TempleViewer({ modelPath = "/About/temple.glb" }: { modelPath?: string }) {
   const sceneRef = useRef<THREE.Object3D | null>(null);
   const [glowPos, setGlowPos] = useState(new THREE.Vector3(0, 1.0, -3));
   const [glowScale, setGlowScale] = useState<number>(3.2);
