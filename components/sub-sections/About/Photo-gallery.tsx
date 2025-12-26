@@ -16,20 +16,92 @@ type ImgItem = {
 };
 
 const religionImages: ImgItem[] = [
-  { src: "/About/religious/religious1.AVIF", alt: "Devotees in prayer", title: "Morning Prayers", subtitle: "Devotees gather for the dawn ceremony", width: 1600, height: 900 },
-  { src: "/About/religious/religious2.AVIF", alt: "Temple procession", title: "Temple Procession", subtitle: "A colourful procession of faith and unity", width: 1600, height: 900 },
-  { src: "/About/religious/religious3.AVIF", alt: "Ritual offerings", title: "Ritual Offerings", subtitle: "Offerings presented with reverence", width: 1600, height: 900 },
-  { src: "/About/religious/religious4.AVIF", alt: "Evening aarti", title: "Evening Aarti", subtitle: "The sacred aarti at dusk", width: 1600, height: 900 },
-  { src: "/About/religious/religious5.AVIF", alt: "Community chanting", title: "Community Chanting", subtitle: "Collective bhajans & kirtans", width: 1600, height: 900 },
+  {
+    src: "/About/religious/religious8.AVIF",
+    alt: "Devotees engaged in morning prayer",
+    title: "Morning Prayers",
+    subtitle: "Devotees begin the day with collective prayer and devotion",
+    width: 1600,
+    height: 900,
+  },
+  {
+    src: "/About/religious/religious2.AVIF",
+    alt: "Sacred idols displayed in the temple",
+    title: "Sacred Idols",
+    subtitle: "Divine forms worshipped with reverence and sacred rituals",
+    width: 1600,
+    height: 900,
+  },
+  {
+    src: "/About/religious/religious3.AVIF",
+    alt: "Temple construction in progress",
+    title: "Temple Construction",
+    subtitle: "Building sacred spaces dedicated to faith and worship",
+    width: 1600,
+    height: 900,
+  },
+  {
+    src: "/About/religious/religious7.AVIF",
+    alt: "Evening aarti ceremony",
+    title: "Evening Aarti",
+    subtitle: "Sacred lamps offered at dusk in devotion to the divine",
+    width: 1600,
+    height: 900,
+  },
+  {
+    src: "/About/religious/religious5.AVIF",
+    alt: "Radha Krishna idols adorned for worship",
+    title: "Radha Krishna Murti",
+    subtitle: "The divine presence symbolising love, devotion, and harmony",
+    width: 1600,
+    height: 900,
+  },
 ];
 
+
 const charityImages: ImgItem[] = [
-  { src: "/About/Yoga/yoga1.AVIF", alt: "Feeding the needy", title: "Community Kitchen", subtitle: "Meals prepared and shared daily", width: 1600, height: 900 },
-  { src: "/About/Yoga/yoga2.AVIF", alt: "Clothes distribution", title: "Clothes Drive", subtitle: "Warm clothes distributed across cities", width: 1600, height: 900 },
-  { src: "/About/Yoga/yoga3.AVIF", alt: "Medical camp", title: "Medical Camp", subtitle: "Free checkups & basic treatment", width: 1600, height: 900 },
-  { src: "/About/Yoga/yoga4.AVIF", alt: "Education support", title: "Education Support", subtitle: "Stationery and tuition for children", width: 1600, height: 900 },
-  { src: "/About/Yoga/yoga5.AVIF", alt: "Tree plantation", title: "Green Drive", subtitle: "Tree plantation & environmental care", width: 1600, height: 900 },
+  {
+    src: "/About/Yoga/yoga1.AVIF",
+    alt: "Group yoga practice",
+    title: "Collective Yoga Practice",
+    subtitle: "Practicing asanas together to build strength and harmony",
+    width: 1600,
+    height: 900,
+  },
+  {
+    src: "/About/Yoga/yoga2.AVIF",
+    alt: "Meditative yoga posture",
+    title: "Mindful Postures",
+    subtitle: "Awakening body awareness through controlled movement",
+    width: 1600,
+    height: 900,
+  },
+  {
+    src: "/About/Yoga/yoga3.AVIF",
+    alt: "Guided yoga session",
+    title: "Guided Yoga Session",
+    subtitle: "Learning alignment, balance, and inner stillness",
+    width: 1600,
+    height: 900,
+  },
+  {
+    src: "/About/Yoga/yoga4.AVIF",
+    alt: "Yoga for mental peace",
+    title: "Inner Balance & Calm",
+    subtitle: "Cultivating mental clarity through breath and focus",
+    width: 1600,
+    height: 900,
+  },
+  {
+    src: "/About/Yoga/yoga5.AVIF",
+    alt: "Outdoor yoga practice",
+    title: "Yoga in Harmony with Nature",
+    subtitle: "Connecting breath, movement, and the natural world",
+    width: 1600,
+    height: 900,
+  },
 ];
+
 
 const covidImages: ImgItem[] = [
   { src: "/About/charity/charity1.AVIF", alt: "Vaccine awareness", title: "Vaccination Drive", subtitle: "Vaccines administered safely", width: 1600, height: 900 },
@@ -80,7 +152,7 @@ export default function PhotoGallery() {
           }
         });
       },
-      { threshold: 0.15, rootMargin: "0px 0px -8% 0px" }
+      { threshold: 0.60, rootMargin: "0px 0px -8% 0px" }
     );
     io.observe(rootRef.current);
     return () => io.disconnect();

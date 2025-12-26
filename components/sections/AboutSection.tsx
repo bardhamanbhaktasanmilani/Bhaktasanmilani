@@ -568,10 +568,10 @@ const AboutSection: React.FC = () => {
                       }
                     >
                       <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-sm">Loading 3D…</div>}>
-                        {/* <TempleViewer
+                        <TempleViewer
                           // if TempleViewer exposes any props you can forward them. Catch errors via window handlers as well.
                           // Add a quick try-catch guard: TempleViewer itself should not throw; if it does, the boundary will catch it.
-                        /> */}
+                        />
                       </Suspense>
                     </SimpleErrorBoundary>
                   </div>

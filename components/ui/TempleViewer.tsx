@@ -7,30 +7,24 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, useGLTF, ContactShadows } from "@react-three/drei";
 
 /**
- * TempleViewer — rewritten to fix lighting / material issues while preserving
- * the original features (shadows, glow, fit/center, day/night toggle, loader).
+ * TempleViewer — cleaned, day-only version.
  *
- * Key fixes performed:
- * - Avoid aggressive lerp-to-white which flattens detail; instead gently bias
- *   materials toward a warm off-white marble while preserving texture maps.
- * - Reduce global ambient and hemisphere energy so a single dominant "sun"
- *   (directional light) creates readable depth and crisp shadows.
- * - Move the primary key light to be *behind* the temple relative to the camera
- *   (sun behind the temple) so temple front faces the camera with strong rim
- *   definition and backlight separation.
- * - Use PCFSoftShadowMap and sane shadow camera extents to reduce acne and
- *   clipping while keeping crisp shadows.
- * - Keep all original UX features (toggle, loader, glow plane, contact shadows)
+ * Changes made:
+ * - Removed night mode, toggle UI and all night-only extras (moon, starfield).
+ * - Kept loader, glow plane, contact shadows, orbit controls, and fit/center behavior.
+ * - Ensured temple bias color is warm off-white (marble-like).
+ * - Set a moderate target size for fitting the model (medium size).
+ * - Commented out the aggressive "increase size" line; replaced with a mild/default glow scale.
+ *
+ * Keep any further stylistic or behavioral changes minimal to preserve original UX.
  */
 
 /* ---------------------- TUNABLE CONSTANTS ---------------------- */
-const LIGHTEN_STRENGTH = 0.12; // much smaller than before — only a gentle bias
+const LIGHTEN_STRENGTH = 0.12;
 const SHADOW_MAP_SIZE = 2048;
 const SHADOW_CAM_SIZE = 14;
-const KEY_LIGHT_DAY = 2.0; // stronger sun for readable depth
-const KEY_LIGHT_NIGHT = 0.18;
-const HEMI_INTENSITY_DAY = 0.22; // lowered hemisphere so it doesn't flatten
-const HEMI_INTENSITY_NIGHT = 0.12;
+const KEY_LIGHT_INTENSITY = 2.0;
+const HEMI_INTENSITY = 0.22;
 const RIM_INTENSITY = 0.6;
 
 function isWebGLAvailable(): boolean {
@@ -157,16 +151,15 @@ function TempleModel({ path, sceneRef, onReady, strength = LIGHTEN_STRENGTH }: {
     sceneRef.current = scene;
 
     try {
-      const marbleBias = new THREE.Color(0xf4efe6); // warm off-white marble
+      // warm off-white marble bias
+      const marbleBias = new THREE.Color(0xf4efe6);
 
       scene.traverse((obj: any) => {
         if (!obj) return;
-        // only adjust meshes
         if (obj.isMesh) {
           obj.castShadow = true;
           obj.receiveShadow = true;
 
-          // detach shared materials by cloning where necessary
           const mats = Array.isArray(obj.material) ? obj.material.slice() : [obj.material];
           const newMats = mats.map((m: any) => {
             if (!m) return m;
@@ -182,15 +175,11 @@ function TempleModel({ path, sceneRef, onReady, strength = LIGHTEN_STRENGTH }: {
 
           newMats.forEach((mat: any) => {
             if (!mat) return;
-
-            // If the material has a color but also a texture map, avoid overwriting the color
-            // as the texture contains the detail. We only bias materials that don't already
-            // have a diffuse map or where color is meaningful.
             try {
               const hasMap = !!mat.map;
 
               if (!hasMap && mat.color) {
-                // gently bias color toward marbleBias — much less aggressive than lerping to white
+                // gently bias color toward marbleBias
                 if (typeof mat.color.lerp === "function") {
                   mat.color.lerp(marbleBias, Math.min(1, strength * 0.7));
                 } else {
@@ -198,14 +187,11 @@ function TempleModel({ path, sceneRef, onReady, strength = LIGHTEN_STRENGTH }: {
                 }
               }
 
-              // Tame emissive: leave a subtle warm glow only if already present
               if (mat.emissive) {
-                // keep emissive but reduce intensity so it doesn't wash out ambient shading
                 if (typeof mat.emissive.lerp === "function") mat.emissive.lerp(new THREE.Color(0x000000), 1 - Math.min(0.9, strength * 2));
                 mat.emissiveIntensity = Math.max(0.001, Math.min(0.35, (mat.emissiveIntensity || 0.0) * 0.18 + strength * 0.02));
               }
 
-              // Make surfaces a touch glossier so they pick up highlights, but don't overdo it
               if (typeof mat.roughness === "number") {
                 mat.roughness = Math.max(0.06, Math.min(1, (mat.roughness as number) - strength * 0.2));
               }
@@ -218,17 +204,15 @@ function TempleModel({ path, sceneRef, onReady, strength = LIGHTEN_STRENGTH }: {
                 mat.envMapIntensity = Math.min(6, (mat.envMapIntensity || 1) * (1 + strength * 0.3));
               }
 
-              // ensure updates propagate
               mat.needsUpdate = true;
             } catch (e) {
-              // ignore per-material failures — leave original material in place
+              // ignore per-material failures
             }
           });
         }
       });
     } catch (err) {
-      // If traversal fails, do not crash the app
-      // console.warn("TempleViewer: model traversal error", err);
+      // safe fallback
     }
 
     if (onReady && !signaledRef.current) {
@@ -242,14 +226,13 @@ function TempleModel({ path, sceneRef, onReady, strength = LIGHTEN_STRENGTH }: {
   return gltf?.scene ? <primitive object={gltf.scene} /> : null;
 }
 
-function FitAndCenter({ sceneRef, onComputed, targetSize = 2 }: { sceneRef: React.MutableRefObject<THREE.Object3D | null>; onComputed: (v: { glowZ: number; modelScale: number; center: THREE.Vector3 }) => void; targetSize?: number; }) {
+function FitAndCenter({ sceneRef, onComputed, targetSize = 2.6 }: { sceneRef: React.MutableRefObject<THREE.Object3D | null>; onComputed: (v: { glowZ: number; modelScale: number; center: THREE.Vector3 }) => void; targetSize?: number; }) {
   const { camera } = useThree();
 
   useEffect(() => {
     const obj = sceneRef.current;
     if (!obj) return;
 
-    // compute bounding box and scale to fit targetSize
     const box = new THREE.Box3().setFromObject(obj);
     const size = box.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z, 0.0001);
@@ -267,7 +250,6 @@ function FitAndCenter({ sceneRef, onComputed, targetSize = 2 }: { sceneRef: Reac
     const finalSize = finalBox.getSize(new THREE.Vector3());
     const finalCenter = finalBox.getCenter(new THREE.Vector3());
 
-    // compute a good camera distance and position
     if (camera && camera instanceof THREE.PerspectiveCamera) {
       const perspective = camera as THREE.PerspectiveCamera;
       const fov = (perspective.fov * Math.PI) / 180;
@@ -277,17 +259,15 @@ function FitAndCenter({ sceneRef, onComputed, targetSize = 2 }: { sceneRef: Reac
       perspective.far = Math.max(1000, cameraDistance * 10);
       perspective.updateProjectionMatrix();
 
-      // place glow behind the object relative to camera
       const camDir = new THREE.Vector3();
-      camera.getWorldDirection(camDir); // points from camera toward scene
-      const glowDir = camDir.clone().negate(); // behind the model relative to camera
+      camera.getWorldDirection(camDir);
+      const glowDir = camDir.clone().negate();
       const padding = Math.max(finalSize.z * 0.7, 0.8);
       const glowDistance = Math.max(finalSize.length(), targetSize) * 1.6 + padding;
       const glowPos = glowDir.clone().multiplyScalar(glowDistance);
 
       onComputed({ glowZ: glowPos.z, modelScale: scale, center: finalCenter });
     } else {
-      // fallback
       const glowPos = new THREE.Vector3(0, 0, -Math.max(finalSize.length(), targetSize) * 1.6 - 0.8);
       onComputed({ glowZ: glowPos.z, modelScale: scale, center: finalCenter });
     }
@@ -314,80 +294,23 @@ function GlowPlane({ texture, position, scale = 3, visible = true }: { texture: 
   );
 }
 
-function Starfield({ count = 700, radius = 24 }: { count?: number; radius?: number }) {
-  const geomRef = useRef<THREE.BufferGeometry | null>(null);
-  const materialRef = useRef<THREE.PointsMaterial | null>(null);
-  const [positions] = useState(() => {
-    const arr = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      const phi = Math.acos(2 * Math.random() - 1);
-      const theta = 2 * Math.PI * Math.random();
-      const r = radius * (0.6 + Math.random() * 0.4);
-      const x = r * Math.sin(phi) * Math.cos(theta);
-      const y = r * Math.sin(phi) * Math.sin(theta);
-      const z = r * Math.cos(phi);
-      arr[i * 3 + 0] = x;
-      arr[i * 3 + 1] = y + 2.6;
-      arr[i * 3 + 2] = z;
-    }
-    return arr;
-  });
-
-  useFrame(() => {
-    if (!materialRef.current) return;
-    const t = (Date.now() % 60000) / 60000;
-    materialRef.current.size = 0.012 + Math.sin(t * Math.PI * 2) * 0.006;
-  });
-
-  return (
-    <points>
-      <bufferGeometry ref={geomRef}>
-        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-      </bufferGeometry>
-      <pointsMaterial ref={materialRef as any} size={0.01} sizeAttenuation transparent opacity={0.95} />
-    </points>
-  );
-}
-
-function Moon({ position = [6, 5, -6], radius = 0.55 }: { position?: [number, number, number]; radius?: number }) {
-  const ref = useRef<THREE.Mesh | null>(null);
-  useFrame(() => {
-    if (ref.current) ref.current.rotation.y += 0.0008;
-  });
-  return (
-    <mesh ref={ref} position={position as any} renderOrder={1}>
-      <sphereGeometry args={[radius, 32, 32]} />
-      <meshStandardMaterial emissive={new THREE.Color(0xf8f4e6)} emissiveIntensity={1.0} roughness={0.9} metalness={0.05} />
-    </mesh>
-  );
-}
-
 export default function TempleViewer({ modelPath = "/About/temple.glb" }: { modelPath?: string }) {
   const sceneRef = useRef<THREE.Object3D | null>(null);
   const [glowPos, setGlowPos] = useState(new THREE.Vector3(0, 1.0, -3));
   const [glowScale, setGlowScale] = useState<number>(3.2);
   const glowTex = useFieryGlowTexture();
   const [isLoaded, setIsLoaded] = useState(false);
-  const [mode, setMode] = useState<"day" | "night">("day");
-  const toggleMode = () => setMode((m) => (m === "day" ? "night" : "day"));
-
   const [canRenderWebGL, setCanRenderWebGL] = useState<boolean>(() => isWebGLAvailable());
   useEffect(() => {
     if (typeof window !== "undefined") setCanRenderWebGL(isWebGLAvailable());
   }, []);
 
-  const ambientIntensity = mode === "day" ? 0.04 : 0.02; // very low ambient
-  const pointLightIntensity = mode === "day" ? 1.1 : 0.28;
-  const moonLightIntensity = mode === "night" ? 1.05 : 0;
-  const containerBg = mode === "day" ? "linear-gradient(180deg, #fff7ef 0%, #ffe6d6 30%, #ffd0bf 60%, #ffb79a 100%)" : "linear-gradient(180deg,#02040a 0%,#071026 30%,#0b2440 60%,#081726 100%)";
-  const canvasBg = mode === "day" ? "#fff9f1" : "#04041a";
+  const containerBg = "linear-gradient(180deg, #fff7ef 0%, #ffe6d6 30%, #ffd0bf 60%, #ffb79a 100%)";
+  const canvasBg = "#fff9f1";
 
   if (!canRenderWebGL) {
     return (
       <div className="w-full min-w-0 flex justify-center items-center relative rounded-2xl" style={{ background: containerBg, height: "min(60vh, 680px)", minHeight: 360 }}>
-        <div style={{ position: "absolute", right: 18, top: 18, zIndex: 70 }}>
-          <button aria-label="Toggle day/night" onClick={toggleMode} className="px-3 py-1 text-xs font-semibold rounded-full bg-white/70">Toggle view</button>
-        </div>
         <div className="text-center max-w-xl p-6">
           <h3 className="mb-2 text-xl font-bold text-gray-900">3D preview unavailable</h3>
           <p className="text-sm text-gray-700">Your device or browser does not support WebGL. You can still view images and information on this page.</p>
@@ -398,19 +321,6 @@ export default function TempleViewer({ modelPath = "/About/temple.glb" }: { mode
 
   return (
     <div className="w-full min-w-0 flex justify-center items-center relative" style={{ background: containerBg, height: "min(75vh, 820px)", minHeight: 480 }}>
-      <div style={{ position: "absolute", right: 18, top: 18, zIndex: 70 }}>
-        <div role="button" aria-label="Toggle day/night" onClick={toggleMode} tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") toggleMode(); }} style={{ userSelect: "none", cursor: "pointer", padding: 6, borderRadius: 20, background: mode === "day" ? "rgba(255,255,255,0.9)" : "rgba(8,12,20,0.7)", display: "flex", alignItems: "center", gap: 6, border: "1px solid rgba(255,255,255,0.06)" }}>
-          <div style={{ fontSize: 12, fontWeight: 600, padding: "6px 10px", borderRadius: 999, background: mode === "day" ? "#fde68a" : "transparent" }}>View Day</div>
-          <div style={{ width: 1, height: 28, background: "rgba(0,0,0,0.06)" }} />
-          <div style={{ fontSize: 12, fontWeight: 600, padding: "6px 10px", borderRadius: 999, background: mode === "night" ? "#1e293b" : "transparent", color: mode === "night" ? "#fff" : undefined }}>View Night</div>
-          <div style={{ position: "relative", marginLeft: 8 }}>
-            <div style={{ width: 36, height: 22, borderRadius: 999, background: mode === "day" ? "#fff7ed" : "#0f172a", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <div style={{ width: 18, height: 18, borderRadius: 999, background: mode === "day" ? "#f97316" : "#60a5fa", transform: `translateX(${mode === "day" ? "4px" : "14px"})`, transition: "transform 220ms ease", margin: 2 }} />
-            </div>
-          </div>
-        </div>
-      </div>
-
       <Canvas
         shadows={true}
         dpr={[1, 1.4]}
@@ -434,21 +344,15 @@ export default function TempleViewer({ modelPath = "/About/temple.glb" }: { mode
 
         <Suspense fallback={null}>
           {/* Hemisphere: subtle sky-to-ground ambient */}
-          <hemisphereLight
-  args={[
-    0xfffffb,
-    0x3a3426,
-    mode === "day" ? HEMI_INTENSITY_DAY : HEMI_INTENSITY_NIGHT,
-  ]}
-/>
+          <hemisphereLight args={[0xfffffb, 0x3a3426, HEMI_INTENSITY]} />
 
           {/* Primary key light (sun) — placed BEHIND the temple relative to the camera so
               temple front gets rim & backlit separation. */}
           <directionalLight
             castShadow
-            color={mode === "day" ? "#fff7ea" : "#cfe6ff"}
-            intensity={mode === "day" ? KEY_LIGHT_DAY : KEY_LIGHT_NIGHT}
-            position={[-6, 10, -6]} // moved to the back-left so sun is behind temple
+            color={"#fff7ea"}
+            intensity={KEY_LIGHT_INTENSITY}
+            position={[-6, 10, -6]}
             shadow-mapSize-width={SHADOW_MAP_SIZE}
             shadow-mapSize-height={SHADOW_MAP_SIZE}
             shadow-bias={-0.0005}
@@ -461,33 +365,32 @@ export default function TempleViewer({ modelPath = "/About/temple.glb" }: { mode
           />
 
           {/* Subtle fill to reveal recesses */}
-          <pointLight color={mode === "day" ? "#ffd9a8" : "#c9dfff"} intensity={pointLightIntensity} position={[0, 1.6, -2.5]} distance={12} decay={2} />
+          <pointLight color={"#ffd9a8"} intensity={1.1} position={[0, 1.6, -2.5]} distance={12} decay={2} />
 
           {/* Rim/back light to accent edges */}
           <directionalLight color={0xfff3e8} intensity={RIM_INTENSITY} position={[6, 4, 6]} />
 
           {/* Low ambient so that the directional light creates contrast */}
-          <ambientLight intensity={ambientIntensity} />
-
-          {/* Night extras */}
-          {mode === "night" && (
-            <>
-              <directionalLight color="#dbeeff" intensity={moonLightIntensity} position={[-6, 9, 2]} />
-              <Moon position={[6, 5, -6]} radius={0.55} />
-              <Starfield count={600} radius={26} />
-            </>
-          )}
+          <ambientLight intensity={0.04} />
 
           <TempleModel path={modelPath} sceneRef={sceneRef} onReady={() => setIsLoaded(true)} strength={LIGHTEN_STRENGTH} />
 
-          <FitAndCenter sceneRef={sceneRef} targetSize={4.2} onComputed={({ glowZ, modelScale }) => {
+          {/* Fit and center with a moderate/medium targetSize -> ensures "not too big / not too small" */}
+          <FitAndCenter sceneRef={sceneRef} targetSize={2.6} onComputed={({ glowZ, modelScale }) => {
             setGlowPos(new THREE.Vector3(0, 0.9 * modelScale, glowZ));
-            setGlowScale(Math.max(3.2, modelScale * 3.0));
+
+            // Previously this line multiplied the glow/scale aggressively (modelScale * 3.0),
+            // making the glow and apparent model scale much larger.
+            // Commenting out the aggressive increase to keep medium size.
+            // setGlowScale(Math.max(3.2, modelScale * 3.0));
+
+            // Use a conservative scaling so model appears medium-sized and balanced:
+            setGlowScale(Math.max(3.2, modelScale * 1.2));
           }} />
 
-          <GlowPlane texture={glowTex} position={glowPos} scale={mode === "day" ? glowScale : glowScale * 0.5} visible={!!glowTex} />
+          <GlowPlane texture={glowTex} position={glowPos} scale={glowScale} visible={!!glowTex} />
 
-          <ContactShadows position={[0, -0.82, 0]} opacity={mode === "day" ? 0.72 : 0.38} width={3.8} blur={4} far={1.5} />
+          <ContactShadows position={[0, -0.82, 0]} opacity={0.72} width={3.8} blur={4} far={1.5} />
 
           <OrbitControls enablePan={false} enableZoom autoRotate autoRotateSpeed={0.55} maxPolarAngle={Math.PI / 1.2} minPolarAngle={Math.PI / 12} minDistance={0.8} maxDistance={18} enableDamping dampingFactor={0.08} />
         </Suspense>
