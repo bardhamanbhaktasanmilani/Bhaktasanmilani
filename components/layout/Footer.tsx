@@ -1,91 +1,148 @@
 "use client";
 
-import { Facebook, Twitter, Instagram, Youtube } from "lucide-react";
-import { motion } from "framer-motion";
-import React from "react";
+import React, { useCallback, useMemo } from "react";
 import Link from "next/link";
+import { Facebook, Twitter, Instagram, Youtube } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 
+/* -------------------------------------------
+ CONSTANTS
+--------------------------------------------*/
+const PHONE = "+91 84369 22630";
+const TEL_HREF = "tel:+918436922630";
+const EMAIL = "bardhamanbhaktasanmilani@gmail.com";
+const MAILTO_HREF = `mailto:${EMAIL}`;
+
+/* -------------------------------------------
+ ANIMATION VARIANTS (REUSED)
+--------------------------------------------*/
+const containerVariants = {
+  hidden: { opacity: 0, y: 40 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.7, staggerChildren: 0.15 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 30 },
+  show: { opacity: 1, y: 0 },
+};
+
+/* -------------------------------------------
+ COMPONENT
+--------------------------------------------*/
 export default function Footer() {
-  const scrollToSection = (href: string) => {
+  const prefersReducedMotion = useReducedMotion();
+
+  /* -------------------------------------------
+   SCROLL HANDLER (OPTIMIZED)
+  --------------------------------------------*/
+  const scrollToSection = useCallback((href: string) => {
+    if (typeof window === "undefined") return;
+
     const element = document.querySelector(href);
-    if (element) {
-      const offset = 80;
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - offset;
-      window.scrollTo({ top: offsetPosition, behavior: "smooth" });
-    }
-  };
+    if (!element) return;
 
-  // Contact values
-  const PHONE = "+91 84369 22630";
-  const TEL_HREF = "tel:+918436922630";
-  const EMAIL = "bardhamanbhaktasanmilani@gmail.com";
-  const MAILTO_HREF = `mailto:${EMAIL}`;
+    const offset = 80;
+    const elementPosition = element.getBoundingClientRect().top;
+    const offsetPosition = elementPosition + window.pageYOffset - offset;
 
-  const socialLinks = [
-    { Icon: Facebook, label: "Facebook", href: "#" },
-    { Icon: Twitter, label: "Twitter", href: "#" },
-    { Icon: Instagram, label: "Instagram", href: "#" },
-    { Icon: Youtube, label: "YouTube", href: "#" },
-  ];
+    window.scrollTo({
+      top: offsetPosition,
+      behavior: "smooth",
+    });
+  }, []);
 
-  const policyLinks = [
-    { label: "Privacy Policy", href: "/privacy-policy" },
-    { label: "Terms & Conditions", href: "/terms-and-conditions" },
-    { label: "Return Policy", href: "/return-policy" },
-    {label :"FAQ",href:"/faq"},
-  ];
+  /* -------------------------------------------
+   MEMOIZED DATA
+  --------------------------------------------*/
+  const socialLinks = useMemo(
+    () => [
+      { Icon: Facebook, label: "Facebook", href: "#" },
+      { Icon: Twitter, label: "Twitter", href: "#" },
+      { Icon: Instagram, label: "Instagram", href: "#" },
+      { Icon: Youtube, label: "YouTube", href: "#" },
+    ],
+    []
+  );
+
+  const quickLinks = useMemo(
+    () => [
+      { label: "Home", href: "#home" },
+      { label: "About Us", href: "#about" },
+      { label: "Donate", href: "#donate" },
+      { label: "How We Work", href: "#how-we-work" },
+      { label: "Meet The Team", href: "#team" },
+      { label: "Contact Us", href: "#contact" },
+    ],
+    []
+  );
+
+  const policyLinks = useMemo(
+    () => [
+      { label: "Privacy Policy", href: "/privacy-policy" },
+      { label: "Terms & Conditions", href: "/terms-and-conditions" },
+      { label: "Return Policy", href: "/return-policy" },
+      { label: "FAQ", href: "/faq" },
+    ],
+    []
+  );
 
   return (
     <footer className="relative pt-16 pb-10 overflow-hidden text-white bg-gray-950">
-      {/* Ambient Blobs */}
-      <motion.div
-        className="absolute rounded-full -top-20 -left-20 w-72 h-72 bg-orange-600/20 blur-3xl"
-        animate={{ x: [0, 40, -20, 0], y: [0, -20, 20, 0] }}
-        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute bottom-0 right-0 w-96 h-96 rounded-full bg-amber-400/10 blur-[90px]"
-        animate={{ x: [0, -30, 30, 0], y: [0, 20, -20, 0] }}
-        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-      />
+      {/* ---------------------------------
+          AMBIENT BLOBS (GPU SAFE)
+      ---------------------------------- */}
+      {!prefersReducedMotion && (
+        <>
+          <motion.div
+            className="absolute rounded-full -top-20 -left-20 w-72 h-72 bg-orange-600/20 blur-3xl"
+            animate={{ x: [0, 40, -20, 0], y: [0, -20, 20, 0] }}
+            transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            className="absolute bottom-0 right-0 w-96 h-96 rounded-full bg-amber-400/10 blur-[90px]"
+            animate={{ x: [0, -30, 30, 0], y: [0, 20, -20, 0] }}
+            transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+          />
+        </>
+      )}
 
-      <div className="relative z-20 px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
-        {/* Grid */}
+      <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* ---------------------------------
+            GRID
+        ---------------------------------- */}
         <motion.div
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, amount: 0.3 }}
-          variants={{
-            hidden: { opacity: 0, y: 40 },
-            show: {
-              opacity: 1,
-              y: 0,
-              transition: { duration: 0.7, staggerChildren: 0.15 },
-            },
-          }}
+          variants={containerVariants}
           className="grid gap-10 mb-10 sm:grid-cols-2 lg:grid-cols-5"
         >
           {/* Brand */}
-          <motion.div variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0 } }}>
+          <motion.div variants={itemVariants}>
             <h3 className="mb-4 text-2xl font-bold text-transparent bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text">
               Bhakta Sammilan ॐ
             </h3>
-            <p className="mb-6 leading-relaxed text-gray-400">
-              United by faith, driven by compassion. Join us in making a meaningful difference
-              through devotion and service.
+            <p className="mb-6 text-gray-400 leading-relaxed">
+              United by faith, driven by compassion. Join us in making a meaningful
+              difference through devotion and service.
             </p>
 
             <div className="flex gap-3">
-              {socialLinks.map(({ Icon, label, href }, i) => (
+              {socialLinks.map(({ Icon, label, href }) => (
                 <motion.a
-                  key={i}
+                  key={label}
                   href={href}
                   aria-label={label}
                   target={href.startsWith("#") ? undefined : "_blank"}
                   rel="noopener noreferrer"
-                  whileHover={{ scale: 1.15, rotate: 5 }}
-                  className="flex items-center justify-center w-10 h-10 bg-gray-800 rounded-full hover:bg-gradient-to-r hover:from-orange-600 hover:to-amber-600"
+                  whileHover={
+                    prefersReducedMotion ? undefined : { scale: 1.15, rotate: 5 }
+                  }
+                  className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-800 hover:bg-gradient-to-r hover:from-orange-600 hover:to-amber-600"
                 >
                   <Icon className="w-5 h-5" />
                 </motion.a>
@@ -94,24 +151,17 @@ export default function Footer() {
           </motion.div>
 
           {/* Quick Links */}
-          <motion.div variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0 } }}>
+          <motion.div variants={itemVariants}>
             <h4 className="mb-4 text-lg font-bold">Quick Links</h4>
             <ul className="space-y-3 text-gray-400">
-              {[
-                { label: "Home", href: "#home" },
-                { label: "About Us", href: "#about" },
-                { label: "Donate", href: "#donate" },
-                { label: "How We Work", href: "#how-we-work" },
-                { label: "Meet The Team", href: "#team" },
-                { label: "Contact Us", href: "#contact" },
-              ].map((item, i) => (
-                <li key={i}>
+              {quickLinks.map((item) => (
+                <li key={item.label}>
                   <button
                     onClick={() => scrollToSection(item.href)}
                     className="relative group hover:text-orange-400"
                   >
                     {item.label}
-                    <span className="absolute left-0 -bottom-1 w-0 h-[2px] bg-orange-400 transition-all group-hover:w-full" />
+                    <span className="absolute left-0 -bottom-1 h-[2px] w-0 bg-orange-400 transition-all group-hover:w-full" />
                   </button>
                 </li>
               ))}
@@ -119,7 +169,7 @@ export default function Footer() {
           </motion.div>
 
           {/* Causes */}
-          <motion.div variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0 } }}>
+          <motion.div variants={itemVariants}>
             <h4 className="mb-4 text-lg font-bold">Our Causes</h4>
             <ul className="space-y-3 text-gray-400">
               <li>Education for All</li>
@@ -131,18 +181,18 @@ export default function Footer() {
           </motion.div>
 
           {/* Legal */}
-          <motion.div variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0 } }}>
+          <motion.div variants={itemVariants}>
             <h4 className="mb-4 text-lg font-bold">Legal</h4>
             <ul className="space-y-3 text-gray-400">
-              {policyLinks.map((item, i) => (
-                <li key={i}>
-                  <motion.div whileHover={{ x: 6 }}>
+              {policyLinks.map((item) => (
+                <li key={item.label}>
+                  <motion.div whileHover={prefersReducedMotion ? undefined : { x: 6 }}>
                     <Link
                       href={item.href}
-                      className="relative inline-block hover:text-orange-400 group"
+                      className="relative group inline-block hover:text-orange-400"
                     >
                       {item.label}
-                      <span className="absolute left-0 -bottom-1 w-0 h-[2px] bg-orange-400 transition-all group-hover:w-full" />
+                      <span className="absolute left-0 -bottom-1 h-[2px] w-0 bg-orange-400 transition-all group-hover:w-full" />
                     </Link>
                   </motion.div>
                 </li>
@@ -151,7 +201,7 @@ export default function Footer() {
           </motion.div>
 
           {/* Contact */}
-          <motion.div variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0 } }}>
+          <motion.div variants={itemVariants}>
             <h4 className="mb-4 text-lg font-bold">Contact Info</h4>
             <ul className="space-y-3 text-gray-400">
               <li>R.B Chatterjee Road, Tikorhat</li>
@@ -170,15 +220,19 @@ export default function Footer() {
           </motion.div>
         </motion.div>
 
-        {/* Bottom */}
+        {/* ---------------------------------
+            BOTTOM BAR
+        ---------------------------------- */}
         <motion.div
           initial={{ opacity: 0, y: 25 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          className="flex flex-col items-center justify-between gap-4 pt-8 border-t border-gray-800 md:flex-row"
+          className="flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-gray-800"
         >
-          <p className="text-gray-500">© 2024 Bhakta Sammilan. All rights reserved.</p>
+          <p className="text-gray-500">
+            © 2024 Bhakta Sammilan. All rights reserved.
+          </p>
           <p className="text-gray-400">Sankha Subhra Das</p>
         </motion.div>
       </div>

@@ -1,12 +1,18 @@
 // components/sections/MeetOurteamSection.tsx
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 
 /* -------------------------------------------
- TEAM MEMBERS DATA (UNCHANGED)
+ TYPES
 --------------------------------------------*/
 type TeamMember = {
   id: number;
@@ -16,7 +22,17 @@ type TeamMember = {
   image: string;
 };
 
-const teamMembers: TeamMember[] = [
+type Testimonial = {
+  name: string;
+  role: string;
+  comment: string;
+  image: string;
+};
+
+/* -------------------------------------------
+ STATIC DATA (MEMO-FRIENDLY)
+--------------------------------------------*/
+const TEAM_MEMBERS: TeamMember[] = [
   {
     id: 1,
     name: "Goutam Som",
@@ -51,10 +67,7 @@ const teamMembers: TeamMember[] = [
   },
 ];
 
-/* -------------------------------------------
- TESTIMONIALS DATA
---------------------------------------------*/
-const testimonials = [
+const TESTIMONIALS: Testimonial[] = [
   {
     name: "Banibrata Das",
     role: "Donor",
@@ -81,7 +94,7 @@ const testimonials = [
     role: "Volunteer",
     comment:
       "Every seva experience here brings peace and purpose. Truly a divine initiative.",
-    image: "/MeetTheTeam/testimonials/Kalidas Ghosh.AVIF",
+    image: "/MeetTheTeam/testimonials/KalidasGhosh.AVIF",
   },
   {
     name: "Kanika Sarkar",
@@ -91,44 +104,83 @@ const testimonials = [
     image: "/MeetTheTeam/testimonials/KanikaSarkar.AVIF",
   },
   {
-   name: "Sukanta Mondol",
-   role: "Donor",
-   comment:
-    "Supporting this cause has been an eye-opening experience. The organization's commitment to making a real difference is truly inspiring.",
-   image: "/MeetTheTeam/testimonials/SukantaMondol.AVIF",
-  }
+    name: "Sukanta Mondol",
+    role: "Donor",
+    comment:
+      "Supporting this cause has been an eye-opening experience. The organization's commitment to making a real difference is truly inspiring.",
+    image: "/MeetTheTeam/testimonials/SukantaMondol.AVIF",
+  },
 ];
 
 /* -------------------------------------------
- MAIN SECTION
+ MAIN COMPONENT
 --------------------------------------------*/
 export default function MeetOurteamSection() {
   const sectionRef = useRef<HTMLElement | null>(null);
   const prefersReducedMotion = useReducedMotion();
 
-  const [visible, setVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember>(
-    teamMembers[0]
+    TEAM_MEMBERS[0]
   );
 
-  /* Reveal on scroll */
+  /* -------------------------------------------
+   REVEAL ON SCROLL (RUNS ONLY ONCE)
+  --------------------------------------------*/
   useEffect(() => {
     const el = sectionRef.current;
     if (!el) return;
 
-    const obs = new IntersectionObserver(
-      ([entry]) => entry.isIntersecting && setVisible(true),
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect(); // ⛔ stop observing after reveal
+        }
+      },
       { threshold: 0.2 }
     );
 
-    obs.observe(el);
-    return () => obs.disconnect();
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
+
+  /* -------------------------------------------
+   HANDLERS (MEMOIZED)
+  --------------------------------------------*/
+  const handleSelectMember = useCallback((m: TeamMember) => {
+    setSelectedMember(m);
+  }, []);
+
+  /* -------------------------------------------
+   MEMOIZED MAPS (LESS WORK ON RE-RENDER)
+  --------------------------------------------*/
+  const teamThumbnails = useMemo(
+    () =>
+      TEAM_MEMBERS.map((m) => (
+        <button
+          key={m.id}
+          onClick={() => handleSelectMember(m)}
+          className="focus:outline-none"
+          aria-label={`View ${m.name}`}
+        >
+          <Image
+            src={m.image}
+            alt={m.name}
+            width={120}
+            height={120}
+            loading="lazy"
+            className="h-28 w-full object-cover rounded-xl"
+          />
+        </button>
+      )),
+    [handleSelectMember]
+  );
 
   return (
     <section
       ref={sectionRef}
-      id="team" // ✅ Navbar: Meet Our Organizers
+      id="team"
       className="py-16 bg-gradient-to-br from-orange-50 to-amber-50"
     >
       <div className="max-w-6xl mx-auto px-4">
@@ -152,7 +204,7 @@ export default function MeetOurteamSection() {
         ---------------------------------- */}
         <div
           className={`grid md:grid-cols-[1fr_1.4fr] gap-10 transition-all duration-700 ${
-            visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           }`}
         >
           <div className="flex justify-center md:justify-start">
@@ -176,36 +228,16 @@ export default function MeetOurteamSection() {
             <p className="mt-4 text-gray-700">{selectedMember.bio}</p>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
-              {teamMembers.map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => setSelectedMember(m)}
-                  className="focus:outline-none"
-                >
-                  <Image
-                    src={m.image}
-                    alt={m.name}
-                    width={120}
-                    height={120}
-                    className="h-28 w-full object-cover rounded-xl"
-                  />
-                </button>
-              ))}
+              {teamThumbnails}
             </div>
           </div>
         </div>
 
         {/* ---------------------------------
-            TESTIMONIALS SECTION
-            ✅ REQUIRED ID FOR NAVBAR
+            TESTIMONIALS
         ---------------------------------- */}
-        <div
-          id="testimonials" // ✅ Navbar submenu anchor
-          className="mt-24 scroll-mt-28"
-        >
-          <h3 className="text-3xl font-bold text-center">
-            Testimonials
-          </h3>
+        <div id="testimonials" className="mt-24 scroll-mt-28">
+          <h3 className="text-3xl font-bold text-center">Testimonials</h3>
 
           <div className="w-24 h-1 mx-auto mt-3 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full" />
 
@@ -214,17 +246,17 @@ export default function MeetOurteamSection() {
           </p>
 
           <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {testimonials.map((t, i) => (
+            {TESTIMONIALS.map((t, i) => (
               <motion.div
                 key={t.name}
                 initial={{ opacity: 0, y: 30 }}
-                animate={visible ? { opacity: 1, y: 0 } : {}}
+                animate={isVisible ? { opacity: 1, y: 0 } : undefined}
                 transition={{
-                  delay: prefersReducedMotion ? 0 : i * 0.15,
+                  delay: prefersReducedMotion ? 0 : i * 0.12,
                   duration: 0.6,
                   ease: "easeOut",
                 }}
-                whileHover={{ y: -8 }}
+                whileHover={prefersReducedMotion ? undefined : { y: -8 }}
                 className="relative bg-white rounded-3xl shadow-xl p-6 text-center"
               >
                 <div className="absolute inset-0 -z-10 rounded-3xl bg-gradient-to-br from-orange-100 to-amber-100 blur-xl opacity-60" />
@@ -235,6 +267,7 @@ export default function MeetOurteamSection() {
                     alt={t.name}
                     width={96}
                     height={96}
+                    loading="lazy"
                     className="object-cover"
                   />
                 </div>
