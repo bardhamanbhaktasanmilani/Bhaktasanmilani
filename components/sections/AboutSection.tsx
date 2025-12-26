@@ -371,6 +371,9 @@ const AboutSection: React.FC = () => {
     return true;
   });
 
+    const request3D = useCallback(() => {
+    setLoad3D(true);  // Trigger the loading of the 3D viewer
+  }, []);
   /* ------------------------ Render ------------------------ */
   return (
     <section
