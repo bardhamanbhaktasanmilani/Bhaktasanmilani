@@ -315,7 +315,8 @@ export default function TempleViewer({ modelPath = DEFAULT_MODEL }: { modelPath?
   }
 
   /* renderer & performance settings tuned for low-end devices */
-  const dpr = lowEnd ? [1, 1] : [1, 1.4];
+ const dpr: [number, number] = lowEnd ? [1, 1] : [1, 1.4];
+
   const shadowMapSize = lowEnd ? 1024 : 2048;
   const contactShadowBlur = lowEnd ? 2 : 4;
   const contactShadowWidth = lowEnd ? 2.0 : 3.8;
