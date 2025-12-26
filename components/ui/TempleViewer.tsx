@@ -27,19 +27,7 @@ const TARGET_SIZE = 2.6;
 
 
 /* helper device checks */
-function isWebGLAvailable(): boolean {
-  if (typeof window === "undefined") return false;
-  try {
-    const canvas = document.createElement("canvas");
-    return !!(
-      window.WebGLRenderingContext &&
-      (canvas.getContext("webgl") ||
-        canvas.getContext("experimental-webgl"))
-    );
-  } catch {
-    return false;
-  }
-}
+
 
 function detectLowEndDevice(): boolean {
   if (typeof navigator === "undefined") return false;
@@ -247,20 +235,13 @@ export default function TempleViewer({
   );
   const [glowScale, setGlowScale] = useState(3.2);
 
-  const canWebGL = isWebGLAvailable();
+ 
   const lowEnd = detectLowEndDevice();
   const glowTex = useFieryGlowTexture(lowEnd);
 
   const dpr: [number, number] = lowEnd ? [1, 1] : [1, 1.4];
 
-  if (!canWebGL) {
-    return (
-      <div className="text-center p-6">
-        <p>3D preview unavailable.</p>
-        <a href={FALLBACK_IMAGE}>View image</a>
-      </div>
-    );
-  }
+
 
   return (
     <div
