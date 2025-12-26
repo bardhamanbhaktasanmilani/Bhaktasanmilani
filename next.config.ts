@@ -3,12 +3,26 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   async headers() {
     return [
+      // ----------------------------------
+      // DRACO WASM FIX (CRITICAL)
+      // ----------------------------------
+      {
+        source: "/draco/:path*",
+        headers: [
+          {
+            key: "Content-Type",
+            value: "application/wasm",
+          },
+        ],
+      },
+
+      // ----------------------------------
+      // GLOBAL SECURITY HEADERS (UNCHANGED)
+      // ----------------------------------
       {
         source: "/(.*)",
         headers: [
-          // -------------------------------
           // BASIC SECURITY HEADERS
-          // -------------------------------
           {
             key: "X-Content-Type-Options",
             value: "nosniff",
@@ -22,9 +36,7 @@ const nextConfig: NextConfig = {
             value: "max-age=63072000; includeSubDomains; preload",
           },
 
-          // -------------------------------
           // CONTENT SECURITY POLICY (WebGL + Google Maps SAFE)
-          // -------------------------------
           {
             key: "Content-Security-Policy",
             value: `
