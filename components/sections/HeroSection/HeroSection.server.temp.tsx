@@ -22,6 +22,7 @@ export default function HeroSectionServer() {
         priority
         sizes="100vw"
         className="object-cover"
+        
       />
 
       {/* Overlay for contrast */}
