@@ -90,6 +90,13 @@ const testimonials = [
       "An organization driven by sincerity, devotion, and genuine care for people.",
     image: "/MeetTheTeam/testimonials/KanikaSarkar.AVIF",
   },
+  {
+   name: "Sukanta Mondol",
+   role: "Donor",
+   comment:
+    "Supporting this cause has been an eye-opening experience. The organization's commitment to making a real difference is truly inspiring.",
+   image: "/MeetTheTeam/testimonials/SukantaMondol.AVIF",
+  }
 ];
 
 /* -------------------------------------------

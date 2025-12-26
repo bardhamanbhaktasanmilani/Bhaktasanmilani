@@ -4,8 +4,15 @@ export default function HeroSectionServer() {
   return (
     <section
       id="home"
-      className="relative w-full h-screen overflow-hidden"
       aria-label="Hero section"
+      className="
+        relative
+        w-full
+        min-h-[100svh]
+        h-[100svh]
+        overflow-hidden
+        isolate
+      "
     >
       {/* LCP image only (static, SEO-safe) */}
       <Image

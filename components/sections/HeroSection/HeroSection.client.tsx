@@ -10,25 +10,29 @@ const slides = [
     image: "/hero/Hero4.AVIF",
     title: "Unite in Faith, Serve with Love",
     subtitle: "Join us in making a difference through devotion and service",
-    more: "Our mission is rooted in compassion, faith, and collective service. Every contribution helps us uplift communities, preserve spiritual values, and create lasting impact through meaningful action.",
+    more:
+      "Our mission is rooted in compassion, faith, and collective service. Every contribution helps us uplift communities, preserve spiritual values, and create lasting impact through meaningful action.",
   },
   {
     image: "/hero/bg-photo (2).AVIF",
     title: "Empowering Communities",
     subtitle: "Your contribution brings hope and happiness to those in need",
-    more: "Through donations and community-driven initiatives, we support education, healthcare, and social welfare programs that bring dignity and opportunity to underserved lives.",
+    more:
+      "Through donations and community-driven initiatives, we support education, healthcare, and social welfare programs that bring dignity and opportunity to underserved lives.",
   },
   {
     image: "/hero/bg-photo (3).AVIF",
     title: "Together We Grow",
     subtitle: "Building a stronger community through faith and compassion",
-    more: "Unity and service go hand in hand. By standing together, we strengthen our collective spirit and ensure that no one is left behind on the path of progress.",
+    more:
+      "Unity and service go hand in hand. By standing together, we strengthen our collective spirit and ensure that no one is left behind on the path of progress.",
   },
   {
     image: "/hero/bg-photo (4).AVIF",
     title: "When the heart bows, blessings rise",
     subtitle: "ॐ शान्तिः शान्तिः शान्तिः — May peace dwell within.",
-    more: "True peace begins within. Our initiatives encourage mindfulness, harmony, and spiritual balance while supporting those seeking guidance, relief, and hope.",
+    more:
+      "True peace begins within. Our initiatives encourage mindfulness, harmony, and spiritual balance while supporting those seeking guidance, relief, and hope.",
   },
 ];
 
@@ -40,7 +44,7 @@ export default function HeroSectionClient() {
   useEffect(() => {
     const id = setInterval(() => {
       setCurrentSlide((i) => (i + 1) % slides.length);
-      setShowLearnMore(false); // reset on slide change
+      setShowLearnMore(false);
     }, 5000);
     return () => clearInterval(id);
   }, []);
@@ -69,7 +73,7 @@ export default function HeroSectionClient() {
 
       {/* Content */}
       <div className="relative z-30 flex h-full items-center">
-        <div className="mx-auto w-full max-w-7xl px-4">
+        <div className="mx-auto w-full max-w-7xl px-4 py-24 sm:py-28 md:py-32">
           <div className="max-w-3xl text-white">
             <h1
               key={slide.title}
@@ -124,12 +128,27 @@ export default function HeroSectionClient() {
       </div>
 
       {/* Navigation arrows */}
-      <button
+      {/* <button
         aria-label="Previous slide"
         onClick={() =>
           setCurrentSlide((i) => (i - 1 + slides.length) % slides.length)
         }
-        className="pointer-events-auto absolute left-4 top-1/2 z-40 -translate-y-1/2 rounded-full bg-white/20 p-3 text-white backdrop-blur"
+        className="
+          pointer-events-auto
+          absolute
+          left-3
+          sm:left-4
+          top-1/2
+          z-40
+          -translate-y-1/2
+          rounded-full
+          bg-white/20
+          p-2
+          sm:p-3
+          text-white
+          backdrop-blur
+          
+        "
       >
         <ChevronLeft />
       </button>
@@ -139,13 +158,27 @@ export default function HeroSectionClient() {
         onClick={() =>
           setCurrentSlide((i) => (i + 1) % slides.length)
         }
-        className="pointer-events-auto absolute right-4 top-1/2 z-40 -translate-y-1/2 rounded-full bg-white/20 p-3 text-white backdrop-blur"
+        className="
+          pointer-events-auto
+          absolute
+          right-3
+          sm:right-4
+          top-1/2
+          z-40
+          -translate-y-1/2
+          rounded-full
+          bg-white/20
+          p-2
+          sm:p-3
+          text-white
+          backdrop-blur
+        "
       >
         <ChevronRight />
-      </button>
+      </button> */}
 
       {/* Dots */}
-      <div className="pointer-events-auto absolute bottom-8 left-1/2 z-40 flex -translate-x-1/2 gap-3">
+      <div className="pointer-events-auto absolute bottom-6 sm:bottom-8 left-1/2 z-40 flex -translate-x-1/2 gap-3">
         {slides.map((_, i) => (
           <button
             key={i}
