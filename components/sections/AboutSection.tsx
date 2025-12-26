@@ -1,15 +1,7 @@
 // components/sections/AboutSection.tsx
 "use client";
 
-import React, {
-  useEffect,
-  useRef,
-  useState,
-  Suspense,
-  useCallback,
-  MutableRefObject,
-  ReactNode,
-} from "react";
+import React, { useEffect, useRef, useState, Suspense, useCallback, MutableRefObject, ReactNode } from "react";
 import { Users, Heart } from "lucide-react";
 import dynamic from "next/dynamic";
 import PhotoGallery from "../sub-sections/About/Photo-gallery";
@@ -168,9 +160,6 @@ const AboutSection: React.FC = () => {
   const viewerContainerRef = useRef<HTMLDivElement | null>(null);
   const viewerWrapperRef = useRef<HTMLDivElement | null>(null); // <- ensure this exists
 
-  const [isOpen, setIsOpen] = useState(false);
-  const [visible, setVisible] = useState(false);
-
   const [load3D, setLoad3D] = useState<null | boolean>(null);
   const [userRequested3D, setUserRequested3D] = useState(false);
   const [viewerKey, setViewerKey] = useState(0);
@@ -215,100 +204,6 @@ const AboutSection: React.FC = () => {
       setLoad3D(false);
     }
   }, [userRequested3D]);
-
-  /* ---------- IntersectionObserver for reveal animation ---------- */
-  useEffect(() => {
-    const el = sectionRef.current;
-    if (!el || typeof IntersectionObserver === "undefined") {
-      // fallback: mark visible immediately
-      setVisible(true);
-      return;
-    }
-
-    let opened = false;
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setVisible(true);
-            statRefs.current.forEach((statEl, idx) => {
-              if (!statEl) return;
-              statEl.style.transition = `opacity 520ms cubic-bezier(.25,.85,.32,1) ${idx * 120}ms, transform 520ms cubic-bezier(.25,.85,.32,1) ${idx * 120}ms`;
-              statEl.style.opacity = "1";
-              statEl.style.transform = "translateY(0) scale(1)";
-            });
-            if (!opened && !prefersReducedMotion) {
-              opened = true;
-              setTimeout(() => setIsOpen(true), 420);
-            }
-          }
-        });
-      },
-      { threshold: 0.28, rootMargin: "0px 0px -8% 0px" }
-    );
-
-    io.observe(el);
-    return () => io.disconnect();
-  }, [prefersReducedMotion]);
-
-  /* ---------- Preload placeholder image (safe) ---------- */
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    try {
-      const link = document.createElement("link");
-      link.rel = "preload";
-      link.as = "image";
-      link.href = "/images/temple-placeholder.svg";
-      document.head.appendChild(link);
-      return () => {
-        try {
-          document.head.removeChild(link);
-        } catch {}
-      };
-    } catch {}
-  }, []);
-
-  /* ---------- webglcontextlost handlers (safe) ---------- */
-  useEffect(() => {
-    const container = viewerContainerRef.current;
-    if (!container) return;
-    const onContextLost = (e: Event) => {
-      try {
-        // prevent default to stop browser from doing weird things
-        // @ts-ignore
-        if (e && typeof e.preventDefault === "function") e.preventDefault();
-      } catch {}
-      // re-key to force remount
-      setTimeout(() => setViewerKey((k) => k + 1), 80);
-    };
-    const onContextRestored = () => setTimeout(() => setViewerKey((k) => k + 1), 80);
-    container.addEventListener("webglcontextlost", onContextLost as EventListener, { passive: false, capture: true } as any);
-    container.addEventListener("webglcontextrestored", onContextRestored as EventListener);
-    return () => {
-      try {
-        container.removeEventListener("webglcontextlost", onContextLost as EventListener as any);
-        container.removeEventListener("webglcontextrestored", onContextRestored as EventListener as any);
-      } catch {}
-    };
-  }, [viewerContainerRef.current]);
-
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") {
-        setTimeout(() => setViewerKey((k) => k + 1), 80);
-      }
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, []);
-
-  /* ---------- public actions ---------- */
-  const toggleDecree = () => setIsOpen((v) => !v);
-  const request3D = useCallback(() => {
-    setUserRequested3D(true);
-    setLoad3D(true);
-  }, []);
 
   /* ---------- Fetch + Client Cache + Live detection ---------- */
   useEffect(() => {
@@ -581,28 +476,16 @@ const AboutSection: React.FC = () => {
 
             <br />
 
-            {/* ROYAL DECREE — BELOW THE VIEWER */}
+            {/* ROYAL DECREE — FIXED, NO ANIMATION */}
             <div className="w-full flex justify-center">
               <div className="relative w-full max-w-3xl">
-                {/* Top handle */}
-                <div aria-hidden className="absolute left-0 right-0 h-6 -top-6 z-20 pointer-events-none">
-                  <div className="mx-auto w-36 h-6 rounded-full bg-gradient-to-r from-amber-900 via-amber-800 to-amber-900 shadow-sm" />
-                </div>
-
-                {/* Decree Container */}
                 <div
                   className="relative w-full bg-gradient-to-br from-yellow-50 via-amber-50 to-yellow-100 rounded-xl shadow-xl overflow-hidden"
-                  role="button"
-                  tabIndex={0}
-                  aria-expanded={isOpen}
-                  onClick={toggleDecree}
-                  onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && toggleDecree()}
                   style={{
                     borderLeft: "3px solid #d97706",
                     borderRight: "3px solid #d97706",
                     minHeight: 56,
-                    maxHeight: isOpen ? 520 : 56,
-                    transition: "max-height 420ms ease",
+                    maxHeight: "auto", // Keep it fixed
                   }}
                 >
                   {/* Decree Content */}
@@ -611,8 +494,8 @@ const AboutSection: React.FC = () => {
                     ref={contentRef}
                     className="relative z-10 p-6 max-h-[520px] overflow-y-auto"
                     style={{
-                      opacity: isOpen ? 1 : 0,
-                      transform: isOpen ? "translateY(0)" : "translateY(-6px)",
+                      opacity: 1,
+                      transform: "translateY(0)",
                       transition: "opacity 420ms ease, transform 420ms ease",
                     }}
                   >
@@ -657,18 +540,6 @@ const AboutSection: React.FC = () => {
                       </p>
                     </div>
                   </div>
-
-                  {/* Collapsed hint */}
-                  {!isOpen && (
-                    <div className="absolute inset-0 flex items-center justify-center text-xs font-semibold tracking-widest uppercase pointer-events-none bg-transparent text-amber-900">
-                      Tap to open royal decree
-                    </div>
-                  )}
-                </div>
-
-                {/* Bottom handle (subtle) */}
-                <div aria-hidden className="absolute left-0 right-0 h-6 -bottom-6 z-10 pointer-events-none">
-                  <div className="mx-auto w-36 h-6 rounded-full bg-gradient-to-r from-amber-900 via-amber-800 to-amber-900 shadow-sm" />
                 </div>
               </div>
             </div>
