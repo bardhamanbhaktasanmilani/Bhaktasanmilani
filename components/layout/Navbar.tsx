@@ -1,9 +1,9 @@
-// components/layout/Navbar.tsx
 "use client";
 
 import React, { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
-import { Menu, X, ChevronDown, ChevronRight } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter, usePathname } from "next/navigation";
 
 /* ---------- types for nav structure ---------- */
 type Leaf = { name: string; href: string };
@@ -22,6 +22,34 @@ function isSubGroup(sub: SubGroup | Leaf): sub is SubGroup {
   return (sub as SubGroup).children !== undefined && Array.isArray((sub as SubGroup).children);
 }
 
+/**
+ * waitForElement
+ * Polls until `document.querySelector(selector)` returns an element or timeout.
+ */
+const waitForElement = (selector: string, timeout = 3000, interval = 50): Promise<Element | null> => {
+  return new Promise((resolve) => {
+    const start = Date.now();
+    const tryOnce = () => {
+      const el = document.querySelector(selector);
+      if (el) return resolve(el);
+      if (Date.now() - start >= timeout) return resolve(null);
+      setTimeout(tryOnce, interval);
+    };
+    tryOnce();
+  });
+};
+
+/**
+ * smoothScrollToHash
+ * Scrolls smoothly to the element matching `hash` (like '#donate') with an optional offset for fixed header.
+ */
+const smoothScrollToHash = (hash: string, offset = 80) => {
+  const el = document.querySelector(hash) as HTMLElement | null;
+  if (!el) return;
+  const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
+  window.scrollTo({ top: y, behavior: "smooth" });
+};
+
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -35,6 +63,9 @@ export default function Navbar() {
 
   const navRef = useRef<HTMLDivElement | null>(null);
   const mobileCloseBtnRef = useRef<HTMLButtonElement | null>(null);
+
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -69,18 +100,75 @@ export default function Navbar() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // smooth scroll helper
-  const scrollToSection = (e: ReactMouseEvent<HTMLAnchorElement> | React.MouseEvent, href: string) => {
-    if (!href || !href.startsWith("#")) {
+  /**
+   * scrollToSection (robust)
+   *
+   * Accepts href formats:
+   *  - '#donate'   -> smooth scroll in-place if on home
+   *  - '/#donate'  -> navigate to '/' and then smooth-scroll when element ready
+   *  - other paths -> not handled here (let link behave normally)
+   */
+  const scrollToSection = async (e: ReactMouseEvent<HTMLAnchorElement> | React.MouseEvent, href: string) => {
+    if (!href) return;
+
+    // find the hash part, if any
+    const hashIndex = href.indexOf("#");
+    if (hashIndex === -1) {
+      // no hash => let browser / router handle it (external/intra-page non-anchor)
       return;
     }
-    e.preventDefault();
-    const el = document.querySelector(href) as HTMLElement | null;
-    if (!el) return;
-    const offset = 80;
-    const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
-    window.scrollTo({ top: y, behavior: "smooth" });
 
+    const hash = href.slice(hashIndex); // '#donate', '#home', etc.
+    if (!hash) return;
+
+    // prevent default browser anchor navigation because we handle smooth scroll
+    e.preventDefault();
+
+    // if already on home root, just try to scroll (may still wait for element briefly if needed)
+    const alreadyOnRoot = pathname === "/" || pathname === "" || pathname === "/index";
+
+    if (alreadyOnRoot) {
+      // element might be present or not (if sections mount late) — wait a little for it
+      const el = document.querySelector(hash);
+      if (el) {
+        smoothScrollToHash(hash);
+      } else {
+        // poll briefly
+        const found = await waitForElement(hash, 1500);
+        if (found) smoothScrollToHash(hash);
+      }
+      // close menus
+      setIsOpen(false);
+      setOpenDropdown(null);
+      setOpenSideMenu(null);
+      return;
+    }
+
+    // Not on root: navigate to root with hash and then wait for the element to be present
+    const targetHref = `/#${hash.replace(/^#/, "")}`; // ensures the url becomes '/#donate'
+
+    // push to root + hash
+    // router.push returns a promise — wait for it, then try scrolling when element exists
+    try {
+      await router.push(targetHref);
+    } catch (err) {
+      // fallback to full navigation if client navigation fails
+      window.location.href = targetHref;
+      return;
+    }
+
+    // After navigation, poll for the element (longer timeout because page may hydrate)
+    const el = await waitForElement(hash, 4000, 60);
+    if (el) {
+      smoothScrollToHash(hash);
+    } else {
+      // nothing found — as a fallback, try a small delay then attempt one last time
+      setTimeout(() => {
+        smoothScrollToHash(hash);
+      }, 200);
+    }
+
+    // close menus
     setIsOpen(false);
     setOpenDropdown(null);
     setOpenSideMenu(null);
@@ -126,12 +214,6 @@ export default function Navbar() {
     hidden: { opacity: 0, y: -6, scale: 0.98 },
     visible: { opacity: 1, y: 0, scale: 1 },
     exit: { opacity: 0, y: -6, scale: 0.98 },
-  };
-
-  const sideMenuVariant = {
-    hidden: { opacity: 0, x: -8 },
-    visible: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -8 },
   };
 
   const drawerVariant = {
@@ -196,46 +278,21 @@ export default function Navbar() {
                         >
                           {item.children.map((sub) =>
                             isSubGroup(sub) ? (
-                              <div key={sub.key} className="relative">
-                                <button
-                                  onClick={() => setOpenSideMenu((prev) => (prev === sub.key ? null : sub.key))}
-                                  className="flex w-full items-center justify-between px-3 py-2 rounded-md hover:bg-gray-50 text-sm font-semibold"
-                                  aria-haspopup="true"
-                                  aria-expanded={openSideMenu === sub.key}
-                                  role="menuitem"
-                                >
-                                  <span>{sub.name}</span>
-                                  <motion.span animate={{ rotate: openSideMenu === sub.key ? 90 : 0 }} transition={{ duration: 0.18 }}>
-                                    <ChevronRight className="w-4 h-4" />
-                                  </motion.span>
-                                </button>
-
-                                <AnimatePresence>
-                                  {openSideMenu === sub.key && (
-                                    <motion.div
-                                      initial="hidden"
-                                      animate="visible"
-                                      exit="exit"
-                                      variants={sideMenuVariant}
-                                      transition={{ duration: 0.16 }}
-                                      className="absolute left-full top-0 ml-3 w-56 rounded-xl bg-white shadow-2xl border border-gray-100 p-2"
-                                      role="menu"
-                                      aria-label={`${sub.name} submenu`}
+                              <div key={sub.key} className="space-y-2">
+                                <div className="text-xs font-semibold text-gray-700 mb-1 px-2">{sub.name}</div>
+                                <div className="space-y-1">
+                                  {sub.children.map((c) => (
+                                    <a
+                                      key={c.name}
+                                      href={c.href}
+                                      onClick={(e) => scrollToSection(e as any, c.href)}
+                                      className="block px-3 py-2 text-sm rounded-md hover:bg-orange-50"
+                                      role="menuitem"
                                     >
-                                      {sub.children.map((c) => (
-                                        <a
-                                          key={c.name}
-                                          href={c.href}
-                                          onClick={(e) => scrollToSection(e, c.href)}
-                                          className="block px-3 py-2 text-sm rounded-md hover:bg-orange-50"
-                                          role="menuitem"
-                                        >
-                                          {c.name}
-                                        </a>
-                                      ))}
-                                    </motion.div>
-                                  )}
-                                </AnimatePresence>
+                                      {c.name}
+                                    </a>
+                                  ))}
+                                </div>
                               </div>
                             ) : (
                               <a
@@ -282,12 +339,18 @@ export default function Navbar() {
             <div className="xl:hidden">
               <button
                 aria-label={isOpen ? "Close menu" : "Open menu"}
-                onClick={() => {
-                  setIsOpen((p) => !p);
-                  setTimeout(() => {
-                    if (!isOpen && mobileCloseBtnRef.current) mobileCloseBtnRef.current.focus();
-                  }, 120);
-                }}
+                onClick={() =>
+                  setIsOpen((prev) => {
+                    const next = !prev;
+                    // focus after opening
+                    if (next) {
+                      setTimeout(() => {
+                        if (mobileCloseBtnRef.current) mobileCloseBtnRef.current.focus();
+                      }, 120);
+                    }
+                    return next;
+                  })
+                }
                 className={cn("p-2 rounded-md", scrolled ? "bg-white/20" : "bg-white/10")}
               >
                 {isOpen ? <X size={22} /> : <Menu size={22} />}
@@ -372,19 +435,6 @@ export default function Navbar() {
                   </div>
                 ))}
               </nav>
-
-              <div className="mt-6 border-t border-gray-100 pt-4">
-                <a href="/admin/login" className="block text-sm px-2 py-2 rounded-md hover:bg-gray-50">
-                  Admin Login
-                </a>
-                <a
-                  href="#donate"
-                  onClick={(e) => scrollToSection(e as any, "#donate")}
-                  className="mt-3 inline-block w-full text-center rounded-md bg-gradient-to-r from-orange-600 to-amber-500 px-4 py-2 text-white font-semibold"
-                >
-                  Donate Now
-                </a>
-              </div>
             </motion.aside>
           </>
         )}

@@ -267,9 +267,11 @@ export default function Carousel3D({
           transform: rotate(-45deg);
         }
         .arrow.right .chev {
+          transform: rotate(-50deg);
+        }
+        .arrow.left .chev {
           transform: rotate(135deg);
         }
-
         .dots {
           position: absolute;
           bottom: -36px;

@@ -2,6 +2,7 @@
 
 import React, { useCallback, useMemo } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { Facebook, Twitter, Instagram, Youtube } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 
@@ -31,29 +32,94 @@ const itemVariants = {
 };
 
 /* -------------------------------------------
+ UTILS
+--------------------------------------------*/
+const smoothScrollToElement = (el: Element | null, offset = 80) => {
+  if (!el || typeof window === "undefined") return;
+  const elementPosition = el.getBoundingClientRect().top;
+  const offsetPosition = elementPosition + window.pageYOffset - offset;
+  window.scrollTo({ top: offsetPosition, behavior: "smooth" });
+};
+
+/* -------------------------------------------
  COMPONENT
 --------------------------------------------*/
 export default function Footer() {
   const prefersReducedMotion = useReducedMotion();
+  const router = useRouter();
+  const pathname = usePathname();
 
   /* -------------------------------------------
-   SCROLL HANDLER (OPTIMIZED)
+   SCROLL HANDLER (OPTIMIZED & ROBUST)
   --------------------------------------------*/
   const scrollToSection = useCallback((href: string) => {
     if (typeof window === "undefined") return;
 
-    const element = document.querySelector(href);
+    // Accept selectors like "#donate" or element ids
+    const id = href.startsWith("#") ? href.slice(1) : href;
+    let element: Element | null = null;
+
+    try {
+      element = document.getElementById(id) || document.querySelector(href);
+    } catch (e) {
+      element = null;
+    }
+
     if (!element) return;
 
-    const offset = 80;
-    const elementPosition = element.getBoundingClientRect().top;
-    const offsetPosition = elementPosition + window.pageYOffset - offset;
-
-    window.scrollTo({
-      top: offsetPosition,
-      behavior: "smooth",
-    });
+    smoothScrollToElement(element);
   }, []);
+
+  /**
+   * Handles clicking quick links:
+   * - If already on home page ("/"), just smooth-scroll.
+   * - If on a different page, navigate to "/#id" then attempt smooth-scroll a few times
+   *   (to accommodate client hydration / content loading).
+   */
+  const handleNavigateToSection = useCallback(
+    async (href: string) => {
+      // Non-hash links: simply navigate
+      if (!href.startsWith("#")) {
+        await router.push(href);
+        return;
+      }
+
+      // If already on homepage, just scroll
+      if (pathname === "/" || pathname === "" || pathname === null) {
+        scrollToSection(href);
+        return;
+      }
+
+      // Navigate to home with hash so the browser updates URL
+      const id = href.slice(1);
+      // Use router.push so navigation is client-side (App Router)
+      await router.push(`/#${id}`);
+
+      // Try to find and scroll to the element up to several times (handle hydration)
+      let attempts = 0;
+      const maxAttempts = 6;
+      const tryScroll = () => {
+        attempts += 1;
+        const el =
+          document.getElementById(id) ||
+          (href ? document.querySelector(href) : null);
+
+        if (el) {
+          smoothScrollToElement(el);
+          return;
+        }
+
+        if (attempts < maxAttempts) {
+          // small delay to give page time to render
+          setTimeout(tryScroll, 180);
+        }
+      };
+
+      // Kick off first attempt (gives a tiny breathing room)
+      setTimeout(tryScroll, 50);
+    },
+    [pathname, router, scrollToSection]
+  );
 
   /* -------------------------------------------
    MEMOIZED DATA
@@ -139,9 +205,7 @@ export default function Footer() {
                   aria-label={label}
                   target={href.startsWith("#") ? undefined : "_blank"}
                   rel="noopener noreferrer"
-                  whileHover={
-                    prefersReducedMotion ? undefined : { scale: 1.15, rotate: 5 }
-                  }
+                  whileHover={prefersReducedMotion ? undefined : { scale: 1.15, rotate: 5 }}
                   className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-800 hover:bg-gradient-to-r hover:from-orange-600 hover:to-amber-600"
                 >
                   <Icon className="w-5 h-5" />
@@ -157,7 +221,7 @@ export default function Footer() {
               {quickLinks.map((item) => (
                 <li key={item.label}>
                   <button
-                    onClick={() => scrollToSection(item.href)}
+                    onClick={() => handleNavigateToSection(item.href)}
                     className="relative group hover:text-orange-400"
                   >
                     {item.label}
@@ -230,9 +294,7 @@ export default function Footer() {
           transition={{ duration: 0.8 }}
           className="flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-gray-800"
         >
-          <p className="text-gray-500">
-            © 2024 Bhakta Sammilan. All rights reserved.
-          </p>
+          <p className="text-gray-500">© 2024 Bhakta Sammilan. All rights reserved.</p>
           <p className="text-gray-400">Sankha Subhra Das</p>
         </motion.div>
       </div>
