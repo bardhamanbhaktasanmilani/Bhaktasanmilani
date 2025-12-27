@@ -1,5 +1,6 @@
 // app/api/donations/create-order/route.ts
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import { razorpay } from "@/lib/razorpay";
 
 export const runtime = "nodejs";
@@ -29,14 +30,25 @@ export async function POST(request: Request) {
       );
     }
 
+    // 1️⃣ Create Razorpay order FIRST
     const order = await razorpay.orders.create({
-      amount: Math.round(amount * 100), // paise
+      amount: Math.round(amount * 100),
       currency: "INR",
       receipt: `donation_${Date.now()}`,
-      notes: {
+    });
+
+    // 2️⃣ UPSERT donation (idempotent & safe)
+    await prisma.donation.upsert({
+      where: { orderId: order.id },
+      update: {},
+      create: {
+        orderId: order.id,
+        amount: Math.round(amount),
+        currency: "INR",
         donorName,
         donorEmail,
         donorPhone,
+        status: "PENDING",
       },
     });
 
@@ -46,8 +58,9 @@ export async function POST(request: Request) {
       currency: order.currency,
       keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
     });
-  } catch (error) {
-    console.error("Create-order failed:", error);
+  } catch (error: any) {
+    console.error("Create-order error:", error?.message ?? error);
+
     return NextResponse.json(
       { error: "Unable to create order" },
       { status: 500 }
