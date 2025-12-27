@@ -1,6 +1,12 @@
 "use client";
 
-import React, { Suspense, useMemo, useRef, useEffect, useState } from "react";
+import React, {
+  Suspense,
+  useMemo,
+  useRef,
+  useEffect,
+  useState,
+} from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
@@ -11,24 +17,12 @@ import {
   Html,
 } from "@react-three/drei";
 
-
 /* -------- tunables -------- */
 const DEFAULT_MODEL = "/About/temple-optimized.glb";
 const FALLBACK_IMAGE = "/About/temple-poster.jpg";
 const TARGET_SIZE = 2.6;
 
-/* =====================================================
-   DRACO LOADER (FIX — REQUIRED)
-===================================================== */
-
-
-
-
-
-
-/* helper device checks */
-
-
+/* ---------- device detection ---------- */
 function detectLowEndDevice(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent || "";
@@ -42,6 +36,7 @@ function detectLowEndDevice(): boolean {
 function ProgressOverlay() {
   const { active, progress } = useProgress();
   if (!active) return null;
+
   return (
     <Html center>
       <div
@@ -68,18 +63,12 @@ function ProgressOverlay() {
             style={{
               width: `${Math.round(progress)}%`,
               height: "100%",
-              transition: "width 200ms linear",
               background: "#f59e0b",
+              transition: "width 200ms linear",
             }}
           />
         </div>
-        <div
-          style={{
-            fontSize: 12,
-            marginTop: 6,
-            textAlign: "right",
-          }}
-        >
+        <div style={{ fontSize: 12, marginTop: 6, textAlign: "right" }}>
           {Math.round(progress)}%
         </div>
       </div>
@@ -98,27 +87,30 @@ function useFieryGlowTexture(lowEnd = false): THREE.Texture | null {
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
 
-    const cx = size / 2;
-    const cy = size / 2;
-    const r = size / 2;
-    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    const g = ctx.createRadialGradient(
+      size / 2,
+      size / 2,
+      0,
+      size / 2,
+      size / 2,
+      size / 2
+    );
     g.addColorStop(0, "rgba(255,247,160,1)");
-    g.addColorStop(0.25, "rgba(255,180,70,0.98)");
-    g.addColorStop(0.5, "rgba(255,120,30,0.95)");
-    g.addColorStop(0.85, "rgba(200,40,20,0.35)");
+    g.addColorStop(0.4, "rgba(255,160,60,0.9)");
+    g.addColorStop(0.8, "rgba(200,40,20,0.3)");
     g.addColorStop(1, "rgba(200,40,20,0)");
+
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, size, size);
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.minFilter = THREE.LinearFilter;
     tex.magFilter = THREE.LinearFilter;
-    tex.needsUpdate = true;
     return tex;
   }, [lowEnd]);
 }
 
-/* ---------- MODEL (FIXED — DRACO WIRED, NOTHING ELSE CHANGED) ---------- */
+/* ---------- Temple Model ---------- */
 function TempleModel({
   path,
   sceneRef,
@@ -128,26 +120,22 @@ function TempleModel({
   sceneRef: React.MutableRefObject<THREE.Object3D | null>;
   strength?: number;
 }) {
-const gltf = useGLTF(path, true);
-
-
+  const gltf = useGLTF(path, true);
 
   useEffect(() => {
     if (!gltf?.scene) return;
-    const scene = gltf.scene as THREE.Object3D;
-    sceneRef.current = scene;
+    sceneRef.current = gltf.scene;
 
     const marbleBias = new THREE.Color(0xf4efe6);
-    scene.traverse((obj: any) => {
-      if (obj?.isMesh) {
+    gltf.scene.traverse((obj: any) => {
+      if (obj.isMesh) {
         obj.castShadow = true;
         obj.receiveShadow = true;
         const mats = Array.isArray(obj.material)
           ? obj.material
           : [obj.material];
         mats.forEach((mat: any) => {
-          if (!mat) return;
-          if (!mat.map && mat.color) {
+          if (mat?.color && !mat.map) {
             mat.color.lerp(marbleBias, strength * 0.7);
           }
         });
@@ -158,7 +146,7 @@ const gltf = useGLTF(path, true);
   return gltf?.scene ? <primitive object={gltf.scene} /> : null;
 }
 
-/* ---------- Fit & center (UNCHANGED) ---------- */
+/* ---------- Fit & center ---------- */
 function FitAndCenter({
   sceneRef,
   onComputed,
@@ -190,7 +178,7 @@ function FitAndCenter({
   return null;
 }
 
-/* ---------- Glow plane (UNCHANGED) ---------- */
+/* ---------- Glow Plane ---------- */
 function GlowPlane({
   texture,
   position,
@@ -217,34 +205,57 @@ function GlowPlane({
         transparent
         depthWrite={false}
         blending={THREE.AdditiveBlending}
-        opacity={1}
       />
     </mesh>
   );
 }
 
-/* ---------- MAIN EXPORT (UNCHANGED UI / FEATURES) ---------- */
+/* ---------- MAIN EXPORT ---------- */
 export default function TempleViewer({
   modelPath = DEFAULT_MODEL,
 }: {
   modelPath?: string;
 }) {
   const sceneRef = useRef<THREE.Object3D | null>(null);
-  const [glowPos, setGlowPos] = useState(
-    new THREE.Vector3(0, 1, -3)
-  );
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [visible, setVisible] = useState(false);
+
+  const [glowPos, setGlowPos] = useState(new THREE.Vector3(0, 1, -3));
   const [glowScale, setGlowScale] = useState(3.2);
 
- 
   const lowEnd = detectLowEndDevice();
   const glowTex = useFieryGlowTexture(lowEnd);
 
-  const dpr: [number, number] = lowEnd ? [1, 1] : [1, 1.4];
+  /* render only when visible */
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const io = new IntersectionObserver(
+      ([e]) => setVisible(e.isIntersecting),
+      { rootMargin: "200px" }
+    );
+    io.observe(containerRef.current);
+    return () => io.disconnect();
+  }, []);
 
-
+  if (!visible) {
+    return (
+      <div
+        ref={containerRef}
+        className="w-full flex justify-center items-center"
+        style={{ height: "min(75vh,820px)" }}
+      >
+        <img
+          src={FALLBACK_IMAGE}
+          alt="Temple preview"
+          className="max-h-full object-contain"
+        />
+      </div>
+    );
+  }
 
   return (
     <div
+      ref={containerRef}
       className="relative w-full flex justify-center"
       style={{
         height: "min(75vh,820px)",
@@ -253,20 +264,20 @@ export default function TempleViewer({
       }}
     >
       <Canvas
-        shadows={!lowEnd}
-        dpr={dpr}
+        dpr={lowEnd ? 1 : 1.4}
         camera={{ fov: 40 }}
-        gl={{ powerPreference: "high-performance" }}
+        shadows={!lowEnd}
+        gl={{
+          powerPreference: "low-power",
+          antialias: !lowEnd,
+          alpha: false,
+        }}
       >
         <color attach="background" args={["#fff9f1"]} />
 
         <Suspense fallback={<ProgressOverlay />}>
           <hemisphereLight intensity={0.22} />
-          <directionalLight
-            castShadow={!lowEnd}
-            position={[-6, 10, -6]}
-            intensity={2}
-          />
+          <directionalLight position={[-6, 10, -6]} intensity={2} />
 
           <TempleModel path={modelPath} sceneRef={sceneRef} />
 
@@ -284,15 +295,19 @@ export default function TempleViewer({
             scale={glowScale}
           />
 
-          <ContactShadows
-            position={[0, -0.82, 0]}
-            opacity={0.72}
-            blur={lowEnd ? 2 : 4}
-            far={1.5}
-          />
+          {!lowEnd && (
+            <ContactShadows
+              position={[0, -0.82, 0]}
+              opacity={0.7}
+              blur={4}
+              far={1.5}
+            />
+          )}
 
           <OrbitControls
             enablePan={false}
+            enableDamping
+            dampingFactor={0.05}
             autoRotate
             autoRotateSpeed={0.55}
           />
