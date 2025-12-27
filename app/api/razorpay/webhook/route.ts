@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
-    // 1️⃣ Read raw body (MANDATORY)
+    // 1️⃣ Read raw body (MANDATORY for Razorpay)
     const rawBody = await request.text();
 
     const signature = request.headers.get("x-razorpay-signature");
@@ -47,25 +47,14 @@ export async function POST(request: Request) {
       const orderId = payment.order_id as string;
       const paymentId = payment.id as string;
 
-      // 🔐 Idempotency check (VERY IMPORTANT)
-      const existing = await prisma.donation.findUnique({
-        where: { paymentId },
+      // Update the existing PENDING donation
+      await prisma.donation.update({
+        where: { orderId },
+        data: {
+          paymentId,
+          status: "SUCCESS",
+        },
       });
-
-      if (!existing) {
-        await prisma.donation.create({
-          data: {
-            orderId,
-            paymentId,
-            amount: payment.amount / 100, // paise → INR
-            currency: payment.currency,
-            status: "SUCCESS",
-            donorEmail: payment.email ?? null,
-            donorPhone: payment.contact ?? null,
-            paymentMethod: payment.method ?? null,
-          },
-        });
-      }
     }
 
     // -------------------------------
@@ -77,31 +66,21 @@ export async function POST(request: Request) {
       const orderId = payment.order_id as string;
       const paymentId = payment.id as string;
 
-      // Idempotent update or create
-      await prisma.donation.upsert({
-        where: { paymentId },
-        update: {
-          status: "FAILED",
-        },
-        create: {
-          orderId,
+      await prisma.donation.update({
+        where: { orderId },
+        data: {
           paymentId,
-          amount: payment.amount / 100,
-          currency: payment.currency,
           status: "FAILED",
-          donorEmail: payment.email ?? null,
-          donorPhone: payment.contact ?? null,
-          paymentMethod: payment.method ?? null,
         },
       });
     }
 
-    // 4️⃣ Always acknowledge Razorpay
+    // 4️⃣ Acknowledge Razorpay
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error("🚨 Razorpay webhook error:", error);
 
-    // Razorpay will retry on non-200
+    // Razorpay retries on non-200
     return NextResponse.json(
       { error: "Webhook processing failed" },
       { status: 500 }
