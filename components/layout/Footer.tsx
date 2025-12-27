@@ -15,20 +15,20 @@ const EMAIL = "bardhamanbhaktasanmilani@gmail.com";
 const MAILTO_HREF = `mailto:${EMAIL}`;
 
 /* -------------------------------------------
- ANIMATION VARIANTS (REUSED)
+ LIGHTWEIGHT ANIMATION VARIANTS
 --------------------------------------------*/
 const containerVariants = {
-  hidden: { opacity: 0, y: 40 },
+  hidden: { opacity: 0, y: 24 },
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.7, staggerChildren: 0.15 },
+    transition: { duration: 0.5, ease: "easeOut", staggerChildren: 0.08 },
   },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 30 },
-  show: { opacity: 1, y: 0 },
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
 
 /* -------------------------------------------
@@ -36,9 +36,14 @@ const itemVariants = {
 --------------------------------------------*/
 const smoothScrollToElement = (el: Element | null, offset = 80) => {
   if (!el || typeof window === "undefined") return;
+
   const elementPosition = el.getBoundingClientRect().top;
   const offsetPosition = elementPosition + window.pageYOffset - offset;
-  window.scrollTo({ top: offsetPosition, behavior: "smooth" });
+
+  window.scrollTo({
+    top: offsetPosition,
+    behavior: "smooth",
+  });
 };
 
 /* -------------------------------------------
@@ -50,59 +55,49 @@ export default function Footer() {
   const pathname = usePathname();
 
   /* -------------------------------------------
-   SCROLL HANDLER (OPTIMIZED & ROBUST)
+   SCROLL HANDLER
   --------------------------------------------*/
   const scrollToSection = useCallback((href: string) => {
     if (typeof window === "undefined") return;
 
-    // Accept selectors like "#donate" or element ids
     const id = href.startsWith("#") ? href.slice(1) : href;
-    let element: Element | null = null;
 
-    try {
-      element = document.getElementById(id) || document.querySelector(href);
-    } catch (e) {
-      element = null;
-    }
+    const element =
+      document.getElementById(id) ||
+      (() => {
+        try {
+          return document.querySelector(href);
+        } catch {
+          return null;
+        }
+      })();
 
-    if (!element) return;
-
-    smoothScrollToElement(element);
+    if (element) smoothScrollToElement(element);
   }, []);
 
-  /**
-   * Handles clicking quick links:
-   * - If already on home page ("/"), just smooth-scroll.
-   * - If on a different page, navigate to "/#id" then attempt smooth-scroll a few times
-   *   (to accommodate client hydration / content loading).
-   */
   const handleNavigateToSection = useCallback(
     async (href: string) => {
-      // Non-hash links: simply navigate
       if (!href.startsWith("#")) {
         await router.push(href);
         return;
       }
 
-      // If already on homepage, just scroll
-      if (pathname === "/" || pathname === "" || pathname === null) {
+      if (pathname === "/") {
         scrollToSection(href);
         return;
       }
 
-      // Navigate to home with hash so the browser updates URL
       const id = href.slice(1);
-      // Use router.push so navigation is client-side (App Router)
       await router.push(`/#${id}`);
 
-      // Try to find and scroll to the element up to several times (handle hydration)
       let attempts = 0;
-      const maxAttempts = 6;
+      const maxAttempts = 5;
+
       const tryScroll = () => {
-        attempts += 1;
+        attempts++;
         const el =
           document.getElementById(id) ||
-          (href ? document.querySelector(href) : null);
+          document.querySelector(href);
 
         if (el) {
           smoothScrollToElement(el);
@@ -110,19 +105,17 @@ export default function Footer() {
         }
 
         if (attempts < maxAttempts) {
-          // small delay to give page time to render
-          setTimeout(tryScroll, 180);
+          setTimeout(tryScroll, 160);
         }
       };
 
-      // Kick off first attempt (gives a tiny breathing room)
-      setTimeout(tryScroll, 50);
+      setTimeout(tryScroll, 60);
     },
     [pathname, router, scrollToSection]
   );
 
   /* -------------------------------------------
-   MEMOIZED DATA
+   DATA
   --------------------------------------------*/
   const socialLinks = useMemo(
     () => [
@@ -157,75 +150,52 @@ export default function Footer() {
   );
 
   return (
-    <footer className="relative pt-16 pb-10 overflow-hidden text-white bg-gray-950">
-      {/* ---------------------------------
-          AMBIENT BLOBS (GPU SAFE)
-      ---------------------------------- */}
-      {!prefersReducedMotion && (
-        <>
-          <motion.div
-            className="absolute rounded-full -top-20 -left-20 w-72 h-72 bg-orange-600/20 blur-3xl"
-            animate={{ x: [0, 40, -20, 0], y: [0, -20, 20, 0] }}
-            transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.div
-            className="absolute bottom-0 right-0 w-96 h-96 rounded-full bg-amber-400/10 blur-[90px]"
-            animate={{ x: [0, -30, 30, 0], y: [0, 20, -20, 0] }}
-            transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-          />
-        </>
-      )}
-
-      <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* ---------------------------------
-            GRID
-        ---------------------------------- */}
+    <footer className="bg-gray-950 text-white pt-16 pb-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial="hidden"
           whileInView="show"
-          viewport={{ once: true, amount: 0.3 }}
-          variants={containerVariants}
+          viewport={{ once: true, amount: 0.25 }}
+          variants={prefersReducedMotion ? undefined : containerVariants}
           className="grid gap-10 mb-10 sm:grid-cols-2 lg:grid-cols-5"
         >
           {/* Brand */}
           <motion.div variants={itemVariants}>
-            <h3 className="mb-4 text-2xl font-bold text-transparent bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text">
+            <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent">
               Bhakta Sammilan ॐ
             </h3>
-            <p className="mb-6 text-gray-400 leading-relaxed">
+            <p className="text-gray-400 mb-6 leading-relaxed">
               United by faith, driven by compassion. Join us in making a meaningful
               difference through devotion and service.
             </p>
 
             <div className="flex gap-3">
               {socialLinks.map(({ Icon, label, href }) => (
-                <motion.a
+                <a
                   key={label}
                   href={href}
                   aria-label={label}
                   target={href.startsWith("#") ? undefined : "_blank"}
                   rel="noopener noreferrer"
-                  whileHover={prefersReducedMotion ? undefined : { scale: 1.15, rotate: 5 }}
-                  className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-800 hover:bg-gradient-to-r hover:from-orange-600 hover:to-amber-600"
+                  className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-800 hover:bg-orange-600 transition-colors"
                 >
                   <Icon className="w-5 h-5" />
-                </motion.a>
+                </a>
               ))}
             </div>
           </motion.div>
 
           {/* Quick Links */}
           <motion.div variants={itemVariants}>
-            <h4 className="mb-4 text-lg font-bold">Quick Links</h4>
+            <h4 className="font-bold mb-4">Quick Links</h4>
             <ul className="space-y-3 text-gray-400">
               {quickLinks.map((item) => (
                 <li key={item.label}>
                   <button
                     onClick={() => handleNavigateToSection(item.href)}
-                    className="relative group hover:text-orange-400"
+                    className="hover:text-orange-400 transition-colors"
                   >
                     {item.label}
-                    <span className="absolute left-0 -bottom-1 h-[2px] w-0 bg-orange-400 transition-all group-hover:w-full" />
                   </button>
                 </li>
               ))}
@@ -234,7 +204,7 @@ export default function Footer() {
 
           {/* Causes */}
           <motion.div variants={itemVariants}>
-            <h4 className="mb-4 text-lg font-bold">Our Causes</h4>
+            <h4 className="font-bold mb-4">Our Causes</h4>
             <ul className="space-y-3 text-gray-400">
               <li>Education for All</li>
               <li>Healthcare Support</li>
@@ -246,19 +216,16 @@ export default function Footer() {
 
           {/* Legal */}
           <motion.div variants={itemVariants}>
-            <h4 className="mb-4 text-lg font-bold">Legal</h4>
+            <h4 className="font-bold mb-4">Legal</h4>
             <ul className="space-y-3 text-gray-400">
               {policyLinks.map((item) => (
                 <li key={item.label}>
-                  <motion.div whileHover={prefersReducedMotion ? undefined : { x: 6 }}>
-                    <Link
-                      href={item.href}
-                      className="relative group inline-block hover:text-orange-400"
-                    >
-                      {item.label}
-                      <span className="absolute left-0 -bottom-1 h-[2px] w-0 bg-orange-400 transition-all group-hover:w-full" />
-                    </Link>
-                  </motion.div>
+                  <Link
+                    href={item.href}
+                    className="hover:text-orange-400 transition-colors"
+                  >
+                    {item.label}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -266,7 +233,7 @@ export default function Footer() {
 
           {/* Contact */}
           <motion.div variants={itemVariants}>
-            <h4 className="mb-4 text-lg font-bold">Contact Info</h4>
+            <h4 className="font-bold mb-4">Contact Info</h4>
             <ul className="space-y-3 text-gray-400">
               <li>R.B Chatterjee Road, Tikorhat</li>
               <li>Bardhaman, West Bengal – 713102</li>
@@ -284,19 +251,11 @@ export default function Footer() {
           </motion.div>
         </motion.div>
 
-        {/* ---------------------------------
-            BOTTOM BAR
-        ---------------------------------- */}
-        <motion.div
-          initial={{ opacity: 0, y: 25 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-          className="flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-gray-800"
-        >
-          <p className="text-gray-500">© 2024 Bhakta Sammilan. All rights reserved.</p>
+        {/* Bottom Bar */}
+        <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row items-center justify-between gap-4 text-gray-500">
+          <p>© 2024 Bhakta Sammilan. All rights reserved.</p>
           <p className="text-gray-400">Sankha Subhra Das</p>
-        </motion.div>
+        </div>
       </div>
     </footer>
   );
