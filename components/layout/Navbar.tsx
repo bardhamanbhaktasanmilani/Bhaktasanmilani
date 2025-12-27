@@ -252,8 +252,8 @@ export default function Navbar() {
                 className="inline-flex items-center gap-2"
                 aria-label="Bhakta Sammilan - Home"
               >
-                <span className="text-lg font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-orange-600 to-amber-500">
-                  Bhakta Sammilan ॐ
+                <span className="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-amber-600 to-amber-400">
+                  BhaktaSanmilani ॐ
                 </span>
               </a>
             </div>
