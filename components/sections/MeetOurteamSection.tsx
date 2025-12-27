@@ -167,10 +167,10 @@ export default function MeetOurteamSection() {
           <Image
             src={m.image}
             alt={m.name}
-            width={120}
-            height={120}
+            width={200}
+            height={400}
             loading="lazy"
-            className="h-28 w-full object-cover rounded-xl"
+            className="h-full w-full object-cover rounded-xl"
           />
         </button>
       )),
