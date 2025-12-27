@@ -581,7 +581,11 @@ const AboutSection: React.FC = () => {
                     statRefs.current[index] = el;
                   }}
                   className="p-4 text-center bg-white rounded-xl shadow transform transition"
-                  style={{ opacity: 0, transform: "translateY(18px) scale(0.98)" }}
+                  style={{
+  opacity: loadingStats ? 0 : 1,
+  transform: loadingStats ? "translateY(18px) scale(0.98)" : "translateY(0) scale(1)",
+}}
+
                 >
                   <div className="w-12 h-12 mx-auto mb-3 flex items-center justify-center rounded-full bg-gradient-to-br from-orange-100 to-amber-100 shadow-inner">
                     <Icon className="w-6 h-6 text-orange-600" />
