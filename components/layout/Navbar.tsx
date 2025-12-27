@@ -1,3 +1,4 @@
+// code2.tsx
 "use client";
 
 import React, { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
@@ -22,32 +23,39 @@ function isSubGroup(sub: SubGroup | Leaf): sub is SubGroup {
   return (sub as SubGroup).children !== undefined && Array.isArray((sub as SubGroup).children);
 }
 
+/* ---------- robust wait helper (requestAnimationFrame) ---------- */
 /**
- * waitForElement
- * Polls until `document.querySelector(selector)` returns an element or timeout.
+ * waitForExactElement
+ * Polls using requestAnimationFrame until `document.querySelector(selector)` returns an element or timeout.
+ * Accepts selectors like '#id' or any valid query selector string.
  */
-const waitForElement = (selector: string, timeout = 3000, interval = 50): Promise<Element | null> => {
-  return new Promise((resolve) => {
+const waitForExactElement = (selector: string, timeout = 5000): Promise<Element | null> =>
+  new Promise((resolve) => {
     const start = Date.now();
-    const tryOnce = () => {
-      const el = document.querySelector(selector);
-      if (el) return resolve(el);
-      if (Date.now() - start >= timeout) return resolve(null);
-      setTimeout(tryOnce, interval);
+    const check = () => {
+      try {
+        const el = document.querySelector(selector);
+        if (el) return resolve(el);
+      } catch (e) {
+        // invalid selector - bail out
+        return resolve(null);
+      }
+      if (Date.now() - start > timeout) return resolve(null);
+      requestAnimationFrame(check);
     };
-    tryOnce();
+    check();
   });
-};
 
-/**
- * smoothScrollToHash
- * Scrolls smoothly to the element matching `hash` (like '#donate') with an optional offset for fixed header.
- */
+/* ---------- smooth scroll helper ---------- */
 const smoothScrollToHash = (hash: string, offset = 80) => {
-  const el = document.querySelector(hash) as HTMLElement | null;
-  if (!el) return;
-  const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
-  window.scrollTo({ top: y, behavior: "smooth" });
+  try {
+    const el = document.querySelector(hash) as HTMLElement | null;
+    if (!el) return;
+    const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
+    window.scrollTo({ top: y, behavior: "smooth" });
+  } catch (e) {
+    // invalid selector or nothing found - ignore
+  }
 };
 
 export default function Navbar() {
@@ -56,7 +64,7 @@ export default function Navbar() {
 
   /* Desktop dropdown */
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  /* Desktop side submenu */
+  /* Desktop side submenu (reserved - preserved) */
   const [openSideMenu, setOpenSideMenu] = useState<string | null>(null);
   /* Mobile accordion expansion state */
   const [mobileOpen, setMobileOpen] = useState<Record<string, boolean>>({});
@@ -65,7 +73,7 @@ export default function Navbar() {
   const mobileCloseBtnRef = useRef<HTMLButtonElement | null>(null);
 
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = usePathname() || "/";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -103,10 +111,12 @@ export default function Navbar() {
   /**
    * scrollToSection (robust)
    *
-   * Accepts href formats:
-   *  - '#donate'   -> smooth scroll in-place if on home
-   *  - '/#donate'  -> navigate to '/' and then smooth-scroll when element ready
-   *  - other paths -> not handled here (let link behave normally)
+   * Behavior:
+   *  - If href has no hash -> let default behavior.
+   *  - If already on home (pathname normalized to "/") -> wait for exact selector and scroll.
+   *  - If on another page -> navigate to "/" (no hash) and then wait for the exact selector and scroll.
+   *
+   * Note: We rely on exact selector (e.g. "#gallery-religion"), preventing accidental partial matches like "#gallery".
    */
   const scrollToSection = async (e: ReactMouseEvent<HTMLAnchorElement> | React.MouseEvent, href: string) => {
     if (!href) return;
@@ -118,60 +128,61 @@ export default function Navbar() {
       return;
     }
 
-    const hash = href.slice(hashIndex); // '#donate', '#home', etc.
+    const hash = href.slice(hashIndex); // '#donate', '#home', '#gallery-religion', etc.
     if (!hash) return;
 
-    // prevent default browser anchor navigation because we handle smooth scroll
+    // prevent default anchor behavior because we handle smooth scroll
     e.preventDefault();
 
-    // if already on home root, just try to scroll (may still wait for element briefly if needed)
-    const alreadyOnRoot = pathname === "/" || pathname === "" || pathname === "/index";
+    // Normalize current path: treat '/index' as '/'
+    const normalize = (p: string) => (p === "" ? "/" : p.replace(/\/index$/, "/"));
+    const currentPathNormalized = normalize(pathname);
+
+    const alreadyOnRoot = currentPathNormalized === "/";
+
+    const closeMenus = () => {
+      setIsOpen(false);
+      setOpenDropdown(null);
+      setOpenSideMenu(null);
+    };
 
     if (alreadyOnRoot) {
       // element might be present or not (if sections mount late) — wait a little for it
       const el = document.querySelector(hash);
       if (el) {
         smoothScrollToHash(hash);
-      } else {
-        // poll briefly
-        const found = await waitForElement(hash, 1500);
-        if (found) smoothScrollToHash(hash);
+        closeMenus();
+        return;
       }
-      // close menus
-      setIsOpen(false);
-      setOpenDropdown(null);
-      setOpenSideMenu(null);
+      // poll briefly using rAF helper
+      const found = await waitForExactElement(hash, 3000);
+      if (found) smoothScrollToHash(hash);
+      closeMenus();
       return;
     }
 
-    // Not on root: navigate to root with hash and then wait for the element to be present
-    const targetHref = `/#${hash.replace(/^#/, "")}`; // ensures the url becomes '/#donate'
-
-    // push to root + hash
-    // router.push returns a promise — wait for it, then try scrolling when element exists
+    // Not on root: navigate to root WITHOUT hash (important), then wait for element
+    // Use router.push("/") and actively scroll after the section appears
     try {
-      await router.push(targetHref);
+      await router.push("/"); // NO HASH in push
     } catch (err) {
       // fallback to full navigation if client navigation fails
-      window.location.href = targetHref;
+      window.location.href = "/";
       return;
     }
 
-    // After navigation, poll for the element (longer timeout because page may hydrate)
-    const el = await waitForElement(hash, 4000, 60);
-    if (el) {
+    // After navigation, wait for the exact subsection (longer timeout because page may hydrate)
+    const found = await waitForExactElement(hash, 5000);
+    if (found) {
       smoothScrollToHash(hash);
     } else {
-      // nothing found — as a fallback, try a small delay then attempt one last time
+      // final small fallback attempt after a short delay
       setTimeout(() => {
         smoothScrollToHash(hash);
       }, 200);
     }
 
-    // close menus
-    setIsOpen(false);
-    setOpenDropdown(null);
-    setOpenSideMenu(null);
+    closeMenus();
   };
 
   const nav: NavItem[] = [
