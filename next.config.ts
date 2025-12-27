@@ -17,12 +17,11 @@ const nextConfig: NextConfig = {
       },
 
       // ----------------------------------
-      // GLOBAL SECURITY HEADERS (UNCHANGED)
+      // GLOBAL SECURITY HEADERS (RAZORPAY SAFE)
       // ----------------------------------
       {
         source: "/(.*)",
         headers: [
-          // BASIC SECURITY HEADERS
           {
             key: "X-Content-Type-Options",
             value: "nosniff",
@@ -36,25 +35,63 @@ const nextConfig: NextConfig = {
             value: "max-age=63072000; includeSubDomains; preload",
           },
 
-          // CONTENT SECURITY POLICY (WebGL + Google Maps SAFE)
+          // ----------------------------------
+          // CONTENT SECURITY POLICY
+          // ----------------------------------
           {
-            key: "Content-Security-Policy",
-            value: `
-              default-src 'self';
-              script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://maps.googleapis.com;
-              style-src 'self' 'unsafe-inline';
-              img-src 'self' data: blob: https://maps.gstatic.com https://maps.googleapis.com;
-              font-src 'self' data:;
-              connect-src 'self' blob: https://maps.googleapis.com;
-              worker-src 'self' blob:;
-              frame-src 'self' https://www.google.com;
-              object-src 'none';
-              base-uri 'self';
-              form-action 'self';
-            `
-              .replace(/\s{2,}/g, " ")
-              .trim(),
-          },
+  key: "Content-Security-Policy",
+  value: `
+    default-src 'self';
+
+    script-src
+      'self'
+      'unsafe-inline'
+      'wasm-unsafe-eval'
+      https://checkout.razorpay.com
+      https://maps.googleapis.com;
+
+    style-src
+      'self'
+      'unsafe-inline';
+
+    img-src
+      'self'
+      data:
+      blob:
+      https://maps.gstatic.com
+      https://maps.googleapis.com
+      https://checkout.razorpay.com
+      https://rzp.io;
+
+    font-src
+      'self'
+      data:;
+
+    connect-src
+      'self'
+      blob:
+      https://api.razorpay.com
+      https://lumberjack.razorpay.com
+      https://maps.googleapis.com;
+
+    frame-src
+      'self'
+      https://checkout.razorpay.com
+      https://api.razorpay.com
+      https://www.google.com;
+
+    worker-src
+      'self'
+      blob:;
+
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+  `
+    .replace(/\s{2,}/g, " ")
+    .trim(),
+}
+
         ],
       },
     ];
