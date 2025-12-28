@@ -1,4 +1,4 @@
-// code2.tsx
+// code2.tsx (modified)
 "use client";
 
 import React, { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
@@ -234,14 +234,17 @@ export default function Navbar() {
 
   return (
     <>
-      <nav
-        ref={navRef}
-        className={cn(
-          "fixed inset-x-0 top-0 z-50 transition-all duration-500",
-          scrolled ? "bg-white/90 backdrop-blur-xl border-b border-gray-200 shadow-sm" : "bg-transparent"
-        )}
-        aria-label="Primary Navigation"
-      >
+     <nav
+  ref={navRef}
+  className={cn(
+    "fixed inset-x-0 top-0 z-50 transition-colors duration-300",
+    scrolled
+      ? "bg-white/90 backdrop-blur-xl border-b border-gray-200 shadow-sm"
+      : "bg-black/40 backdrop-blur-sm border-b border-transparent"
+  )}
+  aria-label="Primary Navigation"
+>
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16 sm:h-20">
             {/* Logo */}
@@ -362,9 +365,14 @@ export default function Navbar() {
                     return next;
                   })
                 }
-                className={cn("p-2 rounded-md", scrolled ? "bg-white/20" : "bg-white/10")}
+                className={cn(
+                  "p-2 rounded-md",
+                  // CHANGED: ensure the button contrasts with the nav bg
+                  scrolled ? "bg-white/20 text-gray-800" : "bg-white/10 text-white"
+                )}
               >
-                {isOpen ? <X size={22} /> : <Menu size={22} />}
+                {/* pass contrast-aware className to icons */}
+                {isOpen ? <X size={22} className={cn(scrolled ? "text-gray-800" : "text-white")} /> : <Menu size={22} className={cn(scrolled ? "text-gray-800" : "text-white")} />}
               </button>
             </div>
           </div>

@@ -7,7 +7,13 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: ["error", "warn"],
+    log: ["error"],
+    // 🔑 THIS LINE FIXES THE ERROR
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL + "?pgbouncer=true",
+      },
+    },
   });
 
 if (process.env.NODE_ENV !== "production") {
