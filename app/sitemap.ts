@@ -1,66 +1,66 @@
 import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://bardhaman.bhaktasanmilani.org";
+  const now = new Date();
 
   return [
     {
-      url: `${baseUrl}/`,
-      lastModified: new Date(),
+      url: "/",
+      lastModified: now,
       changeFrequency: "weekly",
-      priority: 1.0,
+      priority: 1,
     },
     {
-      url: `${baseUrl}/about`,
-      lastModified: new Date(),
+      url: "/about",
+      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/how-we-work`,
-      lastModified: new Date(),
+      url: "/how-we-work",
+      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/donate`,
-      lastModified: new Date(),
+      url: "/donate",
+      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/meet-our-organizers`,
-      lastModified: new Date(),
+      url: "/meet-our-organizers",
+      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
-      url: `${baseUrl}/contact`,
-      lastModified: new Date(),
+      url: "/contact",
+      lastModified: now,
       changeFrequency: "yearly",
       priority: 0.6,
     },
     {
-      url: `${baseUrl}/faq`,
-      lastModified: new Date(),
+      url: "/faq",
+      lastModified: now,
       changeFrequency: "yearly",
       priority: 0.5,
     },
     {
-      url: `${baseUrl}/privacy-policy`,
-      lastModified: new Date(),
+      url: "/privacy-policy",
+      lastModified: now,
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
-      url: `${baseUrl}/return-policy`,
-      lastModified: new Date(),
+      url: "/return-policy",
+      lastModified: now,
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
-      url: `${baseUrl}/terms-and-conditions`,
-      lastModified: new Date(),
+      url: "/terms-and-conditions",
+      lastModified: now,
       changeFrequency: "yearly",
       priority: 0.3,
     },
