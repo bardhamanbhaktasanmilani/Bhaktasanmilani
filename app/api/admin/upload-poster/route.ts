@@ -1,14 +1,14 @@
-// app/api/admin/upload-poster/route.ts
+
 import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
 
-// ✅ MUST run on Node.js (fs, Buffer)
+
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
-    // Parse JSON body (App Router handles this natively)
+   
     const body = await req.json();
     const { name, dataUrl } = body || {};
 

@@ -2,6 +2,9 @@
 
 import { motion } from "framer-motion";
 
+
+
+
 export default function PrivacyPolicy() {
   return (
     <section className="bg-[#fff7ea] px-4 py-20 sm:px-6 lg:px-8">

@@ -1,8 +1,7 @@
-// app/api/events/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// PATCH /api/events/:id → update poster
+
 export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }

@@ -1,11 +1,9 @@
-/* ========================================
-   TAILWIND v4 ENTRYPOINT
-   ======================================== */
+
 @import "tailwindcss";
 
-/* ========================================
+/* 
    ROOT VARIABLES (MERGED)
-   ======================================== */
+    */
 :root {
   /* design tokens */
   --main-bg-overlay: rgba(0, 0, 0, 0.10);
@@ -15,7 +13,7 @@
   --transition-medium: 450ms;
   --bs-bg-z: -10;
 
-  /* optional shadcn-like tokens (safe even if unused) */
+  
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
@@ -115,14 +113,14 @@
     min-height: 100%;
     line-height: 1.5;
     -webkit-text-size-adjust: 100%;
-    /* simple default colors; your Tailwind utilities still work in JSX */
+    
     background-color: #ffffff;
-    color: #020617; /* slate-900 */
+    color: #020617; 
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
       sans-serif;
   }
 
-  /* screen-reader-only helper */
+ 
   .sr-only {
     position: absolute !important;
     width: 1px !important;
@@ -136,22 +134,20 @@
   }
 }
 
-/* Ensure root containers don't get clipped by fixed background */
+
 html,
 body,
 #__next {
   height: 100%;
 }
 
-/* Simple focus style */
+
 :focus {
   outline: 3px solid rgba(59, 130, 246, 0.25);
   outline-offset: 3px;
 }
 
-/* ========================================
-   BACKGROUND / WRAPPER UTILITIES
-   ======================================== */
+
 @layer components {
   .bs-bg-layer-container {
     position: fixed;
@@ -245,9 +241,7 @@ body,
   }
 }
 
-/* ========================================
-   GLOBAL KEYFRAMES
-   ======================================== */
+
 @keyframes fadeUp {
   0% {
     opacity: 0;

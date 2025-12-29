@@ -1,4 +1,3 @@
-// app/admin/dashboard/layout.tsx
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { getCurrentAdmin } from "@/lib/auth";

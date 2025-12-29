@@ -1,4 +1,4 @@
-// app/admin/layout.tsx
+
 import type { ReactNode } from "react";
 
 export default function AdminRootLayout({
@@ -6,6 +6,6 @@ export default function AdminRootLayout({
 }: {
   children: ReactNode;
 }) {
-  // No auth check here — login must be accessible
+
   return <>{children}</>;
 }

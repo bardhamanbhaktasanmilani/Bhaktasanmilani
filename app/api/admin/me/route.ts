@@ -1,4 +1,3 @@
-// app/api/admin/me/route.ts
 import { NextResponse } from "next/server";
 import { getCurrentAdmin } from "@/lib/auth";
 

@@ -1,4 +1,3 @@
-// app/api/donations/verify/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
@@ -29,7 +28,7 @@ export async function POST(request: Request) {
     } = body;
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-      console.warn("🚨 Invalid verify payload", { ip, body });
+      console.warn(" Invalid verify payload", { ip, body });
       return NextResponse.json(
         { error: "Invalid payment data" },
         { status: 400 }
@@ -41,7 +40,7 @@ export async function POST(request: Request) {
     });
 
     if (!donation) {
-      console.warn("🚨 Verify called for unknown order", {
+      console.warn(" Verify called for unknown order", {
         ip,
         orderId: razorpay_order_id,
       });
@@ -52,7 +51,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 🔒 If webhook already finalized payment, do not override it
+    //  If webhook already finalized payment, do not override it
     if (donation.status === "SUCCESS" || donation.status === "REFUNDED") {
       console.info("ℹ️ Verify ignored — already finalized", {
         orderId: donation.orderId,
@@ -78,7 +77,7 @@ export async function POST(request: Request) {
       });
     }
 
-    // 🔐 Verify Razorpay signature
+    //  Verify Razorpay signature
     const shasum = crypto.createHmac(
       "sha256",
       process.env.RAZORPAY_KEY_SECRET as string
@@ -94,7 +93,7 @@ export async function POST(request: Request) {
         paymentId: razorpay_payment_id,
       });
 
-      // ❌ Only mark FAILED if still pending
+      //  Only mark FAILED if still pending
       if (donation.status === "PENDING") {
         await prisma.donation.update({
           where: { id: donation.id },
@@ -112,7 +111,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // 🔒 Idempotency: payment already processed
     if (donation.paymentId === razorpay_payment_id) {
       console.info("ℹ️ Duplicate verify ignored", {
         orderId: razorpay_order_id,
@@ -138,7 +136,7 @@ export async function POST(request: Request) {
       });
     }
 
-    // ✅ Optimistic success (webhook remains final authority)
+    //  Optimistic success (webhook remains final authority)
     const updatedDonation = await prisma.donation.update({
       where: { id: donation.id },
       data: {
@@ -148,7 +146,7 @@ export async function POST(request: Request) {
       },
     });
 
-    console.info("✅ Payment verified (optimistic)", {
+    console.info(" Payment verified (optimistic)", {
       orderId: updatedDonation.orderId,
       paymentId: updatedDonation.paymentId,
     });

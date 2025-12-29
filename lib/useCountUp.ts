@@ -11,7 +11,7 @@ export function useCountUp(target: number, duration = 1200) {
 
     const tick = (now: number) => {
       const progress = Math.min((now - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+      const eased = 1 - Math.pow(1 - progress, 3); 
       const current = Math.floor(eased * target);
 
       setValue(current);

@@ -1,4 +1,3 @@
-// components/admin/DonationsAdminPage.tsx
 "use client";
 
 import React, {
@@ -31,7 +30,7 @@ import {
 } from "@/components/ui/logout/page";
 import { Button } from "@/components/ui/button";
 
-/* ---------------- Types ---------------- */
+
 
 type DonationStatus = "PENDING" | "SUCCESS" | "FAILED" | "REFUNDED";
 
@@ -56,7 +55,7 @@ type TopDonor = {
   name: string | null;
   email: string | null;
   phone?: string | null;
-  totalAmount: number; // rupees
+  totalAmount: number; 
 };
 
 type SortOption =
@@ -66,15 +65,15 @@ type SortOption =
   | "amount-asc"
   | "amount-desc";
 
-/* ---------------- Dynamic imports ---------------- */
 
-// dynamic import of CSVLink (client-only)
+
+
 const CSVLink = dynamic(
   () => import("react-csv").then((mod) => mod.CSVLink),
   { ssr: false }
 );
 
-/* ---------------- Component ---------------- */
+
 
 export default function AdminDashboardPage() {
   const [donations, setDonations] = useState<Donation[]>([]);
@@ -84,7 +83,7 @@ export default function AdminDashboardPage() {
   const [maxAmount, setMaxAmount] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  // applied filters
+
   const [appliedMin, setAppliedMin] = useState<number | null>(null);
   const [appliedMax, setAppliedMax] = useState<number | null>(null);
 
@@ -94,16 +93,16 @@ export default function AdminDashboardPage() {
 
   const [logoutOpen, setLogoutOpen] = useState(false);
 
-  // admin email (fetched if API available) — fallback to known default
+  
   const [adminEmail, setAdminEmail] = useState("admin@trust.org");
 
-  // mount guard: ensures we only render CSVLink (which creates blob URL) on the client *after* mount
+  
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // ------------------ Fetch logic ------------------
+
 
   const fetchDonations = useCallback(async () => {
     setLoading(true);
@@ -134,7 +133,7 @@ export default function AdminDashboardPage() {
     fetchDonations();
   }, [fetchDonations]);
 
-  // Try to fetch admin info (non-breaking if endpoint missing)
+  
   useEffect(() => {
     let mountedFlag = true;
     (async () => {
@@ -143,7 +142,7 @@ export default function AdminDashboardPage() {
           credentials: "include",
         });
         if (res.status === 401) {
-          // if session expired, redirect to login
+       
           window.location.href = "/admin/login";
           return;
         }
@@ -154,7 +153,7 @@ export default function AdminDashboardPage() {
           }
         }
       } catch (err) {
-        // ignore — keep fallback email
+      
       }
     })();
     return () => {
@@ -192,7 +191,7 @@ export default function AdminDashboardPage() {
 
   const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
-    // searchQuery already set via handleSearchInputChange
+   
   };
 
   const performLogout = async () => {
@@ -205,7 +204,7 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // ------------------ Helpers ------------------
+
 
   const formatAmount = (amount: number) =>
     `₹ ${amount.toLocaleString("en-IN", {
@@ -236,7 +235,7 @@ export default function AdminDashboardPage() {
     return { totalCount, totalAmount };
   }, [completedDonations]);
 
-  // Top donors aggregation
+
   const topDonors = useMemo(() => {
     if (!completedDonations || completedDonations.length === 0) {
       return (rawTopDonors || [])
@@ -280,7 +279,7 @@ export default function AdminDashboardPage() {
     return arr.slice(0, 3);
   }, [completedDonations, rawTopDonors]);
 
-  // ------------------ Highlight helper (supports caseSensitive flag) ------------------
+ 
   const highlightText = (text: string, query: string, caseSensitive = false) => {
     if (!query) return text;
     const q = query.toString();
@@ -351,8 +350,7 @@ export default function AdminDashboardPage() {
     );
   };
 
-  // ------------------ Core processing: filter + search + sort ------------------
-
+  
   const processedDonations = useMemo(() => {
     let list = [...completedDonations];
 
@@ -398,7 +396,7 @@ export default function AdminDashboardPage() {
       const createdYear = createdDate.getFullYear().toString();
       const createdDisplay = createdDate.toLocaleString("en-IN");
 
-      // Case-insensitive fields (name/email/phone/date)
+      
       const ciFields = [
         d.donorName || "",
         d.donorEmail || "",
@@ -412,17 +410,17 @@ export default function AdminDashboardPage() {
       );
       if (textMatch) return true;
 
-      // CASE-SENSITIVE search for orderId and paymentId (exact-case includes)
+      
       if (d.orderId && d.orderId.includes(q)) return true;
       if (d.paymentId && d.paymentId.includes(q)) return true;
 
-      // Numeric match for amount (digits-only)
+   
       if (qDigits) {
-        const amountRaw = d.amount.toString(); // e.g., "5000"
+        const amountRaw = d.amount.toString(); 
         if (amountRaw.includes(qDigits)) return true;
 
-        const formatted = formatAmount(d.amount); // e.g., "₹ 5,000.00"
-        const formattedDigits = digitsOnly(formatted); // "5000.00"
+        const formatted = formatAmount(d.amount); 
+        const formattedDigits = digitsOnly(formatted); 
         if (formattedDigits.includes(qDigits)) return true;
       }
 
@@ -437,7 +435,7 @@ export default function AdminDashboardPage() {
     setSearchQuery(value);
   };
 
-  // ------------------ CSV generation fallback (client-side) ------------------
+  
 
   const buildCsvRows = () =>
     processedDonations.map((d) => ({
@@ -453,7 +451,7 @@ export default function AdminDashboardPage() {
 
   const downloadCsvClient = (rows: Record<string, any>[]) => {
     if (!rows || rows.length === 0) {
-      // still produce header-only CSV
+     
       const header = ["Donor", "Email", "Phone", "Amount", "Status", "OrderId", "PaymentId", "Created"];
       const csv = header.join(",") + "\n";
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -468,7 +466,6 @@ export default function AdminDashboardPage() {
       return;
     }
 
-    // escape CSV fields
     const escape = (v: any) => {
       if (v === null || v === undefined) return '""';
       const s = String(v);
@@ -492,7 +489,7 @@ export default function AdminDashboardPage() {
     URL.revokeObjectURL(url);
   };
 
-  // ------------------ UI (kept intact, but responsive) ------------------
+ 
 
   return (
     <>
@@ -531,7 +528,7 @@ export default function AdminDashboardPage() {
                   Change Password
                 </Button>
 
-                {/* NEW: Change Email button */}
+             
                 <Button
                   variant="outline"
                   onClick={() => (window.location.href = "/admin/dashboard/change-email")}
@@ -552,7 +549,7 @@ export default function AdminDashboardPage() {
         </header>
 
         <section className="max-w-6xl mx-auto px-4 py-6 space-y-8">
-          {/* Top stats */}
+    
           <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
             <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 flex items-center justify-between shadow-sm">
               <div>
@@ -582,7 +579,6 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* Filters + Top donors */}
           <div className="grid gap-4 grid-cols-1 lg:grid-cols-[1.7fr,1.3fr]">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between mb-3">
@@ -600,7 +596,7 @@ export default function AdminDashboardPage() {
                 )}
               </div>
 
-              {/* Filter form - stacks on mobile */}
+             
               <form onSubmit={handleFilter} className="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <div className="flex-1 min-w-0">
                   <label className="block text-[11px] mb-1 text-slate-500">Min Amount (₹)</label>
@@ -688,7 +684,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* Completed Donations list + search/sort controls */}
+         
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
               <div>
@@ -709,7 +705,7 @@ export default function AdminDashboardPage() {
                     />
                   </div>
 
-                  {/* Search button: full width on xs, inline on sm+ */}
+                 
                   <button
                     type="submit"
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-1 rounded-full bg-slate-900 text-white text-xs font-medium px-3 py-2 hover:bg-slate-800"
@@ -744,7 +740,7 @@ export default function AdminDashboardPage() {
                 )}
               </div>
             ) : (
-              /* Table wrapper: allow horizontal scrolling on small screens */
+             
               <div className="relative max-h-[520px] overflow-auto rounded-xl border border-slate-200">
                 <table className="min-w-[900px] w-full text-xs">
                   <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur border-b border-slate-200">
@@ -811,10 +807,10 @@ export default function AdminDashboardPage() {
             )}
           </div>
 
-          {/* CSV Download Button */}
+
           <div className="mt-4 flex justify-end">
             {mounted ? (
-              // when mounted we can safely render the CSVLink (client-only dynamic import)
+              
               <CSVLink
                 data={buildCsvRows()}
                 filename={"donations.csv"}
@@ -824,7 +820,7 @@ export default function AdminDashboardPage() {
                 </Button>
               </CSVLink>
             ) : (
-              // fallback for the very brief moment before mount: render a simple button that will generate CSV client-side
+              
               <button
                 onClick={() => downloadCsvClient(buildCsvRows())}
                 className="bg-blue-500 text-white px-4 py-2 rounded-full inline-flex items-center justify-center"
@@ -838,7 +834,7 @@ export default function AdminDashboardPage() {
         </section>
       </main>
 
-      {/* Logout dialog */}
+  
       <AlertDialog open={logoutOpen} onOpenChange={setLogoutOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

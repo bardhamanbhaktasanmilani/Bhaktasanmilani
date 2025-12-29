@@ -27,9 +27,6 @@ export async function POST(request: Request) {
       );
     }
 
-    /* ----------------------------------
-       PARSE & VALIDATE INPUT
-    -----------------------------------*/
     const body = (await request.json()) as {
       amount: number;
       donorName: string;
@@ -57,9 +54,7 @@ export async function POST(request: Request) {
       );
     }
 
-    /* ----------------------------------
-       ABUSE PREVENTION — CARD TESTING
-    -----------------------------------*/
+  
     const recentFailures = await prisma.donation.count({
       where: {
         donorEmail,
@@ -83,10 +78,7 @@ export async function POST(request: Request) {
     const amountRupees = Math.round(amount);
     const amountPaise = amountRupees * 100;
 
-    /* ----------------------------------
-       RAZORPAY-COMPLIANT RECEIPT
-       (≤ 40 characters)
-    -----------------------------------*/
+  
     const receipt = `dn_${crypto.randomBytes(12).toString("hex")}`;
     // Example length: 3 + 24 = 27 chars ✅
 
@@ -122,9 +114,7 @@ export async function POST(request: Request) {
       },
     });
 
-    /* ----------------------------------
-       RESPONSE (UNCHANGED CONTRACT)
-    -----------------------------------*/
+  
     return NextResponse.json({
       orderId: order.id,
       amount: order.amount,

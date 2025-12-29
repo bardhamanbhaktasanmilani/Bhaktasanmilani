@@ -1,4 +1,4 @@
-// components/sections/AboutSection.tsx
+
 "use client";
 
 import React, { useEffect, useRef, useState, Suspense, useCallback, MutableRefObject, ReactNode } from "react";
@@ -6,7 +6,13 @@ import { Users, Heart } from "lucide-react";
 import dynamic from "next/dynamic";
 import PhotoGallery from "../sub-sections/About/Photo-gallery";
 
-/* ------------------------ Helpers / Formatting ------------------------ */
+
+export const metadata = {
+  title: "Donate to Bhakta Sanmilani Temple | Secure Online Donations",
+  description:
+    "Support Bhakta Sanmilani Temple with secure online donations. Transparent, trusted, and spiritually guided.",
+};
+
 
 const usePrefersReducedMotion = () =>
   typeof window !== "undefined" &&
@@ -45,7 +51,7 @@ const formatCompactINR = (value: number) => {
 const formatINRPlain = (value: number) =>
   new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(value);
 
-/* ------------------------ Animated Number Component ------------------------ */
+
 
 function AnimatedNumber({
   value,
@@ -112,12 +118,11 @@ function AnimatedNumber({
   return <>{display}</>;
 }
 
-/* ------------------------ Constants for client caching ------------------------ */
 
 const STATS_CACHE_KEY = "bhakta_stats_v1";
-const STATS_TTL_MS = 60 * 1000; // 60s TTL — adjust as desired
+const STATS_TTL_MS = 60 * 1000; 
 
-/* ------------------------ Dynamic 3D Viewer ------------------------ */
+
 
 const TempleViewer = dynamic(() => import("@/components/ui/TempleViewer"), {
   ssr: false,
@@ -128,7 +133,7 @@ const TempleViewer = dynamic(() => import("@/components/ui/TempleViewer"), {
   ),
 });
 
-/* ------------------------ Simple Error Boundary for Viewer ------------------------ */
+
 
 class SimpleErrorBoundary extends React.Component<
   { children: ReactNode; fallback?: ReactNode },
@@ -142,7 +147,7 @@ class SimpleErrorBoundary extends React.Component<
     return { hasError: true };
   }
   componentDidCatch() {
-    // swallow; parent will show fallback
+    
   }
   render() {
     if (this.state.hasError) {
@@ -152,7 +157,7 @@ class SimpleErrorBoundary extends React.Component<
   }
 }
 
-/* ------------------------ Component ------------------------ */
+
 
 const AboutSection: React.FC = () => {
   const sectionRef = useRef<HTMLElement | null>(null);
@@ -168,7 +173,7 @@ const AboutSection: React.FC = () => {
   const statRefs = useRef<Array<HTMLDivElement | null>>([]);
   const prefersReducedMotion = usePrefersReducedMotion();
 
-  /* ---------- Live stats state ---------- */
+ 
   const [loadingStats, setLoadingStats] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
   const [devoteesCount, setDevoteesCount] = useState<number | null>(null);
@@ -176,7 +181,7 @@ const AboutSection: React.FC = () => {
   const [isLiveData, setIsLiveData] = useState(false);
   const [scriptCacheUsed, setScriptCacheUsed] = useState(false);
 
-  /* ---------- 3D viewer mount policy (responsive) ---------- */
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
@@ -193,19 +198,18 @@ const AboutSection: React.FC = () => {
         mq.addEventListener("change", handler);
         return () => mq.removeEventListener("change", handler);
       } else {
-        // legacy
-        // @ts-ignore
+       
         mq.addListener(handler);
-        // @ts-ignore
+       
         return () => mq.removeListener(handler);
       }
     } catch {
-      // fallback: allow 3D but user must request
+     
       setLoad3D(false);
     }
   }, [userRequested3D]);
 
-  /* ---------- Fetch + Client Cache + Live detection ---------- */
+  
   useEffect(() => {
     let mounted = true;
     const fetchAndCompute = async () => {
@@ -214,7 +218,7 @@ const AboutSection: React.FC = () => {
       setIsLiveData(false);
       setScriptCacheUsed(false);
 
-      // try client cache first
+     
       try {
         const raw = localStorage.getItem(STATS_CACHE_KEY);
         if (raw) {
@@ -263,10 +267,10 @@ const AboutSection: React.FC = () => {
           }
         }
       } catch (e) {
-        // ignore cache errors
+       
       }
 
-      // Preferred endpoints order
+     
       const endpoints = ["/api/stats", "/api/admin/donations", "/api/donations", "/api/donations/list"];
       for (const ep of endpoints) {
         try {
@@ -345,7 +349,7 @@ const AboutSection: React.FC = () => {
     };
   }, []);
 
-  /* ------------------------ Build stats list and hide zeros ------------------------ */
+  
   const computedDevotees = devoteesCount;
   const computedFunds = fundsRaised;
 
@@ -372,7 +376,7 @@ const AboutSection: React.FC = () => {
   });
 
     const request3D = useCallback(() => {
-    setLoad3D(true);  // Trigger the loading of the 3D viewer
+    setLoad3D(true);  
   }, []);
   /* ------------------------ Render ------------------------ */
   return (
@@ -394,14 +398,14 @@ const AboutSection: React.FC = () => {
           <div className="mx-auto w-20 h-1 mb-6 rounded-full bg-gradient-to-r from-orange-600 to-amber-600" />
         </header>
 
-        {/* MAIN: viewer full width then decree */}
+    
         <main className="mb-12" aria-labelledby="about-heading">
           <div className="flex flex-col gap-6">
-            {/* FULL-WIDTH 3D Viewer */}
+         
             <div
               ref={viewerWrapperRef}
               className="w-full flex items-center justify-center"
-              style={{ minWidth: 0 }} // IMPORTANT: allow children to shrink
+              style={{ minWidth: 0 }} 
             >
               <div
                 ref={viewerContainerRef}
@@ -413,7 +417,7 @@ const AboutSection: React.FC = () => {
                   width: "100%",
                 }}
               >
-                {/* Safeguard: if viewer had an error show fallback */}
+               
                 {viewerError ? (
                   <div className="w-full h-full flex items-center justify-center p-6 text-center">
                     <div>
@@ -433,14 +437,7 @@ const AboutSection: React.FC = () => {
                   <div className="w-full h-full flex items-center justify-center text-sm text-gray-400">Loading…</div>
                 ) : load3D === false ? (
                   <div className="w-full h-full flex flex-col items-center justify-center p-4" style={{ minWidth: 0 }}>
-                    <img
-                      src="/images/temple-placeholder.svg"
-                      alt="Temple"
-                      width={1600}
-                      height={900}
-                      loading="lazy"
-                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                    />
+                    
                     <button
                       onClick={request3D}
                       className="mt-3 px-4 py-2 text-sm font-medium rounded-lg shadow-sm bg-amber-600 text-white hover:brightness-110"
@@ -467,8 +464,7 @@ const AboutSection: React.FC = () => {
                     >
                       <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-sm">Loading 3D…</div>}>
                         <TempleViewer
-                          // if TempleViewer exposes any props you can forward them. Catch errors via window handlers as well.
-                          // Add a quick try-catch guard: TempleViewer itself should not throw; if it does, the boundary will catch it.
+                          
                         />
                       </Suspense>
                     </SimpleErrorBoundary>
@@ -488,7 +484,7 @@ const AboutSection: React.FC = () => {
                     borderLeft: "3px solid #d97706",
                     borderRight: "3px solid #d97706",
                     minHeight: 56,
-                    maxHeight: "auto", // Keep it fixed
+                    maxHeight: "auto", 
                   }}
                 >
                   {/* Decree Content */}

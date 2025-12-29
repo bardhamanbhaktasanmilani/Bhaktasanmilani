@@ -1,4 +1,4 @@
-// lib/rateLimit.ts
+
 type RateLimitEntry = {
   count: number;
   expiresAt: number;
@@ -6,14 +6,6 @@ type RateLimitEntry = {
 
 const store = new Map<string, RateLimitEntry>();
 
-/**
- * Simple in-memory rate limiter.
- * key: unique key (e.g. `admin-login:1.2.3.4`)
- * limit: max attempts
- * windowMs: time window in ms
- *
- * Returns { allowed, remaining, resetAt }.
- */
 export function rateLimit(
   key: string,
   limit: number,

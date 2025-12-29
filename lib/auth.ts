@@ -1,4 +1,4 @@
-// lib/auth.ts
+
 import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
@@ -22,7 +22,7 @@ export function signAdminJwt(payload: AdminJwtPayload) {
   });
 }
 
-// Set the admin auth cookie (Next.js App Router safe)
+
 export function setAdminCookie(res: NextResponse, token: string) {
   res.cookies.set({
     name: ADMIN_JWT_COOKIE,
@@ -31,11 +31,11 @@ export function setAdminCookie(res: NextResponse, token: string) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24, // 1 day
+    maxAge: 60 * 60 * 24, 
   });
 }
 
-// Clear the admin cookie (logout)
+
 export function clearAdminCookie(res: NextResponse) {
   res.cookies.set({
     name: ADMIN_JWT_COOKIE,
@@ -48,7 +48,7 @@ export function clearAdminCookie(res: NextResponse) {
   });
 }
 
-// Verify JWT from cookie/token string
+
 export function verifyAdminJwt(token: string | null | undefined) {
   if (!token) return null;
 
@@ -63,7 +63,7 @@ export function verifyAdminJwt(token: string | null | undefined) {
   }
 }
 
-// Extract admin from Request cookies (for Route Handlers)
+
 export function getAdminFromRequest(req: Request): AdminJwtPayload | null {
   try {
     const cookieHeader = req.headers.get("cookie");
@@ -85,10 +85,10 @@ export function getAdminFromRequest(req: Request): AdminJwtPayload | null {
   }
 }
 
-// 🔐 Extract admin from server-side cookies() (for layouts/pages in app router)
+
 export async function getCurrentAdmin(): Promise<AdminJwtPayload | null> {
   try {
-    // ⬅️ IMPORTANT: cookies() is async now, so we await it
+   
     const cookieStore = await cookies();
     const token = cookieStore.get(ADMIN_JWT_COOKIE)?.value;
     return verifyAdminJwt(token);

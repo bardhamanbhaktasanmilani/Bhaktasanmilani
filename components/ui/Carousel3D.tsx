@@ -34,16 +34,16 @@ export default function Carousel3D({
   const autoplayRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // ready -> true after mount to avoid initial transition "flash"
+
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // small tick to enable transitions after initial paint
+   
     const id = window.setTimeout(() => setReady(true), 50);
     return () => window.clearTimeout(id);
   }, []);
 
-  // keyboard handlers
+ 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "ArrowLeft") prev();
@@ -54,10 +54,10 @@ export default function Carousel3D({
       window.removeEventListener("keydown", onKey);
       if (autoplayRef.current) window.clearInterval(autoplayRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, []);
 
-  // Autoplay control (only depends on autoplay, delay, count)
+ 
   useEffect(() => {
     if (autoplayRef.current) {
       window.clearInterval(autoplayRef.current);
@@ -78,10 +78,10 @@ export default function Carousel3D({
     };
   }, [autoplay, autoplayDelay, count]);
 
-  // clamp index when images change
+
   useEffect(() => {
     if (index >= count) setIndex(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  
   }, [count]);
 
   function prev() {
@@ -102,11 +102,11 @@ export default function Carousel3D({
 
     const abs = Math.abs(d);
 
-    // Larger visuals: bigger x gap and stronger z separation
+ 
     const xGap = 220;
     const x = d * xGap;
     const rotY = d * -10;
-    // z: center near 0, sides go more negative (further away)
+   
     const z = -Math.min(140 + abs * 160, 900);
     const scale = d === 0 ? 1.22 : Math.max(0.68, 1 - 0.14 * abs);
     const opacity = d === 0 ? 1 : Math.max(0.22, 1 - 0.28 * abs);
@@ -117,7 +117,7 @@ export default function Carousel3D({
       transform: `translateX(${x}px) translateZ(${z}px) translateY(${translateY}px) rotateY(${rotY}deg) scale(${scale})`,
       zIndex,
       opacity,
-      // allow the arrow to receive pointer events above cards by setting lower pointer events for non-center if needed
+      
     } as React.CSSProperties;
   }
 
@@ -414,7 +414,7 @@ export default function Carousel3D({
                   className="image"
                   style={{
                     backgroundImage: `url(${it.src})`,
-                    // ensure the image element isn't intercepting arrow clicks: allow pointer-events none
+                    
                     pointerEvents: "none",
                   }}
                   aria-hidden

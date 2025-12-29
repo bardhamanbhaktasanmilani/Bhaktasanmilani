@@ -1,4 +1,3 @@
-// lib/webgl.ts
 export function isWebGLAvailable(): boolean {
   if (typeof window === "undefined") return false;
 

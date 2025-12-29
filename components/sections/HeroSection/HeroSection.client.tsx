@@ -40,7 +40,7 @@ export default function HeroSectionClient() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showLearnMore, setShowLearnMore] = useState(false);
 
-  /* Auto slide */
+ 
   useEffect(() => {
     const id = setInterval(() => {
       setCurrentSlide((i) => (i + 1) % slides.length);
@@ -53,7 +53,7 @@ export default function HeroSectionClient() {
 
   return (
     <div className="pointer-events-none absolute inset-0 z-20">
-      {/* Background carousel */}
+     
       {slides.map((s, index) => (
         <div
           key={index}
@@ -89,7 +89,7 @@ export default function HeroSectionClient() {
               {slide.subtitle}
             </p>
 
-            {/* Learn more animated text */}
+            
             <div
               className={`overflow-hidden transition-all duration-500 ease-in-out ${
                 showLearnMore
@@ -127,55 +127,8 @@ export default function HeroSectionClient() {
         </div>
       </div>
 
-      {/* Navigation arrows */}
-      {/* <button
-        aria-label="Previous slide"
-        onClick={() =>
-          setCurrentSlide((i) => (i - 1 + slides.length) % slides.length)
-        }
-        className="
-          pointer-events-auto
-          absolute
-          left-3
-          sm:left-4
-          top-1/2
-          z-40
-          -translate-y-1/2
-          rounded-full
-          bg-white/20
-          p-2
-          sm:p-3
-          text-white
-          backdrop-blur
-          
-        "
-      >
-        <ChevronLeft />
-      </button>
-
-      <button
-        aria-label="Next slide"
-        onClick={() =>
-          setCurrentSlide((i) => (i + 1) % slides.length)
-        }
-        className="
-          pointer-events-auto
-          absolute
-          right-3
-          sm:right-4
-          top-1/2
-          z-40
-          -translate-y-1/2
-          rounded-full
-          bg-white/20
-          p-2
-          sm:p-3
-          text-white
-          backdrop-blur
-        "
-      >
-        <ChevronRight />
-      </button> */}
+   
+     
 
       {/* Dots */}
       <div className="pointer-events-auto absolute bottom-6 sm:bottom-8 left-1/2 z-40 flex -translate-x-1/2 gap-3">

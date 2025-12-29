@@ -1,4 +1,4 @@
-// components/ui/alert-dialog.tsx
+
 "use client";
 
 import * as React from "react";
@@ -70,12 +70,12 @@ export function AlertDialogContent({ children }: AlertDialogContentProps) {
       aria-modal="true"
       role="dialog"
     >
-      {/* Overlay */}
+  
       <div
         className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
         onClick={() => setOpen(false)}
       />
-      {/* Modal panel */}
+    
       <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white shadow-xl border border-slate-200 p-5">
         {children}
       </div>
@@ -156,7 +156,7 @@ export function AlertDialogAction({ children, ...props }: ButtonProps) {
       type="button"
       onClick={(e) => {
         props.onClick?.(e);
-        // Let parent decide navigation / logout etc.; we still close modal
+       
         setOpen(false);
       }}
       className="inline-flex items-center justify-center rounded-full bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 transition-colors"

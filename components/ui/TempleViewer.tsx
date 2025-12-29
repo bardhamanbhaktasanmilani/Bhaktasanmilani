@@ -19,7 +19,7 @@ import {
 
 /* -------- tunables -------- */
 const DEFAULT_MODEL = "/About/temple-optimized.glb";
-const FALLBACK_IMAGE = "/About/temple-poster.jpg";
+const FALLBACK_IMAGE = "/About/temple-low.glb";
 const TARGET_SIZE = 2.6;
 
 /* ---------- device detection ---------- */

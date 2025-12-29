@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import html2canvas from "html2canvas";
 
-/* ---------------- Types ---------------- */
+
 
 type DonationStatus = "PENDING" | "SUCCESS" | "FAILED" | "REFUNDED";
 type MetricMode = "amount" | "count" | "stacked";
@@ -53,10 +53,7 @@ const startOfDay = (d: Date) => {
   return x;
 };
 
-/**
- * ✅ FIX: Local (timezone-safe) date key
- * Never use toISOString() for chart grouping
- */
+
 const localDateKey = (date: Date) => {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -182,7 +179,7 @@ export default function AnalyticsPage() {
     );
   }, [dateFiltered, timeframe, dailyRange, fromDate]);
 
-  /* ---------------- 30 vs previous 30 ---------------- */
+ 
 
   const comparison30 = useMemo(() => {
     if (timeframe !== "daily" || dailyRange !== 30 || fromDate) return null;
@@ -228,11 +225,11 @@ export default function AnalyticsPage() {
     URL.revokeObjectURL(url);
   };
 
-  /* ---------------- UI (UNCHANGED) ---------------- */
+  
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      {/* Header */}
+     
       <header className="border-b border-slate-200 bg-white/80 backdrop-blur">
         <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -263,7 +260,7 @@ export default function AnalyticsPage() {
       </header>
 
   <section className="max-w-6xl mx-auto px-4 py-6 space-y-8">
-  {/* Controls */}
+ 
   <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
     <div className="flex flex-wrap gap-3 items-center">
       {(["daily", "monthly", "yearly"] as Timeframe[]).map((t) => (
@@ -342,7 +339,7 @@ export default function AnalyticsPage() {
     </div>
   </div>
 
-  {/* Comparison Cards */}
+
   {comparison30 && (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
       <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">

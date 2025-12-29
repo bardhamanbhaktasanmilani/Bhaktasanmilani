@@ -14,9 +14,9 @@ export default function HeroSectionServer() {
         isolate
       "
     >
-      {/* LCP image only (static, SEO-safe) */}
+     
       <Image
-        src="/hero/Hero4.jpg"
+        src="/hero/Hero4.AVIF"
         alt="Donation and service background"
         fill
         priority
@@ -25,7 +25,7 @@ export default function HeroSectionServer() {
         
       />
 
-      {/* Overlay for contrast */}
+    
       <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
     </section>
   );

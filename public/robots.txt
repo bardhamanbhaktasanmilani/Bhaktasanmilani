@@ -1,4 +1,13 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://yourdomain.com/sitemap.xml
+# Block admin & private areas
+Disallow: /admin
+Disallow: /api
+
+# Block non-SEO pages
+Disallow: /donate/success
+Disallow: /thank-you
+
+# Sitemap location
+Sitemap: https://bardhaman.bhaktasanmilani.org/sitemap.xml

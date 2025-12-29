@@ -1,4 +1,3 @@
-// code2.tsx (modified)
 "use client";
 
 import React, { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
@@ -6,16 +5,16 @@ import { Menu, X, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, usePathname } from "next/navigation";
 
-/* ---------- types for nav structure ---------- */
+
 type Leaf = { name: string; href: string };
 type SubGroup = { name: string; key: string; children: Leaf[] };
 type Parent = { name: string; children: Array<SubGroup | Leaf> };
 type NavItem = Leaf | Parent;
 
-/* small className helper */
+
 const cn = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(" ");
 
-/* type-guards */
+
 function isParent(item: NavItem): item is Parent {
   return (item as Parent).children !== undefined && Array.isArray((item as Parent).children);
 }
@@ -23,12 +22,7 @@ function isSubGroup(sub: SubGroup | Leaf): sub is SubGroup {
   return (sub as SubGroup).children !== undefined && Array.isArray((sub as SubGroup).children);
 }
 
-/* ---------- robust wait helper (requestAnimationFrame) ---------- */
-/**
- * waitForExactElement
- * Polls using requestAnimationFrame until `document.querySelector(selector)` returns an element or timeout.
- * Accepts selectors like '#id' or any valid query selector string.
- */
+
 const waitForExactElement = (selector: string, timeout = 5000): Promise<Element | null> =>
   new Promise((resolve) => {
     const start = Date.now();
@@ -37,7 +31,7 @@ const waitForExactElement = (selector: string, timeout = 5000): Promise<Element 
         const el = document.querySelector(selector);
         if (el) return resolve(el);
       } catch (e) {
-        // invalid selector - bail out
+      
         return resolve(null);
       }
       if (Date.now() - start > timeout) return resolve(null);
@@ -46,7 +40,7 @@ const waitForExactElement = (selector: string, timeout = 5000): Promise<Element 
     check();
   });
 
-/* ---------- smooth scroll helper ---------- */
+
 const smoothScrollToHash = (hash: string, offset = 80) => {
   try {
     const el = document.querySelector(hash) as HTMLElement | null;
@@ -54,7 +48,7 @@ const smoothScrollToHash = (hash: string, offset = 80) => {
     const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
     window.scrollTo({ top: y, behavior: "smooth" });
   } catch (e) {
-    // invalid selector or nothing found - ignore
+ 
   }
 };
 
@@ -62,11 +56,11 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  /* Desktop dropdown */
+
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  /* Desktop side submenu (reserved - preserved) */
+
   const [openSideMenu, setOpenSideMenu] = useState<string | null>(null);
-  /* Mobile accordion expansion state */
+
   const [mobileOpen, setMobileOpen] = useState<Record<string, boolean>>({});
 
   const navRef = useRef<HTMLDivElement | null>(null);
@@ -82,7 +76,7 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // outside click closes menus
+ 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (!navRef.current) return;
@@ -108,33 +102,23 @@ export default function Navbar() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  /**
-   * scrollToSection (robust)
-   *
-   * Behavior:
-   *  - If href has no hash -> let default behavior.
-   *  - If already on home (pathname normalized to "/") -> wait for exact selector and scroll.
-   *  - If on another page -> navigate to "/" (no hash) and then wait for the exact selector and scroll.
-   *
-   * Note: We rely on exact selector (e.g. "#gallery-religion"), preventing accidental partial matches like "#gallery".
-   */
+
   const scrollToSection = async (e: ReactMouseEvent<HTMLAnchorElement> | React.MouseEvent, href: string) => {
     if (!href) return;
 
-    // find the hash part, if any
+  
     const hashIndex = href.indexOf("#");
     if (hashIndex === -1) {
-      // no hash => let browser / router handle it (external/intra-page non-anchor)
-      return;
+      
     }
 
-    const hash = href.slice(hashIndex); // '#donate', '#home', '#gallery-religion', etc.
+    const hash = href.slice(hashIndex); 
     if (!hash) return;
 
-    // prevent default anchor behavior because we handle smooth scroll
+   
     e.preventDefault();
 
-    // Normalize current path: treat '/index' as '/'
+   
     const normalize = (p: string) => (p === "" ? "/" : p.replace(/\/index$/, "/"));
     const currentPathNormalized = normalize(pathname);
 
@@ -147,7 +131,7 @@ export default function Navbar() {
     };
 
     if (alreadyOnRoot) {
-      // element might be present or not (if sections mount late) — wait a little for it
+      
       const el = document.querySelector(hash);
       if (el) {
         smoothScrollToHash(hash);
@@ -161,10 +145,9 @@ export default function Navbar() {
       return;
     }
 
-    // Not on root: navigate to root WITHOUT hash (important), then wait for element
-    // Use router.push("/") and actively scroll after the section appears
+    
     try {
-      await router.push("/"); // NO HASH in push
+      await router.push("/"); 
     } catch (err) {
       // fallback to full navigation if client navigation fails
       window.location.href = "/";
@@ -176,7 +159,7 @@ export default function Navbar() {
     if (found) {
       smoothScrollToHash(hash);
     } else {
-      // final small fallback attempt after a short delay
+      
       setTimeout(() => {
         smoothScrollToHash(hash);
       }, 200);
@@ -367,11 +350,11 @@ export default function Navbar() {
                 }
                 className={cn(
                   "p-2 rounded-md",
-                  // CHANGED: ensure the button contrasts with the nav bg
+                 
                   scrolled ? "bg-white/20 text-gray-800" : "bg-white/10 text-white"
                 )}
               >
-                {/* pass contrast-aware className to icons */}
+             
                 {isOpen ? <X size={22} className={cn(scrolled ? "text-gray-800" : "text-white")} /> : <Menu size={22} className={cn(scrolled ? "text-gray-800" : "text-white")} />}
               </button>
             </div>
@@ -379,7 +362,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* MOBILE DRAWER */}
+     
       <AnimatePresence>
         {isOpen && (
           <>

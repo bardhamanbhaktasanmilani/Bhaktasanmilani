@@ -1,4 +1,3 @@
-// components/sub-sections/About/Photo-gallery.tsx
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";

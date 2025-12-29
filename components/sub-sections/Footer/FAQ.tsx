@@ -4,6 +4,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 
+
+
+
 const faqs = [
   {
     question: "What is Bardhaman BhaktaSanmilani?",
@@ -36,9 +39,10 @@ const faqs = [
       "Donations are generally non-refundable as they are treated as voluntary offerings. However, refunds may be considered in exceptional cases such as duplicate payments or technical transaction errors, subject to review.",
   },
   {
-    question: "How can I request a refund if eligible?",
-    answer:
-      "Eligible refund requests must be submitted within 7 days of the transaction date along with valid transaction details. Each request is reviewed carefully before a decision is made.",
+   question: "How can I request a refund if eligible?",
+answer:
+  "Donations made to Bhakta Sanmilani Temple are voluntary and non-refundable. Once a donation is successfully processed, it cannot be reversed or refunded under any circumstances.",
+
   },
   {
     question: "Is my personal information safe?",

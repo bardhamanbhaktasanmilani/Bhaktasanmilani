@@ -1,4 +1,3 @@
-// ./components/layout/Footer.tsx
 "use client";
 
 import React, { useCallback, useMemo, useEffect, useState } from "react";
@@ -6,17 +5,13 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Facebook, Twitter, Instagram, Youtube } from "lucide-react";
 
-/* -------------------------------------------
- CONSTANTS
---------------------------------------------*/
+
 const PHONE = "+91 84369 22630";
 const TEL_HREF = "tel:+918436922630";
 const EMAIL = "bardhamanbhaktasanmilani@gmail.com";
 const MAILTO_HREF = `mailto:${EMAIL}`;
 
-/* -------------------------------------------
- SMALL HOOK: prefers-reduced-motion (client-only)
---------------------------------------------*/
+
 function usePrefersReducedMotion(): boolean {
   const [reduced, setReduced] = useState(false);
   useEffect(() => {
@@ -30,9 +25,7 @@ function usePrefersReducedMotion(): boolean {
   return reduced;
 }
 
-/* -------------------------------------------
- UTILS - smooth scroll (keeps earlier behaviour)
---------------------------------------------*/
+
 const smoothScrollToElement = (el: Element | null, offset = 80) => {
   if (!el || typeof window === "undefined") return;
   const elementPosition = el.getBoundingClientRect().top;
@@ -40,17 +33,13 @@ const smoothScrollToElement = (el: Element | null, offset = 80) => {
   window.scrollTo({ top: offsetPosition, behavior: "smooth" });
 };
 
-/* -------------------------------------------
- FOOTER COMPONENT (lightweight)
---------------------------------------------*/
+
 export default function Footer() {
   const prefersReducedMotion = usePrefersReducedMotion();
   const router = useRouter();
   const pathname = usePathname();
 
-  /* -------------------------------------------
-   SCROLL HANDLER (robust)
-  --------------------------------------------*/
+
   const scrollToSection = useCallback((href: string) => {
     if (typeof window === "undefined") return;
 
@@ -69,19 +58,19 @@ export default function Footer() {
 
   const handleNavigateToSection = useCallback(
     async (href: string) => {
-      // non-hash -> navigate directly
+   
       if (!href.startsWith("#")) {
         await router.push(href);
         return;
       }
 
-      // already home -> smooth-scroll
+   
       if (pathname === "/" || pathname === "" || pathname === null) {
         scrollToSection(href);
         return;
       }
 
-      // navigate to homepage with hash, then try to find element multiple times
+      
       const id = href.slice(1);
       await router.push(`/#${id}`);
 
@@ -106,9 +95,7 @@ export default function Footer() {
     [pathname, router, scrollToSection]
   );
 
-  /* -------------------------------------------
-   MEMOIZED DATA
-  --------------------------------------------*/
+
   const socialLinks = useMemo(
     () => [
       { Icon: Facebook, label: "Facebook", href: "#" },
@@ -141,11 +128,7 @@ export default function Footer() {
     []
   );
 
-  /* -------------------------------------------
-   RENDER
-   - All "animations" replaced with cheap CSS transitions.
-   - If user prefers reduced motion, transitions are disabled.
-  --------------------------------------------*/
+ 
   const transitionClass = prefersReducedMotion
     ? ""
     : "transition-transform transition-opacity duration-400 ease-[cubic-bezier(.22,.1,.12,.98)]";
@@ -155,10 +138,10 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div
           className={`grid gap-10 mb-10 sm:grid-cols-2 lg:grid-cols-5 ${transitionClass}`}
-          // small fade-in when element is visible: use CSS only (page load)
+          
           style={{ opacity: 1 }}
         >
-          {/* Brand */}
+         
           <div className={`${transitionClass}`}>
             <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent">
               Bhakta Sammilan ॐ
@@ -184,7 +167,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Quick Links */}
+         
           <div className={`${transitionClass}`}>
             <h4 className="font-bold mb-4">Quick Links</h4>
             <ul className="space-y-3 text-gray-400">
@@ -201,7 +184,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Causes */}
+         
           <div className={`${transitionClass}`}>
             <h4 className="font-bold mb-4">Our Causes</h4>
             <ul className="space-y-3 text-gray-400">
@@ -213,7 +196,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Legal */}
+      
           <div className={`${transitionClass}`}>
             <h4 className="font-bold mb-4">Legal</h4>
             <ul className="space-y-3 text-gray-400">
@@ -230,7 +213,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Contact */}
+        
           <div className={`${transitionClass}`}>
             <h4 className="font-bold mb-4">Contact Info</h4>
             <ul className="space-y-3 text-gray-400">
@@ -250,7 +233,7 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Bottom Bar */}
+       
         <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row items-center justify-between gap-4 text-gray-500">
           <p>© 2024 Bhakta Sammilan. All rights reserved.</p>
           <p className="text-gray-400">Sankha Subhra Das</p>

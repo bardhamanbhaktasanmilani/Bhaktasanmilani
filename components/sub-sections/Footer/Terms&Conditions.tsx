@@ -6,7 +6,7 @@ export default function TermsAndConditions() {
   return (
     <section className="bg-[#fff7ea] px-4 py-20 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
-        {/* Heading */}
+       
         <motion.h1
           initial={{ opacity: 0, y: 25 }}
           animate={{ opacity: 1, y: 0 }}
@@ -18,9 +18,9 @@ export default function TermsAndConditions() {
 
         <div className="w-24 h-1 mx-auto mt-4 mb-10 rounded-full bg-gradient-to-r from-orange-400 to-amber-500" />
 
-        {/* Content Card */}
+    
         <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-10 space-y-8 text-gray-700 leading-relaxed">
-          {/* Introduction */}
+        
           <p>
             Welcome to the Bardhaman BhaktaSanmilani website. These Terms and Conditions
             govern your access to and use of this website, including any
@@ -35,7 +35,7 @@ export default function TermsAndConditions() {
             devotees, donors, and visitors.
           </p>
 
-          {/* Terms List */}
+         
           <ul className="list-disc pl-6 space-y-3">
             <li>
               All donations made on this website are entirely voluntary and are
@@ -91,7 +91,7 @@ export default function TermsAndConditions() {
             </li>
           </ul>
 
-          {/* Nature of Trust */}
+         
           <p>
             Bardhaman BhaktaSanmilani functions as a religious and charitable trust.
             Donations received are acts of devotion and humanitarian service,
@@ -99,7 +99,7 @@ export default function TermsAndConditions() {
             community welfare initiatives.
           </p>
 
-          {/* Governing Law */}
+        
           <h2 className="text-xl font-semibold text-amber-700">
             Governing Law & Jurisdiction
           </h2>
@@ -110,7 +110,7 @@ export default function TermsAndConditions() {
             subject to the jurisdiction of competent courts in India.
           </p>
 
-          {/* Changes */}
+         
           <h2 className="text-xl font-semibold text-amber-700">
             Amendments to Terms
           </h2>

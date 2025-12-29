@@ -1,4 +1,3 @@
-// components/sections/DonateSection.tsx
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
@@ -7,15 +6,13 @@ import { Heart, IndianRupee, CheckCircle2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AnimatePresence, motion } from "framer-motion";
 
-/**
- * Rewritten DonateSection with PDF compression helpers and a fix for "black spots":
- * - If converting images to JPEG (to reduce size), the canvas is explicitly filled
- *   with white before drawing the image so transparent pixels don't become black.
- * - When an image must preserve transparency, PNG output is used (slightly larger).
- * - Uses jsPDF with compress: true.
- *
- * No UI / design changes were made — only image-to-canvas handling and PDF generation fixes.
- */
+export const metadata = {
+  title: "Donate Online Securely",
+  description:
+    "Support Bhakta Sanmilani Temple through secure online donations. Trusted payment gateway and complete transparency.",
+};
+
+
 
 declare global {
   interface Window {
@@ -36,18 +33,7 @@ type ReceiptData = {
   createdAt?: string;
 };
 
-/* ------------------ Utilities: image compression & optional font embedding ------------------ */
 
-/**
- * fetchAndCompressImage:
- * - fetches an image from `path` (supports PNG/AVIF/JPEG/WebP)
- * - draws it to an offscreen canvas and returns a data URL (JPEG or PNG) with given quality and max dimensions
- *
- * Important: to avoid black spots when converting transparent images to JPEG,
- * we fill the canvas with white (or a provided background color) before drawing.
- *
- * preserveAlpha: if true, output will be PNG to preserve transparency (no white fill).
- */
 async function fetchAndCompressImage(
   path: string,
   maxWidth = 800,
@@ -66,35 +52,33 @@ async function fetchAndCompressImage(
     try {
       imgBitmap = await createImageBitmap(blob);
     } catch (e) {
-      // Fallback to Image() if createImageBitmap not available or fails on some formats
-      // We'll return via canvas after loading the image element
+    
     }
 
-    // If we got an ImageBitmap, use it
+
     let width = 0;
     let height = 0;
     if (imgBitmap) {
       width = imgBitmap.width;
       height = imgBitmap.height;
     } else {
-      // fallback: use HTMLImageElement
+     
       const imgUrl = URL.createObjectURL(blob);
       const img = await new Promise<HTMLImageElement>((resolve, reject) => {
         const i = new Image();
         i.onload = () => resolve(i);
         i.onerror = (err) => reject(err);
-        // No crossOrigin because we used fetch -> blob (same-origin blob), safe
+       
         i.src = imgUrl;
       });
       width = img.naturalWidth || img.width;
       height = img.naturalHeight || img.height;
 
-      // createImageBitmap from image element if supported (to unify handling)
+      
       try {
         imgBitmap = await createImageBitmap(img);
       } catch {
-        // createImageBitmap may still fail; we'll just draw image element below by using Canvas drawImage(img,...)
-        // but we'll keep `img` in closure by re-creating from blob
+        
       } finally {
         URL.revokeObjectURL(imgUrl);
       }
@@ -102,7 +86,7 @@ async function fetchAndCompressImage(
 
     if (!width || !height) return null;
 
-    // compute scale to fit within maxWidth x maxHeight (preserve aspect)
+   
     const scale = Math.min(1, maxWidth / width, maxHeight / height);
     const targetW = Math.max(1, Math.round(width * scale));
     const targetH = Math.max(1, Math.round(height * scale));
@@ -113,25 +97,25 @@ async function fetchAndCompressImage(
     const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return null;
 
-    // Improve smoothing for downscaling
+    
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
 
-    // If we are converting to JPEG (no alpha), fill background with provided color to avoid black artifacts.
+    
     const willOutputPNG = preserveAlpha;
     if (!willOutputPNG) {
       ctx.fillStyle = backgroundColor;
       ctx.fillRect(0, 0, targetW, targetH);
     } else {
-      // If preserving alpha, clear and leave transparent
+      
       ctx.clearRect(0, 0, targetW, targetH);
     }
 
-    // Draw image (prefer ImageBitmap if available)
+  
     if (imgBitmap) {
       ctx.drawImage(imgBitmap as ImageBitmap, 0, 0, targetW, targetH);
     } else {
-      // As a last fallback, draw via an Image created from blob
+      
       const url = URL.createObjectURL(blob);
       const imgEl = await new Promise<HTMLImageElement>((resolve, reject) => {
         const img = new Image();
@@ -143,16 +127,16 @@ async function fetchAndCompressImage(
       URL.revokeObjectURL(url);
     }
 
-    // Output type
+ 
     const outType = willOutputPNG ? "image/png" : "image/jpeg";
     const outQuality = willOutputPNG ? undefined : quality;
 
-    // toDataURL with quality only for JPEG
+  
     const dataUrl = willOutputPNG ? canvas.toDataURL(outType) : canvas.toDataURL(outType, outQuality);
 
-    // cleanup any ImageBitmap resource
+   
     try {
-      // @ts-ignore
+      
       if (imgBitmap && typeof (imgBitmap as any).close === "function") (imgBitmap as any).close();
     } catch {}
 
@@ -163,17 +147,13 @@ async function fetchAndCompressImage(
   }
 }
 
-/**
- * registerFontConditionally
- * - tries to fetch a font and add to jsPDF *only if* its byte length is below threshold.
- * - avoids embedding large fonts by default (which balloon PDF size).
- */
+
 async function registerFontConditionally(
   doc: any,
   url: string,
   vfsName: string,
   fontName: string,
-  maxBytes = 150 * 1024 // 150 KB default
+  maxBytes = 150 * 1024 
 ): Promise<boolean> {
   try {
     const res = await fetch(url);
@@ -186,7 +166,7 @@ async function registerFontConditionally(
       );
       return false;
     }
-    // Convert to base64 more efficiently
+    
     let binary = "";
     const CHUNK = 0x8000;
     for (let i = 0; i < bytes.length; i += CHUNK) {
@@ -202,7 +182,6 @@ async function registerFontConditionally(
   }
 }
 
-/* ------------------ Modal component (unchanged behavior) ------------------ */
 
 interface ModalProps {
   open: boolean;
@@ -262,7 +241,7 @@ function SuccessModal({
       const jsPDFModule: any = await import("jspdf");
       const jsPDFCtor = jsPDFModule.jsPDF || jsPDFModule.default || jsPDFModule;
 
-      // Use jsPDF compression option
+     
       const doc: any = new jsPDFCtor({
         orientation: "portrait",
         unit: "mm",
@@ -273,13 +252,13 @@ function SuccessModal({
       const pageWidth = 210;
       const marginX = 10;
 
-      // Header band
+   
       doc.setFillColor(234, 88, 12);
       doc.rect(0, 0, pageWidth, 38, "F");
 
       // Logo — compress & avoid black background
       try {
-        // for header logo we can reduce to JPEG with white fill to keep sizes small
+       
         const omData = compressEnabled
           ? await fetchAndCompressImage("/Donate/Om.png", 300, 300, 0.65, false, "#ffffff")
           : await fetchAndCompressImage("/Donate/Om.png", 1200, 1200, 0.95, false, "#ffffff");
@@ -322,7 +301,7 @@ function SuccessModal({
       doc.text(`Payment ID: ${data.paymentId}`, rightX, 21, { align: "right" });
       doc.text(`Order ID: ${data.orderId}`, rightX, 26, { align: "right" });
 
-      // Income tax band
+     
       doc.setFillColor(255, 247, 237);
       doc.rect(marginX, 40, pageWidth - marginX * 2, 10, "F");
       doc.setTextColor(0, 0, 0);
@@ -332,7 +311,7 @@ function SuccessModal({
       doc.setFont("helvetica", "normal");
       doc.text("Mode of Payment: Online", pageWidth - marginX - 2, 46, { align: "right" });
 
-      // Donor details
+     
       let y = 55;
       doc.setFontSize(9);
       doc.setFont("helvetica", "bold");
@@ -359,12 +338,12 @@ function SuccessModal({
       y += 2;
       doc.text("As donation for the cause of Temple Construction & Maintenance.", marginX + 2, y);
 
-      // ---------------- Transaction & Purpose boxes ----------------
+    
       const rightBoxX = pageWidth / 2 + 2;
       const boxWidth = pageWidth - rightBoxX - marginX;
       const boxPadding = 3;
 
-      // TRANSACTION DETAIL header + box
+    
       const transHeaderY = 55;
       doc.setFillColor(249, 115, 22);
       doc.rect(rightBoxX, transHeaderY, boxWidth, 6, "F");
@@ -386,7 +365,7 @@ function SuccessModal({
 
       // HARD RESET of PDF text state (fixes kerning / operator issues)
       try {
-        // @ts-ignore
+        
         if (doc.internal && doc.internal.write) doc.internal.write("0 Tc");
       } catch {}
 
@@ -546,8 +525,7 @@ function SuccessModal({
         doc.setFont("helvetica", "normal");
       }
 
-      // Render Devanagari phrase: when compression on, render as small JPEG (white bg) to ensure appearance,
-      // but avoid transparent regions becoming black by using white fill in the canvas used to generate the image.
+
       if (compressEnabled) {
         try {
           const phrase = "कृष्णं वन्दे जगद्गुरुम्";
@@ -558,18 +536,18 @@ function SuccessModal({
           off.height = pxH;
           const ctx = off.getContext("2d");
           if (ctx) {
-            // white background so JPEG won't show black
+           
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(0, 0, pxW, pxH);
 
             ctx.font = "36px Noto Sans Devanagari, serif";
             ctx.textAlign = "center";
             ctx.fillStyle = "black";
-            // center vertically
+          
             ctx.fillText(phrase, pxW / 2, pxH / 2 + 12);
 
             const imgData = off.toDataURL("image/jpeg", 0.7);
-            const imgWmm = 100 / 2; // approx
+            const imgWmm = 100 / 2; 
             const imgHmm = 10;
             doc.addImage(imgData, "JPEG", pageWidth / 2 - imgWmm / 2, devotionY, imgWmm, imgHmm);
           } else {
@@ -578,8 +556,7 @@ function SuccessModal({
             doc.text(phrase, pageWidth / 2, devotionY, { align: "center" });
           }
         } catch (e) {
-          // fallback to text
-          doc.setFont("helvetica", "normal");
+          
           doc.setFontSize(10);
           doc.text("कृष्णं वन्दे जगद्गुरुम्", pageWidth / 2, devotionY, { align: "center" });
         }
@@ -592,7 +569,7 @@ function SuccessModal({
 
       doc.setFont("helvetica", "normal");
 
-      // Decorative images (feather, flute) — compress and white-fill to avoid black spots
+      
       try {
         const featherData = compressEnabled
           ? await fetchAndCompressImage("/images/pea-cock (feather).png", 200, 200, 0.6, false, "#ffffff")
@@ -607,7 +584,7 @@ function SuccessModal({
           doc.addImage(featherData, imgType, featherX, featherY, featherWidth, featherHeight);
         }
       } catch (e) {
-        // ignore
+       
       }
 
       try {
@@ -624,7 +601,7 @@ function SuccessModal({
         }
       } catch {}
 
-      // finally save
+
       doc.save(`BhaktaSammilan_Receipt_${data.paymentId}.pdf`);
     } catch (err) {
       console.error("Error generating PDF:", err);
@@ -681,7 +658,7 @@ function SuccessModal({
   );
 }
 
-/* ------------------ Main DonateSection (kept behavior, small changes) ------------------ */
+
 
 export default function DonateSection() {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);

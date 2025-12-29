@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, type ReactNode } from "react";
+import React, { useState, type ReactNode, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
@@ -11,12 +11,39 @@ const navLinks = [
   { href: "/admin/dashboard/events", label: "Events" },
 ];
 
+function normalizePath(p: string | null | undefined) {
+  if (!p) return "/";
+
+  return p === "/" ? "/" : p.replace(/\/+$/, "");
+}
+
 export default function AdminMenuShell({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
+  const pathnameRaw = usePathname();
+  const pathname = normalizePath(pathnameRaw);
+
   const [open, setOpen] = useState(false);
 
   const openMenu = () => setOpen(true);
   const closeMenu = () => setOpen(false);
+  const bestMatchHref = useMemo(() => {
+    const normalizedLinks = navLinks.map((l) => ({
+      ...l,
+      href: normalizePath(l.href),
+    }));
+
+    const matches = normalizedLinks.filter((l) => {
+      
+      if (pathname === l.href) return true;
+      if (l.href === "/") return true; 
+      return pathname.startsWith(l.href + "/");
+    });
+
+    if (matches.length === 0) return null;
+
+    
+    matches.sort((a, b) => b.href.length - a.href.length);
+    return matches[0].href;
+  }, [pathname]);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 relative">
@@ -46,9 +73,8 @@ export default function AdminMenuShell({ children }: { children: ReactNode }) {
             </div>
           </div>
 
-          {/* (Right side of header empty for now, you can add user avatar later) */}
-          <div />
           
+          <div />
         </div>
       </header>
 
@@ -73,9 +99,7 @@ export default function AdminMenuShell({ children }: { children: ReactNode }) {
       >
         {/* SIDEBAR HEADER WITH CROSS BUTTON */}
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-          <span className="text-sm font-semibold text-slate-800">
-            Navigation
-          </span>
+          <span className="text-sm font-semibold text-slate-800">Navigation</span>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -91,8 +115,9 @@ export default function AdminMenuShell({ children }: { children: ReactNode }) {
         {/* NAV LINKS */}
         <nav className="p-3 space-y-1">
           {navLinks.map((link) => {
-            const active =
-              pathname === link.href || pathname.startsWith(link.href);
+            const normalizedHref = normalizePath(link.href);
+           
+            const active = bestMatchHref === normalizedHref;
 
             return (
               <Link
@@ -104,6 +129,7 @@ export default function AdminMenuShell({ children }: { children: ReactNode }) {
                     ? "bg-orange-50 border border-orange-200 text-orange-700"
                     : "text-slate-700 hover:bg-slate-50"
                 }`}
+                aria-current={active ? "page" : undefined}
               >
                 {link.label}
               </Link>

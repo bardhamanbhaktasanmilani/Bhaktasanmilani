@@ -1,4 +1,4 @@
-// components/sections/MeetOurteamSection.tsx
+
 "use client";
 
 import React, {
@@ -11,9 +11,14 @@ import React, {
 import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 
-/* -------------------------------------------
- TYPES
---------------------------------------------*/
+export const metadata = {
+  title: "Meet Our Organizers & Volunteers",
+  description:
+    "Get to know the dedicated organizers and volunteers behind Bhakta Sanmilani Temple’s spiritual and community initiatives.",
+};
+
+
+
 type TeamMember = {
   id: number;
   name: string;
@@ -112,9 +117,7 @@ const TESTIMONIALS: Testimonial[] = [
   },
 ];
 
-/* -------------------------------------------
- MAIN COMPONENT
---------------------------------------------*/
+
 export default function MeetOurteamSection() {
   const sectionRef = useRef<HTMLElement | null>(null);
   const prefersReducedMotion = useReducedMotion();
@@ -124,9 +127,7 @@ export default function MeetOurteamSection() {
     TEAM_MEMBERS[0]
   );
 
-  /* -------------------------------------------
-   REVEAL ON SCROLL (RUNS ONLY ONCE)
-  --------------------------------------------*/
+  
   useEffect(() => {
     const el = sectionRef.current;
     if (!el) return;
@@ -135,7 +136,7 @@ export default function MeetOurteamSection() {
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsVisible(true);
-          observer.disconnect(); // ⛔ stop observing after reveal
+          observer.disconnect(); 
         }
       },
       { threshold: 0.2 }
@@ -145,16 +146,12 @@ export default function MeetOurteamSection() {
     return () => observer.disconnect();
   }, []);
 
-  /* -------------------------------------------
-   HANDLERS (MEMOIZED)
-  --------------------------------------------*/
+ 
   const handleSelectMember = useCallback((m: TeamMember) => {
     setSelectedMember(m);
   }, []);
 
-  /* -------------------------------------------
-   MEMOIZED MAPS (LESS WORK ON RE-RENDER)
-  --------------------------------------------*/
+
   const teamThumbnails = useMemo(
     () =>
       TEAM_MEMBERS.map((m) => (
@@ -184,9 +181,7 @@ export default function MeetOurteamSection() {
       className="py-16 bg-gradient-to-br from-orange-50 to-amber-50"
     >
       <div className="max-w-6xl mx-auto px-4">
-        {/* ---------------------------------
-            HEADING
-        ---------------------------------- */}
+        
         <div className="text-center mb-12">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900">
             Meet Our{" "}
@@ -199,9 +194,7 @@ export default function MeetOurteamSection() {
           </p>
         </div>
 
-        {/* ---------------------------------
-            TEAM SECTION
-        ---------------------------------- */}
+      
         <div
           className={`grid md:grid-cols-[1fr_1.4fr] gap-10 transition-all duration-700 ${
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
@@ -233,9 +226,7 @@ export default function MeetOurteamSection() {
           </div>
         </div>
 
-        {/* ---------------------------------
-            TESTIMONIALS
-        ---------------------------------- */}
+       
         <div id="testimonials" className="mt-24 scroll-mt-28">
           <h3 className="text-3xl font-bold text-center">Testimonials</h3>
 

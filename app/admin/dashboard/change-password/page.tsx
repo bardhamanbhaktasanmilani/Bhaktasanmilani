@@ -18,7 +18,7 @@ export default function ChangePasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  /* ---------------- Password Rules ---------------- */
+ 
   const validatePassword = (password: string) => {
     return (
       password.length >= 8 &&
@@ -31,7 +31,7 @@ export default function ChangePasswordPage() {
 
   const isPasswordStrong = validatePassword(newPassword);
 
-  /* ---------------- Submit Handler ---------------- */
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -81,7 +81,6 @@ export default function ChangePasswordPage() {
     }
   };
 
-  /* ---------------- UI ---------------- */
   return (
     <div className="max-w-md mx-auto mt-16 p-6 bg-white border border-slate-200 rounded-2xl shadow-sm">
       <h1 className="text-xl font-semibold mb-2">Change Password</h1>
@@ -91,7 +90,7 @@ export default function ChangePasswordPage() {
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Current Password */}
+     
         <div>
           <label className="text-sm font-medium">Current Password</label>
           <div className="relative mt-1">
@@ -134,11 +133,11 @@ export default function ChangePasswordPage() {
             </button>
           </div>
 
-          {/* 🔐 Password Strength Meter */}
+      
           <PasswordStrengthMeter password={newPassword} />
         </div>
 
-        {/* Confirm Password */}
+     
         <div>
           <label className="text-sm font-medium">Confirm New Password</label>
           <div className="relative mt-1">
@@ -160,7 +159,7 @@ export default function ChangePasswordPage() {
           </div>
         </div>
 
-        {/* Error / Success */}
+      
         {error && (
           <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
             {error}

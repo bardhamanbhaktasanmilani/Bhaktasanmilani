@@ -8,9 +8,14 @@ import React, {
 } from "react";
 import { Mail, Phone, MapPin, Send, X } from "lucide-react";
 
-/* -------------------------------------------
- TYPES
---------------------------------------------*/
+export const metadata = {
+  title: "Contact Us – Get in Touch",
+  description:
+    "Contact Bhakta Sanmilani Temple for donation support, puja inquiries, events, or general assistance.",
+};
+
+
+
 type FormState = {
   name: string;
   email: string;
@@ -26,11 +31,9 @@ type ToastState =
     }
   | null;
 
-/* -------------------------------------------
- COMPONENT
---------------------------------------------*/
+
 export default function ContactSection() {
-  // prefer-reduced-motion: read on client only
+ 
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   useEffect(() => {
@@ -48,9 +51,7 @@ export default function ContactSection() {
   const toastTimerRef = useRef<number | null>(null);
   const mountedRef = useRef(false);
 
-  /* -------------------------------------------
-   FORM STATE
-  --------------------------------------------*/
+
   const [formData, setFormData] = useState<FormState>({
     name: "",
     email: "",
@@ -64,16 +65,14 @@ export default function ContactSection() {
   const [visible, setVisible] = useState(false); // used for light entrance
 
   useEffect(() => {
-    // simple entrance animation toggle after mount (cheap CSS)
+  
     mountedRef.current = true;
-    // delay slightly so CSS transition applies
+   
     const t = window.setTimeout(() => setVisible(true), 40);
     return () => window.clearTimeout(t);
   }, []);
 
-  /* -------------------------------------------
-   TOAST AUTO HIDE
-  --------------------------------------------*/
+ 
   useEffect(() => {
     if (!toast) return;
 
@@ -95,9 +94,7 @@ export default function ContactSection() {
     };
   }, [toast]);
 
-  /* -------------------------------------------
-   HANDLERS
-  --------------------------------------------*/
+
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const { name, value } = e.target;
@@ -158,9 +155,7 @@ export default function ContactSection() {
     [formData]
   );
 
-  /* -------------------------------------------
-   Small helper to manually dismiss toast
-  --------------------------------------------*/
+
   const dismissToast = useCallback(() => {
     setToast(null);
     if (toastTimerRef.current) {
@@ -169,14 +164,10 @@ export default function ContactSection() {
     }
   }, []);
 
-  /* -------------------------------------------
-   RENDER
-  --------------------------------------------*/
+ 
   return (
     <>
-      {/* ---------------------------------
-          TOAST (Pure CSS transitions)
-      ---------------------------------- */}
+   
       {toast && (
         <div
           role="status"
@@ -216,14 +207,12 @@ export default function ContactSection() {
         </div>
       )}
 
-      {/* ---------------------------------
-          SECTION
-      ---------------------------------- */}
+    
       <section
         id="contact"
         className="relative overflow-hidden py-12 sm:py-16 bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100"
       >
-        {/* Subtle, cheap decorative backgrounds (no heavy blurs) */}
+      
         <div className="absolute inset-0 -z-10 pointer-events-none">
           <div
             className="absolute -top-8 -left-8 w-44 h-44 rounded-full opacity-60"

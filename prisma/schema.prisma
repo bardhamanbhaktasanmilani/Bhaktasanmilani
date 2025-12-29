@@ -57,7 +57,7 @@ model Event {
   id          Int      @id @default(autoincrement())
   title       String
   description String
-  date        DateTime   // this is the exact date + time of the event
+  date        DateTime   
    posterUrl   String? 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

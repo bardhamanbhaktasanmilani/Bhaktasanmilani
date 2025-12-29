@@ -13,9 +13,14 @@ import {
 } from "lucide-react";
 import EventsSection from "../sub-sections/HowWeWork/EventsSection";
 
-/* ----------------------------------------------------
-   DATA
----------------------------------------------------- */
+
+export const metadata = {
+  title: "How We Work – Transparency & Accountability",
+  description:
+    "Discover how Bhakta Sanmilani Temple plans, executes, and monitors community initiatives with full transparency and accountability.",
+};
+
+
 const steps = [
   {
     icon: Target,
@@ -73,9 +78,7 @@ const causes = [
   },
 ];
 
-/* ----------------------------------------------------
-   COMPONENT
----------------------------------------------------- */
+
 export default function HowWeWorkSection() {
   const sectionRef = useRef<HTMLDivElement | null>(null);
 
@@ -83,9 +86,7 @@ export default function HowWeWorkSection() {
     Array(steps.length).fill(false)
   );
 
-  /* ----------------------------------------------------
-     MOBILE-SAFE REVEAL LOGIC (FIXED)
-  ---------------------------------------------------- */
+
   useEffect(() => {
     const target = sectionRef.current;
     if (!target) return;
@@ -123,7 +124,7 @@ export default function HowWeWorkSection() {
 
     observer.observe(target);
 
-    // 🚑 Mobile fallback: ensure content always renders
+   
     const fallback = setTimeout(() => {
       if (!revealed) {
         revealAll();
@@ -265,9 +266,7 @@ export default function HowWeWorkSection() {
   );
 }
 
-/* ----------------------------------------------------
-   SUB COMPONENTS
----------------------------------------------------- */
+
 
 function CenterNode({ index }: { index: number }) {
   return (

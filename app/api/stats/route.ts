@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// ⛔ prevent build-time execution
+
 export const dynamic = "force-dynamic";
 
-// ⛔ do NOT use ISR for Prisma APIs
+
 export const revalidate = 0;
 
 export async function GET() {
@@ -26,7 +26,7 @@ export async function GET() {
       },
       {
         headers: {
-          // ✅ CDN-level caching
+          //  CDN-level caching
           "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
         },
       }
@@ -34,7 +34,7 @@ export async function GET() {
   } catch (error) {
     console.error("Stats API error:", error);
 
-    // 🚑 NEVER crash homepage stats
+    //  NEVER crash homepage stats
     return NextResponse.json(
       {
         devotees: 0,

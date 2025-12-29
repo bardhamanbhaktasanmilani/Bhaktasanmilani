@@ -7,7 +7,7 @@ import { rateLimit } from "@/lib/rateLimit";
 
 export async function POST(req: Request) {
   try {
-    /* ✅ Use existing auth helper (ADMIN_JWT_SECRET safe) */
+    /*  Use existing auth helper (ADMIN_JWT_SECRET safe) */
     const adminPayload = await getCurrentAdmin();
 
     if (!adminPayload) {
@@ -66,7 +66,7 @@ export async function POST(req: Request) {
       data: { password: hashed },
     });
 
-    /* ✅ Force logout after password change */
+    /*  Force logout after password change */
     const res = NextResponse.json({ success: true });
     clearAdminCookie(res);
 

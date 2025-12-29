@@ -7,7 +7,7 @@ type RawEvent = {
   id: number;
   title: string;
   description: string;
-  // backend may return either `date` or `dateTime` — accept both
+ 
   date?: string | null;
   dateTime?: string | null;
   posterUrl?: string | null;
@@ -17,7 +17,7 @@ type Event = {
   id: number;
   title: string;
   description: string;
-  dateISO: string; // normalized ISO date string
+  dateISO: string; 
   posterUrl?: string | null;
 };
 
@@ -35,18 +35,18 @@ export default function AdminEventsPage() {
   const [description, setDescription] = useState("");
   const [time, setTime] = useState("18:00");
 
-  // poster for modal (local create)
+
   const [posterFile, setPosterFile] = useState<File | null>(null);
   const [posterPreview, setPosterPreview] = useState<string | null>(null);
 
-  // track uploads per event so UI doesn't show a global uploading state
+
   const [uploadingByEvent, setUploadingByEvent] = useState<Record<number, boolean>>({});
   const [uploadingPosterLocal, setUploadingPosterLocal] = useState(false);
 
-  // keep a ref to the active fetch abort controller so we can cancel on unmount
+  
   const fetchAbortRef = useRef<AbortController | null>(null);
 
-  // normalize raw event object coming from API to Event
+
   const normalize = (r: RawEvent): Event => {
     const rawIso = r.date ?? r.dateTime ?? null;
     const dateISO = rawIso || new Date().toISOString();
@@ -59,7 +59,7 @@ export default function AdminEventsPage() {
     };
   };
 
-  // fetch upcoming events with abort handling
+ 
   const fetchEvents = async () => {
     if (fetchAbortRef.current) {
       fetchAbortRef.current.abort();
@@ -91,13 +91,13 @@ export default function AdminEventsPage() {
     fetchEvents();
     return () => {
       if (fetchAbortRef.current) fetchAbortRef.current.abort();
-      // revoke any object URL preview when unmounting
+     
       if (posterPreview) URL.revokeObjectURL(posterPreview);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, []);
 
-  // Setup calendar state
+
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const calendarDays = useMemo(() => {
@@ -109,7 +109,7 @@ export default function AdminEventsPage() {
 
     const days: (Date | null)[] = [];
 
-    // Monday = 0 (make Monday first column)
+  
     const startWeekday = (start.getDay() + 6) % 7;
     for (let i = 0; i < startWeekday; i++) days.push(null);
 
@@ -144,7 +144,7 @@ export default function AdminEventsPage() {
     setPosterFile(null);
   };
 
-  // helper to convert File -> dataURL (kept for compatibility if backend expects it)
+  
   const fileToDataUrl = (file: File) =>
     new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
@@ -156,12 +156,12 @@ export default function AdminEventsPage() {
       reader.readAsDataURL(file);
     });
 
-  // Upload poster — prefer FormData (typical), but fall back to dataUrl JSON if needed.
+  
   const uploadPosterToServer = async (file: File) => {
-    // show a local indicator (different from per-event uploading)
+   
     setUploadingPosterLocal(true);
     try {
-      // try FormData first
+   
       try {
         const form = new FormData();
         form.append("file", file);
@@ -177,12 +177,11 @@ export default function AdminEventsPage() {
           return body.url as string;
         }
 
-        // if FormData route fails (non-2xx), fall back to dataUrl JSON
+     
       } catch (e) {
-        // ignore and fall through to dataURL approach
+    
       }
 
-      // fallback: data URL
       const dataUrl = await fileToDataUrl(file);
       const res2 = await fetch("/api/admin/upload-poster", {
         method: "POST",
@@ -297,7 +296,7 @@ export default function AdminEventsPage() {
     }
   };
 
-  // small helper to render a date safely
+
   const safeFormat = (iso: string, fmt: string) => {
     try {
       return format(parseISO(iso), fmt);
@@ -359,7 +358,6 @@ export default function AdminEventsPage() {
             <p className="mt-3 text-xs text-slate-400">Tip: Choose date → fill title, description & time (24-hour) → save. Donors will see it as an upcoming event with poster if provided.</p>
           </div>
 
-          {/* Upcoming events list */}
           <div className="rounded-2xl bg-white p-4 shadow-sm">
             <h2 className="mb-3 text-lg font-semibold text-slate-800">Upcoming Events</h2>
 
@@ -408,7 +406,7 @@ export default function AdminEventsPage() {
         </div>
       </div>
 
-      {/* Create Event Modal */}
+     
       {isModalOpen && selectedDate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
@@ -436,7 +434,7 @@ export default function AdminEventsPage() {
                 <input type="time" value={time} onChange={(e) => setTime(e.target.value)} required className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-300" />
               </div>
 
-              {/* Poster upload control */}
+             
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Poster (optional)</label>
 

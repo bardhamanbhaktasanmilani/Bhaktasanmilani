@@ -8,7 +8,7 @@ const HowWeWorkSection = dynamic(() => import("../sections/HowWeWorkSection"), {
 const DonateSection = dynamic(() => import("../sections/DonateSection"), { ssr: false });
 const MeetOurteam = dynamic(() => import("../sections/MeetOurteamSection"), { ssr: false });
 const ContactSection = dynamic(() => import("../sections/ContactSection"), { ssr: false });
-const ScrollControls = dynamic(() => import("./ScrollControls"), { ssr: false });
+
 
 export default function ClientSections() {
   const [mounted, setMounted] = useState(false);
@@ -27,7 +27,7 @@ export default function ClientSections() {
       <DonateSection />
       <MeetOurteam />
       <ContactSection />
-      <ScrollControls />
+    
     </>
   );
 }

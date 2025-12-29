@@ -13,7 +13,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    /* 🚦 Rate limit per admin ID */
+    /* Rate limit per admin ID */
     // 3 attempts per 10 minutes
     const rl = rateLimit(
       `admin-change-email:${adminPayload.adminId}`,
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       );
     }
 
-    /* ✉️ Basic email validation */
+    /*  Basic email validation */
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
       return NextResponse.json(
         { error: "Invalid email address" },
@@ -64,7 +64,7 @@ export async function POST(req: Request) {
       );
     }
 
-    /* 🔑 Re-authenticate with password */
+    /*  Re-authenticate with password */
     const valid = await bcrypt.compare(password, admin.password);
 
     if (!valid) {
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
       );
     }
 
-    /* 📝 Update email */
+    /*  Update email */
     await prisma.adminUser.update({
       where: { id: admin.id },
       data: {
@@ -82,7 +82,7 @@ export async function POST(req: Request) {
       },
     });
 
-    /* 🔒 Force logout after email change */
+    /*  Force logout after email change */
     const res = NextResponse.json({ success: true });
     clearAdminCookie(res);
 
