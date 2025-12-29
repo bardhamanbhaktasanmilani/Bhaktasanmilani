@@ -1,4 +1,3 @@
-// app/api/cron/reconcile-donations/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { razorpay } from "@/lib/razorpay";
