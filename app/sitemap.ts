@@ -1,65 +1,37 @@
 import type { MetadataRoute } from "next";
 
+const BASE_URL = "https://bardhaman.bhaktasanmilani.org";
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
 
   return [
     {
-      url: "/",
+      url: `${BASE_URL}/`,
       lastModified: now,
       changeFrequency: "weekly",
       priority: 1,
     },
     {
-      url: "/about",
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: "/how-we-work",
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: "/donate",
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.9,
-    },
-    {
-      url: "/meet-our-organizers",
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.7,
-    },
-    {
-      url: "/contact",
+      url: `${BASE_URL}/faq`,
       lastModified: now,
       changeFrequency: "yearly",
       priority: 0.6,
     },
     {
-      url: "/faq",
-      lastModified: now,
-      changeFrequency: "yearly",
-      priority: 0.5,
-    },
-    {
-      url: "/privacy-policy",
+      url: `${BASE_URL}/privacy-policy`,
       lastModified: now,
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
-      url: "/return-policy",
+      url: `${BASE_URL}/return-policy`,
       lastModified: now,
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
-      url: "/terms-and-conditions",
+      url: `${BASE_URL}/terms-and-conditions`,
       lastModified: now,
       changeFrequency: "yearly",
       priority: 0.3,
