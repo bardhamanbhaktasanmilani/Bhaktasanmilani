@@ -239,7 +239,7 @@ export default function Navbar() {
                 aria-label="Bhakta Sammilan - Home"
               >
                 <span className="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-amber-600 to-amber-400">
-                  BhaktaSanmilani ॐ
+                  ॐ BhaktaSanmilani 
                 </span>
               </a>
             </div>
@@ -437,6 +437,25 @@ export default function Navbar() {
                   </div>
                 ))}
               </nav>
+
+              {/* Added admin & donate buttons to mobile drawer to match desktop */}
+              <div className="mt-4 flex flex-col gap-3">
+                <a
+                  href="/admin/login"
+                  onClick={() => setIsOpen(false)}
+                  className="rounded-full border border-orange-500 px-4 py-1.5 text-sm text-orange-600 hover:bg-orange-50 transition text-center"
+                >
+                  Admin Login
+                </a>
+
+                <a
+                  href="#donate"
+                  onClick={(e) => scrollToSection(e as any, "#donate")}
+                  className="rounded-full bg-gradient-to-r from-orange-600 to-amber-600 px-5 py-2 text-sm text-white transform transition hover:scale-[1.03] shadow-sm text-center"
+                >
+                  Donate Now
+                </a>
+              </div>
             </motion.aside>
           </>
         )}

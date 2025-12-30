@@ -144,7 +144,7 @@ export default function Footer() {
          
           <div className={`${transitionClass}`}>
             <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent">
-              Bhakta Sammilan ॐ
+              ॐ BhaktaSanmilani 
             </h3>
             <p className="text-gray-400 mb-6 leading-relaxed">
               United by faith, driven by compassion. Join us in making a meaningful
@@ -235,8 +235,7 @@ export default function Footer() {
 
        
         <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row items-center justify-between gap-4 text-gray-500">
-          <p>© 2024 Bhakta Sammilan. All rights reserved.</p>
-          <p className="text-gray-400">Sankha Subhra Das</p>
+          <p>© 2025 BhaktaSanmilani. All rights reserved.</p>
         </div>
       </div>
     </footer>
