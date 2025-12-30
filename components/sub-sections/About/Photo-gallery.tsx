@@ -328,7 +328,7 @@ export default function PhotoGallery() {
 
         <div className="space-y-16">
           <Subsection id="religion" title="Religion" desc="Spiritual events, rituals, and community gatherings celebrating devotion and tradition." images={religionImages} autoplayDelay={4200} />
-          <Subsection id="charity" title="Yoga Classes" desc="Programs and drives that bring food, shelter, medicine and education to those in need." images={charityImages} autoplayDelay={3800} />
+          <Subsection id="yoga" title="Yoga Classes" desc="Programs and drives that bring food, shelter, medicine and education to those in need." images={charityImages} autoplayDelay={3800} />
           <Subsection id="covid" title="Covid Relief & Charity" desc="Emergency response, healthcare support, and community assistance during the pandemic." images={covidImages} autoplayDelay={3600} />
         </div>
       </div>

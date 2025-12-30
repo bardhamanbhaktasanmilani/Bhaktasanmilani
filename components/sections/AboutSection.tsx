@@ -473,8 +473,7 @@ const AboutSection: React.FC = () => {
               </div>
             </div>
 
-            <br />
-
+<span className="text-xl text-black"><b>Note :</b><i>This is a conceptual design presented for illustrative purposes. The final architectural details of the Radha-Krishna Temple may evolve during construction or in future development phases.</i></span>
             {/* ROYAL DECREE — FIXED, NO ANIMATION */}
             <div className="w-full flex justify-center">
               <div className="relative w-full max-w-3xl">

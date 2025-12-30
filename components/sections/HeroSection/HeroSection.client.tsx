@@ -2,10 +2,16 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const slides = [
+  {
+    image: "/hero/bg-photo (1).AVIF",
+    title: "Where Devotion Takes Form",
+    subtitle: "A sacred space built on faith, purity, and timeless tradition",
+    more:
+      "Rising in serene white, our temple stands as a symbol of devotion, service, and spiritual unity. Through prayer, community effort, and selfless contribution, we preserve sacred heritage and inspire generations to walk the path of faith and compassion.",
+  },
   {
     image: "/hero/Hero4.AVIF",
     title: "Unite in Faith, Serve with Love",
@@ -40,12 +46,12 @@ export default function HeroSectionClient() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showLearnMore, setShowLearnMore] = useState(false);
 
- 
   useEffect(() => {
     const id = setInterval(() => {
       setCurrentSlide((i) => (i + 1) % slides.length);
       setShowLearnMore(false);
-    }, 5000);
+    }, 12000);
+
     return () => clearInterval(id);
   }, []);
 
@@ -53,7 +59,7 @@ export default function HeroSectionClient() {
 
   return (
     <div className="pointer-events-none absolute inset-0 z-20">
-     
+      {/* Background images */}
       {slides.map((s, index) => (
         <div
           key={index}
@@ -67,6 +73,7 @@ export default function HeroSectionClient() {
             fill
             sizes="100vw"
             className="object-cover"
+            priority={index === 0}
           />
         </div>
       ))}
@@ -75,21 +82,38 @@ export default function HeroSectionClient() {
       <div className="relative z-30 flex h-full items-center">
         <div className="mx-auto w-full max-w-7xl px-4 py-24 sm:py-28 md:py-32">
           <div className="max-w-3xl text-white">
+            {/* TITLE WITH SUN-LIKE GLOW */}
             <h1
               key={slide.title}
               className="mb-4 text-4xl font-bold sm:text-5xl md:text-6xl lg:text-7xl animate-fade-in"
+              style={{
+                textShadow: `
+                  0 0 6px rgba(255, 236, 179, 0.9),
+                  0 0 14px rgba(255, 224, 102, 0.8),
+                  0 0 28px rgba(255, 215, 0, 0.6),
+                  0 0 48px rgba(255, 193, 7, 0.45)
+                `,
+              }}
             >
               {slide.title}
             </h1>
 
+            {/* SUBTITLE WITH SOFTER GLOW */}
             <p
               key={slide.subtitle}
               className="text-lg sm:text-xl md:text-2xl animate-fade-in"
+              style={{
+                textShadow: `
+                  0 0 4px rgba(255, 236, 179, 0.8),
+                  0 0 10px rgba(255, 224, 102, 0.7),
+                  0 0 20px rgba(255, 215, 0, 0.5)
+                `,
+              }}
             >
               {slide.subtitle}
             </p>
 
-            
+            {/* Learn more */}
             <div
               className={`overflow-hidden transition-all duration-500 ease-in-out ${
                 showLearnMore
@@ -127,9 +151,6 @@ export default function HeroSectionClient() {
         </div>
       </div>
 
-   
-     
-
       {/* Dots */}
       <div className="pointer-events-auto absolute bottom-6 sm:bottom-8 left-1/2 z-40 flex -translate-x-1/2 gap-3">
         {slides.map((_, i) => (
@@ -139,6 +160,7 @@ export default function HeroSectionClient() {
             className={`h-3 rounded-full transition-all ${
               i === currentSlide ? "w-8 bg-white" : "w-3 bg-white/50"
             }`}
+            aria-label={`Go to slide ${i + 1}`}
           />
         ))}
       </div>
