@@ -126,17 +126,25 @@ function TempleModel({
         : [obj.material];
 
       mats.forEach((mat: any) => {
-        const standard = new THREE.MeshStandardMaterial({
-          map: mat.map || null,
-          color: marbleWhite,
-          roughness: 0.18,          // ✨ glossy
-          metalness: 0.05,
-          envMapIntensity: 0.6,
-          clearcoat: 0.25,
-          clearcoatRoughness: 0.25,
-        });
+      const marbleMaterial = new THREE.MeshPhysicalMaterial({
+  map: mat.map || null,
+  color: marbleWhite,
 
-        obj.material = standard;
+  // Marble appearance
+  roughness: 0.18,
+  metalness: 0.04,
+
+  // ✨ polish layer (THIS is why it looks shiny)
+  clearcoat: 0.25,
+  clearcoatRoughness: 0.25,
+
+  // subtle realism
+  reflectivity: 0.4,
+});
+
+
+     obj.material = marbleMaterial;
+
       });
     });
   }, [gltf, sceneRef]);
