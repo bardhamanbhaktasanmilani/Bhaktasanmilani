@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 const slides = [
   {
     image: "/hero/bg-photo (1).AVIF",
-    title: "Where Devotion Takes Form",
+    title: "Share your Contribution to Construct the Krishna Temple",
     subtitle: "A sacred space built on faith, purity, and timeless tradition",
     more:
       "Rising in serene white, our temple stands as a symbol of devotion, service, and spiritual unity. Through prayer, community effort, and selfless contribution, we preserve sacred heritage and inspire generations to walk the path of faith and compassion.",

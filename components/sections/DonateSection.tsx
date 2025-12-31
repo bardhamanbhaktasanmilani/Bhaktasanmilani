@@ -278,7 +278,7 @@ function SuccessModal({
 
       doc.setFontSize(11);
       doc.setFont("helvetica", "normal");
-      doc.text("by Bardhaman Bhaktasanmilani", marginX + 28, 18);
+      doc.text("by Bardhaman Bhakta Sanmilani", marginX + 28, 18);
 
       doc.setFontSize(8);
       doc.text(
@@ -336,7 +336,7 @@ function SuccessModal({
         y += 5;
       }
       y += 2;
-      doc.text("As donation for the cause of Temple Construction & Maintenance.", marginX + 2, y);
+      // doc.text("As donation for the cause of Temple Construction & Maintenance.", marginX + 2, y);
 
     
       const rightBoxX = pageWidth / 2 + 2;
@@ -467,7 +467,7 @@ function SuccessModal({
       doc.setFont("helvetica", "normal");
       const notes = [
         "• Donation is irrevocable.",
-        "• PAN is compulsory for issuance of 80-G receipts as per Income Tax rules.",
+        "• URN is compulsory for issuance of 80-G receipts as per Income Tax rules.",
         "• 80-G receipts are available for donations received towards temple construction, maintenance, and charitable purposes.",
         "• In case of any error/discrepancy, contact us within 15 days from the date of this receipt.",
       ];

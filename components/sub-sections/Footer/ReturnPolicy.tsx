@@ -44,18 +44,7 @@ export default function ReturnPolicy() {
             canceled, reversed, or refunded.
           </p>
 
-          <ul className="list-disc pl-6 space-y-2">
-            <li>Change of mind after making a donation</li>
-            <li>Incorrect donation amount entered by the donor</li>
-            <li>Multiple donations made intentionally or unintentionally</li>
-            <li>
-              Disagreement with the utilization or allocation of donated funds
-            </li>
-            <li>
-              Delays or processing issues caused by banks or payment gateways
-              beyond the control of the organization
-            </li>
-          </ul>
+          
 
          
           <h2 className="text-xl font-semibold text-amber-700">
@@ -65,7 +54,7 @@ export default function ReturnPolicy() {
             In rare cases where a transaction fails or is automatically reversed
             by the bank or payment gateway before settlement, the amount may be
             returned directly by the bank or gateway. Such reversals are outside
-            the control of Bardhaman BhaktaSanmilani and do not constitute a
+            the control of Bardhaman Bhakta Sanmilani and do not constitute a
             refund issued by the organization.
           </p>
 
