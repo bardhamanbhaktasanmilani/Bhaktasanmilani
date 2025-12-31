@@ -17,73 +17,61 @@ import {
   Html,
 } from "@react-three/drei";
 
-/* -------- tunables -------- */
+/* ---------------- CONFIG ---------------- */
 const DEFAULT_MODEL = "/About/temple-optimized.glb";
-const FALLBACK_IMAGE = "/About/temple-low.glb";
 const TARGET_SIZE = 2.6;
 
-/* ---------- device detection ---------- */
+/* ---------------- DEVICE CHECK ---------------- */
 function detectLowEndDevice(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent || "";
   const isMobile = /Mobi|Android/i.test(ua);
-  const deviceMemory = (navigator as any).deviceMemory || 0;
-  const cpuCount = (navigator as any).hardwareConcurrency || 4;
-  return isMobile || (deviceMemory > 0 && deviceMemory < 2) || cpuCount < 3;
+  const mem = (navigator as any).deviceMemory || 0;
+  const cpu = (navigator as any).hardwareConcurrency || 4;
+  return isMobile || (mem && mem < 2) || cpu < 3;
 }
 
-/* ---------- progress overlay ---------- */
+/* ---------------- LOADER ---------------- */
 function ProgressOverlay() {
   const { active, progress } = useProgress();
   if (!active) return null;
 
   return (
     <Html center>
-      <div
-        style={{
-          padding: 12,
-          borderRadius: 10,
-          background: "rgba(255,255,255,0.95)",
-          boxShadow: "0 6px 20px rgba(0,0,0,0.12)",
-        }}
-      >
-        <div style={{ fontWeight: 600, marginBottom: 6 }}>
-          Loading 3D model
-        </div>
+      <div style={{ padding: 12, borderRadius: 10, background: "#fff" }}>
+        <div style={{ fontWeight: 600 }}>Loading temple</div>
         <div
           style={{
             width: 220,
             height: 8,
             background: "#eee",
+            marginTop: 8,
             borderRadius: 6,
             overflow: "hidden",
           }}
         >
           <div
             style={{
-              width: `${Math.round(progress)}%`,
+              width: `${progress}%`,
               height: "100%",
               background: "#f59e0b",
-              transition: "width 200ms linear",
             }}
           />
-        </div>
-        <div style={{ fontSize: 12, marginTop: 6, textAlign: "right" }}>
-          {Math.round(progress)}%
         </div>
       </div>
     </Html>
   );
 }
 
-/* ---------- glow texture ---------- */
-function useFieryGlowTexture(lowEnd = false): THREE.Texture | null {
+/* ---------------- GLOW TEXTURE ---------------- */
+function useSunGlowTexture(lowEnd: boolean) {
   return useMemo(() => {
     if (typeof document === "undefined") return null;
+
     const size = lowEnd ? 512 : 1024;
     const canvas = document.createElement("canvas");
-    canvas.width = size;
-    canvas.height = size;
+    canvas.width = canvas.height = size;
+
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
 
@@ -95,10 +83,11 @@ function useFieryGlowTexture(lowEnd = false): THREE.Texture | null {
       size / 2,
       size / 2
     );
-    g.addColorStop(0, "rgba(255,247,160,1)");
-    g.addColorStop(0.4, "rgba(255,160,60,0.9)");
-    g.addColorStop(0.8, "rgba(200,40,20,0.3)");
-    g.addColorStop(1, "rgba(200,40,20,0)");
+
+    g.addColorStop(0, "rgba(255,240,180,1)");
+    g.addColorStop(0.4, "rgba(255,180,80,0.8)");
+    g.addColorStop(0.8, "rgba(255,120,40,0.3)");
+    g.addColorStop(1, "rgba(255,120,40,0)");
 
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, size, size);
@@ -110,49 +99,58 @@ function useFieryGlowTexture(lowEnd = false): THREE.Texture | null {
   }, [lowEnd]);
 }
 
-/* ---------- Temple Model ---------- */
+/* ---------------- TEMPLE MODEL ---------------- */
 function TempleModel({
   path,
   sceneRef,
-  strength = 0.12,
 }: {
   path: string;
   sceneRef: React.MutableRefObject<THREE.Object3D | null>;
-  strength?: number;
 }) {
-  const gltf = useGLTF(path, true);
+  const gltf = useGLTF(path);
 
   useEffect(() => {
     if (!gltf?.scene) return;
     sceneRef.current = gltf.scene;
 
-    const marbleBias = new THREE.Color(0xf4efe6);
-    gltf.scene.traverse((obj: any) => {
-      if (obj.isMesh) {
-        obj.castShadow = true;
-        obj.receiveShadow = true;
-        const mats = Array.isArray(obj.material)
-          ? obj.material
-          : [obj.material];
-        mats.forEach((mat: any) => {
-          if (mat?.color && !mat.map) {
-            mat.color.lerp(marbleBias, strength * 0.7);
-          }
-        });
-      }
-    });
-  }, [gltf, sceneRef, strength]);
+    const marbleWhite = new THREE.Color("#f8f6f2");
 
-  return gltf?.scene ? <primitive object={gltf.scene} /> : null;
+    gltf.scene.traverse((obj: any) => {
+      if (!obj.isMesh) return;
+
+      obj.castShadow = true;
+      obj.receiveShadow = true;
+
+      const mats = Array.isArray(obj.material)
+        ? obj.material
+        : [obj.material];
+
+      mats.forEach((mat: any) => {
+        const standard = new THREE.MeshStandardMaterial({
+          map: mat.map || null,
+          color: marbleWhite,
+          roughness: 0.18,          // ✨ glossy
+          metalness: 0.05,
+          envMapIntensity: 0.6,
+          clearcoat: 0.25,
+          clearcoatRoughness: 0.25,
+        });
+
+        obj.material = standard;
+      });
+    });
+  }, [gltf, sceneRef]);
+
+  return <primitive object={gltf.scene} />;
 }
 
-/* ---------- Fit & center ---------- */
+/* ---------------- FIT & CAMERA ---------------- */
 function FitAndCenter({
   sceneRef,
-  onComputed,
+  onDone,
 }: {
   sceneRef: React.MutableRefObject<THREE.Object3D | null>;
-  onComputed: (v: { glowZ: number; modelScale: number }) => void;
+  onDone: (d: { sunZ: number; scale: number }) => void;
 }) {
   const { camera } = useThree();
 
@@ -165,21 +163,22 @@ function FitAndCenter({
 
     sceneRef.current.scale.setScalar(scale);
     box.setFromObject(sceneRef.current);
+
     const center = box.getCenter(new THREE.Vector3());
     sceneRef.current.position.sub(center);
 
-    const dist = size.length() * 1.8;
-    camera.position.set(dist, dist * 0.6, dist);
+    const dist = size.length() * 1.9;
+    camera.position.set(dist, dist * 0.55, dist);
     camera.lookAt(0, 0, 0);
 
-    onComputed({ glowZ: -dist * 1.2, modelScale: scale });
+    onDone({ sunZ: -dist * 1.2, scale });
   }, []);
 
   return null;
 }
 
-/* ---------- Glow Plane ---------- */
-function GlowPlane({
+/* ---------------- SUN GLOW ---------------- */
+function SunGlow({
   texture,
   position,
   scale,
@@ -190,15 +189,12 @@ function GlowPlane({
 }) {
   const ref = useRef<THREE.Mesh>(null);
   const { camera } = useThree();
+
   useFrame(() => ref.current?.lookAt(camera.position));
   if (!texture) return null;
 
   return (
-    <mesh
-      ref={ref}
-      position={[position.x, position.y, position.z]}
-      scale={[scale, scale, 1]}
-    >
+    <mesh ref={ref} position={position} scale={[scale, scale, 1]}>
       <planeGeometry />
       <meshBasicMaterial
         map={texture}
@@ -210,7 +206,7 @@ function GlowPlane({
   );
 }
 
-/* ---------- MAIN EXPORT ---------- */
+/* ---------------- MAIN VIEWER ---------------- */
 export default function TempleViewer({
   modelPath = DEFAULT_MODEL,
 }: {
@@ -220,13 +216,12 @@ export default function TempleViewer({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [visible, setVisible] = useState(false);
 
-  const [glowPos, setGlowPos] = useState(new THREE.Vector3(0, 1, -3));
-  const [glowScale, setGlowScale] = useState(3.2);
+  const [sunPos, setSunPos] = useState(new THREE.Vector3(0, 1, -4));
+  const [sunScale, setSunScale] = useState(3);
 
   const lowEnd = detectLowEndDevice();
-  const glowTex = useFieryGlowTexture(lowEnd);
+  const glowTex = useSunGlowTexture(lowEnd);
 
-  /* render only when visible */
   useEffect(() => {
     if (!containerRef.current) return;
     const io = new IntersectionObserver(
@@ -241,64 +236,69 @@ export default function TempleViewer({
     return (
       <div
         ref={containerRef}
-        className="w-full flex justify-center items-center"
-        style={{ height: "min(75vh,820px)" }}
-      >
-        <img
-          src={FALLBACK_IMAGE}
-          alt="Temple preview"
-          className="max-h-full object-contain"
-        />
-      </div>
+        style={{
+          height: "min(75vh,820px)",
+          background:
+            "linear-gradient(180deg,#fff7ef,#ffd6b5)",
+        }}
+      />
     );
   }
 
   return (
     <div
       ref={containerRef}
-      className="relative w-full flex justify-center"
       style={{
         height: "min(75vh,820px)",
         background:
-          "linear-gradient(180deg,#fff7ef 0%,#ffe6d6 30%,#ffd0bf 60%,#ffb79a 100%)",
+          "linear-gradient(180deg,#fff7ef,#ffd6b5)",
       }}
     >
       <Canvas
         dpr={lowEnd ? 1 : 1.4}
-        camera={{ fov: 40 }}
         shadows={!lowEnd}
-        gl={{
-          powerPreference: "low-power",
-          antialias: !lowEnd,
-          alpha: false,
-        }}
+        camera={{ fov: 38 }}
+        gl={{ powerPreference: "low-power", antialias: !lowEnd }}
       >
-        <color attach="background" args={["#fff9f1"]} />
-
         <Suspense fallback={<ProgressOverlay />}>
-          <hemisphereLight intensity={0.22} />
-          <directionalLight position={[-6, 10, -6]} intensity={2} />
+
+          {/* ambient base */}
+          <ambientLight intensity={0.18} />
+
+          {/* 🌞 SUN BEHIND TEMPLE */}
+          <directionalLight
+            position={[0, 8, -12]}
+            intensity={2.8}
+            color="#ffd9a3"
+            castShadow={!lowEnd}
+          />
+
+          {/* soft front fill */}
+          <directionalLight
+            position={[6, 3, 6]}
+            intensity={0.4}
+          />
 
           <TempleModel path={modelPath} sceneRef={sceneRef} />
 
           <FitAndCenter
             sceneRef={sceneRef}
-            onComputed={({ glowZ, modelScale }) => {
-              setGlowPos(new THREE.Vector3(0, 0.9 * modelScale, glowZ));
-              setGlowScale(Math.max(3, modelScale * 1.2));
+            onDone={({ sunZ, scale }) => {
+              setSunPos(new THREE.Vector3(0, scale * 0.9, sunZ));
+              setSunScale(Math.max(3, scale * 1.3));
             }}
           />
 
-          <GlowPlane
+          <SunGlow
             texture={glowTex}
-            position={glowPos}
-            scale={glowScale}
+            position={sunPos}
+            scale={sunScale}
           />
 
           {!lowEnd && (
             <ContactShadows
-              position={[0, -0.82, 0]}
-              opacity={0.7}
+              position={[0, -0.8, 0]}
+              opacity={0.65}
               blur={4}
               far={1.5}
             />
@@ -309,7 +309,7 @@ export default function TempleViewer({
             enableDamping
             dampingFactor={0.05}
             autoRotate
-            autoRotateSpeed={0.55}
+            autoRotateSpeed={0.5}
           />
         </Suspense>
       </Canvas>
