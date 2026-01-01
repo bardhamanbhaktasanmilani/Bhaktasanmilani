@@ -121,7 +121,13 @@ export default function HeroSectionClient() {
                   : "max-h-0 opacity-0 -translate-y-2"
               }`}
             >
-              <p className="text-base sm:text-lg text-white/90">
+              <p className="text-base sm:text-lg text-white/90" style={{
+                textShadow: `
+                  0 0 6px rgba(255, 236, 179, 0.9),
+                  0 0 14px rgba(255, 224, 102, 0.8),
+                  0 0 28px rgba(255, 215, 0, 0.6),
+                  0 0 48px rgba(255, 193, 7, 0.45)
+                `,}}>
                 {slide.more}
               </p>
             </div>
