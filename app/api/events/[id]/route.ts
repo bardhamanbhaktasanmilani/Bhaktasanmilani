@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-
+/* =========================
+   PATCH → Edit event (FULL)
+   ========================= */
 export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    // 🔑 REQUIRED in Next.js App Router
     const { id } = await context.params;
 
     const eventId = Number(id);
@@ -18,18 +21,49 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { posterUrl } = body as { posterUrl?: string };
+    const {
+      title,
+      description,
+      dateTime,
+      posterUrl,
+    } = body as {
+      title?: string;
+      description?: string;
+      dateTime?: string;
+      posterUrl?: string | null;
+    };
 
-    if (!posterUrl) {
+    // Build update object dynamically
+    const updateData: Record<string, any> = {};
+
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+
+    if (dateTime !== undefined) {
+      const parsedDate = new Date(dateTime);
+      if (isNaN(parsedDate.getTime())) {
+        return NextResponse.json(
+          { error: "Invalid dateTime" },
+          { status: 400 }
+        );
+      }
+      updateData.date = parsedDate;
+    }
+
+    if (posterUrl !== undefined) {
+      updateData.posterUrl = posterUrl;
+    }
+
+    if (Object.keys(updateData).length === 0) {
       return NextResponse.json(
-        { error: "posterUrl is required" },
+        { error: "No valid fields to update" },
         { status: 400 }
       );
     }
 
     const event = await prisma.event.update({
       where: { id: eventId },
-      data: { posterUrl },
+      data: updateData,
     });
 
     return NextResponse.json({ ok: true, event });
@@ -49,7 +83,9 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/events/:id → delete event
+/* =========================
+   DELETE → Delete event
+   ========================= */
 export async function DELETE(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }

@@ -98,7 +98,7 @@ export default function Footer() {
 
   const socialLinks = useMemo(
     () => [
-      { Icon: Facebook, label: "Facebook", href: "#" },
+      { Icon: Facebook, label: "Facebook", href: "https://www.facebook.com/share/1DLUhJAnrV/" },
       { Icon: Twitter, label: "Twitter", href: "#" },
       { Icon: Instagram, label: "Instagram", href: "#" },
       { Icon: Youtube, label: "YouTube", href: "#" },

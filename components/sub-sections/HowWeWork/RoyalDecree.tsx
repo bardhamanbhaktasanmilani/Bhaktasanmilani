@@ -8,10 +8,17 @@ type RoyalDecreeProps = {
   description: string;
   date: string;
   time: string;
-  children?: React.ReactNode; 
+  children?: React.ReactNode;
 };
 
-
+/**
+ * RoyalDecree
+ * - Decorative parchment card with open animation
+ * - Scrollable content with custom thumb
+ * - Accepts children; images inside children are detected and rendered into a framed poster area
+ *
+ * Important: the container allows overflow-visible so poster images are not clipped.
+ */
 export default function RoyalDecree({
   title,
   description,
@@ -19,60 +26,56 @@ export default function RoyalDecree({
   time,
   children,
 }: RoyalDecreeProps) {
-  const decreeWrapperRef = useRef<HTMLDivElement | null>(null);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
   const parchmentRef = useRef<HTMLDivElement | null>(null);
-  const scrollContentRef = useRef<HTMLDivElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
   const topHandleRef = useRef<HTMLDivElement | null>(null);
   const bottomHandleRef = useRef<HTMLDivElement | null>(null);
-
-
-  const scrollTrackRef = useRef<HTMLDivElement | null>(null);
+  const trackRef = useRef<HTMLDivElement | null>(null);
   const thumbRef = useRef<HTMLDivElement | null>(null);
 
-  const [isOpen, setIsOpen] = useState(false);
   const hasOpened = useRef(false);
-
+  const [isOpen, setIsOpen] = useState(false);
 
   const thumbState = useRef({
     thumbHeightPx: 0,
     trackHeightPx: 0,
   });
 
+  // ---- Intersection: open once when visible ----
   useEffect(() => {
-   
-    if (decreeWrapperRef.current) decreeWrapperRef.current.style.opacity = "0";
+    if (wrapperRef.current) wrapperRef.current.style.opacity = "0";
     if (parchmentRef.current) parchmentRef.current.style.height = "40px";
-    if (scrollContentRef.current) {
-      scrollContentRef.current.style.opacity = "0";
-      scrollContentRef.current.style.transform = "translateY(-50px)";
-      
-      scrollContentRef.current.style.scrollbarWidth = "none";
-    
+    if (contentRef.current) {
+      contentRef.current.style.opacity = "0";
+      contentRef.current.style.transform = "translateY(-40px)";
+      // hide native scrollbar visual (where supported)
+      (contentRef.current.style as any).scrollbarWidth = "none";
     }
 
-    const observer = new IntersectionObserver(
+    const obs = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (!entry.isIntersecting || hasOpened.current) return;
           hasOpened.current = true;
-          openAnimation();
+          openSequence();
         });
       },
       { threshold: 0.3 }
     );
 
-    if (decreeWrapperRef.current) observer.observe(decreeWrapperRef.current);
+    if (wrapperRef.current) obs.observe(wrapperRef.current);
 
-    return () => observer.disconnect();
-   
+    return () => obs.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  
-  const openAnimation = () => {
+  // ---- Animation sequence (open) ----
+  const openSequence = () => {
     if (
-      !decreeWrapperRef.current ||
+      !wrapperRef.current ||
       !parchmentRef.current ||
-      !scrollContentRef.current ||
+      !contentRef.current ||
       !topHandleRef.current ||
       !bottomHandleRef.current
     )
@@ -80,78 +83,74 @@ export default function RoyalDecree({
 
     setIsOpen(true);
 
-   
-    const contentHeight = scrollContentRef.current.scrollHeight;
-    const targetHeight = Math.min(contentHeight + 64, 520); 
+    // measure content and decide target height (capped)
+    const contentHeight = contentRef.current.scrollHeight;
+    const targetHeight = Math.min(contentHeight + 64, 560);
 
-   
+    // initial set
     anime.set(parchmentRef.current, { height: "40px", opacity: 1 });
-    anime.set(scrollContentRef.current, { opacity: 0, translateY: -50 });
+    anime.set(contentRef.current, { opacity: 0, translateY: -40 });
 
     anime
       .timeline({ easing: "easeOutCubic" })
       .add({
-        targets: decreeWrapperRef.current,
+        targets: wrapperRef.current,
         opacity: [0, 1],
         duration: 350,
       })
       .add(
         {
           targets: [topHandleRef.current, bottomHandleRef.current],
-          rotateX: [-5, 5],
-          duration: 450,
+          rotateX: [-6, 6],
+          duration: 420,
           easing: "easeInOutSine",
         },
-        200
+        180
       )
       .add(
         {
           targets: parchmentRef.current,
           height: ["40px", `${targetHeight}px`],
-          duration: 1100,
-          easing: "easeOutElastic(1,0.6)",
-          update: () => {
-            
-            computeAndSetThumb(true);
-          },
+          duration: 1000,
+          easing: "easeOutElastic(1, .6)",
+          update: () => computeThumb(true),
         },
-        380
+        360
       )
       .add(
         {
           targets: topHandleRef.current,
-          rotateX: [5, 0],
+          rotateX: [6, 0],
           translateY: [0, -8],
-          duration: 550,
+          duration: 520,
         },
         820
       )
       .add(
         {
           targets: bottomHandleRef.current,
-          rotateX: [5, 0],
+          rotateX: [6, 0],
           translateY: [0, 8],
-          duration: 550,
+          duration: 520,
         },
         820
       )
       .add(
         {
-          targets: scrollContentRef.current,
+          targets: contentRef.current,
           opacity: [0, 1],
-          translateY: [-50, 0],
-          duration: 750,
-          easing: "easeOutQuart",
+          translateY: [-40, 0],
+          duration: 700,
+          easing: "easeOutQuad",
         },
-        1100
+        1000
       )
-     
       .add(
         {
-          targets: scrollTrackRef.current,
-          translateX: [24, 0],
+          targets: trackRef.current,
+          translateX: [18, 0],
           opacity: [0, 1],
-          duration: 650,
+          duration: 600,
           easing: "easeOutCubic",
         },
         900
@@ -159,45 +158,41 @@ export default function RoyalDecree({
       .add(
         {
           targets: thumbRef.current,
-          scale: [0.9, 1.03, 1],
-          duration: 700,
+          scale: [0.95, 1.02, 1],
+          duration: 600,
           easing: "easeInOutSine",
           complete: () => {
+            // after open, allow parchment height to auto-size and attach handlers
             if (parchmentRef.current) parchmentRef.current.style.height = "auto";
-          
-            computeAndSetThumb(false, true);
-          
+            computeThumb(false, true);
             attachScrollHandlers();
             attachResizeObserver();
           },
         },
-        1600
+        1500
       );
   };
 
- 
-  const computeAndSetThumb = (animate = true, snapToTop = false) => {
-    const scrollEl = scrollContentRef.current;
-    const trackEl = scrollTrackRef.current;
+  // ---- compute thumb size & position ----
+  const computeThumb = (animate = true, snapToTop = false) => {
+    const scrollEl = contentRef.current;
+    const trackEl = trackRef.current;
     const thumbEl = thumbRef.current;
     const parchmentEl = parchmentRef.current;
     if (!scrollEl || !trackEl || !thumbEl || !parchmentEl) return;
 
-    
+    // compute track height (available vertical space)
     const trackRect = trackEl.getBoundingClientRect();
-    const trackHeight = Math.max(trackRect.height, 48);
+    const trackHeight = Math.max(48, trackRect.height);
 
- 
     const clientH = scrollEl.clientHeight;
-    const scrollH = scrollEl.scrollHeight || clientH;
+    const scrollH = Math.max(clientH, scrollEl.scrollHeight);
     const visibleRatio = Math.min(1, clientH / scrollH);
-
 
     const minThumb = 36;
     const rawThumb = Math.max(minThumb, Math.floor(visibleRatio * trackHeight));
     thumbState.current = { thumbHeightPx: rawThumb, trackHeightPx: trackHeight };
 
-   
     const maxScrollTop = Math.max(1, scrollH - clientH);
     const scrollTop = snapToTop ? 0 : scrollEl.scrollTop;
     const scrollProgress = snapToTop ? 0 : scrollTop / maxScrollTop;
@@ -209,7 +204,7 @@ export default function RoyalDecree({
         targets: thumbEl,
         height: `${rawThumb}px`,
         translateY: topPx,
-        duration: 280,
+        duration: 260,
         easing: "easeOutQuad",
       });
     } else {
@@ -218,14 +213,14 @@ export default function RoyalDecree({
     }
   };
 
-
+  // ---- on scroll sync thumb ----
   const onScroll = () => {
-    const scrollEl = scrollContentRef.current;
+    const scrollEl = contentRef.current;
     const thumbEl = thumbRef.current;
     if (!scrollEl || !thumbEl) return;
 
     const clientH = scrollEl.clientHeight;
-    const scrollH = scrollEl.scrollHeight || clientH;
+    const scrollH = Math.max(clientH, scrollEl.scrollHeight);
     const scrollTop = scrollEl.scrollTop;
     const maxScrollTop = Math.max(1, scrollH - clientH);
 
@@ -237,225 +232,166 @@ export default function RoyalDecree({
     anime({
       targets: thumbEl,
       translateY: topPx,
-      duration: 220,
+      duration: 200,
       easing: "easeOutSine",
     });
   };
 
-
+  // ---- attach scroll handlers once ----
   const attachScrollHandlers = () => {
-    const scrollEl = scrollContentRef.current;
-    if (!scrollEl) return;
-
-    if ((scrollEl as any).__royaldecree_attached) return;
-    scrollEl.addEventListener("scroll", onScroll, { passive: true });
-    (scrollEl as any).__royaldecree_attached = true;
-  
-    computeAndSetThumb(false, true);
+    const el = contentRef.current;
+    if (!el) return;
+    if ((el as any).__rd_attached) return;
+    el.addEventListener("scroll", onScroll, { passive: true });
+    (el as any).__rd_attached = true;
+    computeThumb(false, true);
   };
 
-
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  // ---- resize observer to recompute thumb ----
+  const roRef = useRef<ResizeObserver | null>(null);
   const attachResizeObserver = () => {
-    const scrollEl = scrollContentRef.current;
-    if (!scrollEl) return;
-    if (resizeObserverRef.current) return;
-
-    resizeObserverRef.current = new ResizeObserver(() => {
-      computeAndSetThumb(true);
+    const el = contentRef.current;
+    if (!el) return;
+    if (roRef.current) return;
+    roRef.current = new ResizeObserver(() => {
+      computeThumb(true);
     });
-    resizeObserverRef.current.observe(scrollEl);
+    roRef.current.observe(el);
   };
 
-
+  // cleanup listeners & observers on unmount
   useEffect(() => {
     return () => {
-      const scrollEl = scrollContentRef.current;
-      if (scrollEl && (scrollEl as any).__royaldecree_attached) {
-        scrollEl.removeEventListener("scroll", onScroll);
+      const el = contentRef.current;
+      if (el && (el as any).__rd_attached) {
+        el.removeEventListener("scroll", onScroll);
       }
-      if (resizeObserverRef.current) {
-        resizeObserverRef.current.disconnect();
-        resizeObserverRef.current = null;
+      if (roRef.current) {
+        roRef.current.disconnect();
+        roRef.current = null;
       }
     };
-   
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-
+  // ---- poster/frame rendering from children ----
   const renderPosterFrame = () => {
     if (!children) return null;
 
-   
     const childArray = React.Children.toArray(children);
+    let imageIndex = -1;
 
-    
-    let imageChildIndex = -1;
+    // find first element that looks like an <img> or has src prop
     for (let i = 0; i < childArray.length; i++) {
-      const c = childArray[i] as React.ReactElement | string;
+      const c = childArray[i] as any;
+
       if (React.isValidElement(c)) {
-        
         const typeName =
-          typeof c.type === "string" ? (c.type as string).toLowerCase() : "";
-       
-        const hasSrc = !!((c.props as any)?.src);
+          typeof c.type === "string" ? c.type.toLowerCase() : "";
+
+        const props = c.props as Record<string, unknown>;
+
+        const hasSrc =
+          typeof props.src === "string" ||
+          (typeof props.children === "string" &&
+            props.children.startsWith("data:"));
+
         if (typeName === "img" || hasSrc) {
-          imageChildIndex = i;
+          imageIndex = i;
           break;
         }
       }
+    } // <-- properly close the for loop here
+
+    const frameBase =
+      "mx-auto mt-5 w-[240px] h-[340px] sm:w-[320px] sm:h-[420px] rounded-lg overflow-hidden border-2 border-amber-200 shadow-inner flex items-center justify-center bg-amber-50";
+
+    if (imageIndex >= 0) {
+      const imgEl = childArray[imageIndex] as React.ReactElement<
+        React.ImgHTMLAttributes<HTMLImageElement>
+      >;
+      const existingClass = (imgEl.props as any).className || "";
+      const mergedClass = `${existingClass} block w-full h-full object-cover`;
+      const mergedStyle = {
+        ...((imgEl.props as any).style || {}),
+        width: "100%",
+        height: "100%",
+        objectFit: "cover" as const,
+        display: "block",
+      };
+
+      const cloned = React.cloneElement(imgEl, {
+        className: mergedClass,
+        style: mergedStyle,
+        loading: (imgEl.props as any).loading || "lazy",
+        alt: (imgEl.props as any).alt || `${title} poster`,
+      });
+
+      // ensure the frame sits above background layers (z-index), and allow visible overflow
+      return (
+        <div className={frameBase} aria-hidden={false} style={{ zIndex: 22 }}>
+          {cloned}
+        </div>
+      );
     }
 
- 
-    const frameClass =
-      "mx-auto mt-4 w-[240px] h-[340px] sm:w-[320px] sm:h-[420px] rounded-lg overflow-hidden border-2 border-amber-200 shadow-inner flex items-center justify-center bg-amber-50";
-
-    if (imageChildIndex >= 0) {
-  const imgElement =
-    childArray[imageChildIndex] as React.ReactElement<
-      React.ImgHTMLAttributes<HTMLImageElement>
-    >;
-
-  const existingClass = imgElement.props.className || "";
-  const mergedClass = `${existingClass} block w-full h-full object-cover`;
-
-  const mergedStyle = {
-    ...(imgElement.props.style || {}),
-    width: "100%",
-    height: "100%",
-    objectFit: "cover" as const,
-    display: "block",
-  };
-
-  const cloned = React.cloneElement(imgElement, {
-    className: mergedClass,
-    style: mergedStyle,
-    loading: imgElement.props.loading || "lazy",
-    alt: imgElement.props.alt || `${title} poster`,
-  });
-
-  return (
-    <div className={frameClass} aria-hidden={false}>
-      {cloned}
-    </div>
-  );
-}
-
-
-    
+    // if no image child, render children inside a framed slot
     return (
-      <div className={frameClass}>
-        <div className="p-2 w-full h-full flex items-center justify-center">
+      <div className={frameBase} style={{ zIndex: 22 }}>
+        <div className="p-3 w-full h-full flex items-center justify-center">
           {children}
         </div>
       </div>
     );
   };
 
+  // ---- final render ----
   return (
     <div
-      ref={decreeWrapperRef}
+      ref={wrapperRef}
       className="relative w-full max-w-md mx-auto my-8 opacity-0"
     >
-    
+      {/* Inline styles for the custom thumb look (kept close to original design) */}
       <style>{`
-        /* hide native webkit scrollbar inside our content area */
         .royal-scroll-content::-webkit-scrollbar { width: 0; height: 0; }
-        /* make sure the track area is positioned correctly */
-        .royal-scroll-track {
-          /* will be absolutely positioned inside parchment */
-        }
-        /* fancy wooden grain thumb + subtle glow */
-        .royal-thumb {
-          border-radius: 999px;
-          box-shadow: 0 3px 10px rgba(0,0,0,0.25), inset 0 2px 6px rgba(255,255,255,0.04);
-          background: linear-gradient(180deg, #7a4a24 0%, #5a3317 45%, #421f11 100%);
-          border: 1px solid rgba(0,0,0,0.18);
-          position: absolute;
-          right: 6px;
-          width: 10px;
-          transform-origin: top left;
-          will-change: transform, height;
-          overflow: hidden;
-        }
-        /* thin track (transparent but provides spacing) */
-        .royal-track {
-          position: absolute;
-          right: 6px;
-          top: 12px;
-          bottom: 12px;
-          width: 16px;
-          border-radius: 12px;
-          display: flex;
-          align-items: flex-start;
-          justify-content: center;
-          pointer-events: none;
-        }
-        /* tiny grain lines inside thumb */
-        .royal-thumb::before {
-          content: "";
-          position: absolute;
-          left: 2px;
-          right: 2px;
-          top: 0;
-          bottom: 0;
-          background-image: linear-gradient(90deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 4px);
-          opacity: 0.12;
-        }
-        /* animated shine that sweeps slowly down the stick when idle */
-        @keyframes royalShine {
-          0% { transform: translateY(-120%) rotate(10deg); opacity: 0; }
-          50% { transform: translateY(30%) rotate(10deg); opacity: 0.12; }
-          100% { transform: translateY(120%) rotate(10deg); opacity: 0; }
-        }
-        .royal-shine {
-          position: absolute;
-          left: -14px;
-          width: 36px;
-          height: 40%;
-          top: -10%;
-          transform: rotate(10deg);
-          background: linear-gradient(90deg, rgba(255,255,255,0.0), rgba(255,255,255,0.22), rgba(255,255,255,0.0));
-          filter: blur(6px);
-          opacity: 0;
-          pointer-events: none;
-          animation: royalShine 3800ms ease-in-out infinite;
-        }
+        .rd-track { position: absolute; right: 8px; top: 12px; bottom: 12px; width: 18px; border-radius: 12px; pointer-events: none; display:flex; align-items:flex-start; justify-content:center; }
+        .rd-thumb { position: absolute; right: 8px; width: 10px; border-radius:999px; transform-origin: top left; will-change: transform, height; pointer-events: auto; }
+        .rd-thumb::before { content: ''; position:absolute; inset:0; background-image: linear-gradient(90deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 4px); opacity:0.11; }
+        .rd-shine { position:absolute; left:-14px; width:36px; height:40%; top:-10%; transform:rotate(10deg); background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.18), rgba(255,255,255,0)); filter: blur(6px); opacity:0; animation: rdShine 3800ms ease-in-out infinite; }
+        @keyframes rdShine { 0% { transform: translateY(-120%) rotate(10deg); opacity: 0 } 50% { transform: translateY(30%) rotate(10deg); opacity: 0.12 } 100% { transform: translateY(120%) rotate(10deg); opacity: 0 } }
       `}</style>
 
       {/* TOP HANDLE */}
       <div
         ref={topHandleRef}
-        className="absolute left-0 right-0 h-6 mx-6 -top-3 z-20"
+        className="absolute left-0 right-0 h-6 mx-6 -top-3 z-30 pointer-events-none"
+        aria-hidden
       >
         <div className="w-full h-6 rounded-full bg-gradient-to-r from-amber-900 via-amber-800 to-amber-900 shadow-lg">
           <div className="w-full h-2 mt-2 rounded-full bg-gradient-to-r from-amber-700 to-amber-500 opacity-80" />
         </div>
       </div>
 
-      {/* PARCHMENT */}
+      {/* Parchment container: allow overflow-visible so poster frames are not clipped */}
       <div
         ref={parchmentRef}
-        className="relative w-full mx-auto bg-gradient-to-br from-yellow-50 via-amber-50 to-yellow-100 overflow-hidden shadow-2xl border-x-4 border-amber-700"
+        className="relative w-full mx-auto bg-gradient-to-br from-yellow-50 via-amber-50 to-yellow-100 overflow-visible shadow-2xl border-x-4 border-amber-700 rounded-xl"
         style={{
           height: "40px",
           boxShadow:
             "inset 0 0 60px rgba(217,119,6,0.18), 0 25px 50px rgba(0,0,0,0.35)",
-          borderRadius: 14,
         }}
       >
-   
+        {/* decorative top strip */}
         <div className="h-3 w-full bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-200 border-b border-amber-300 shadow-inner" />
 
-       
+        {/* content area (scrollable) */}
         <div
-          ref={scrollContentRef}
-          className="royal-scroll-content px-6 pb-6 pt-4 opacity-0 transform -translate-y-10 max-h-[430px] overflow-y-auto scrollbar-thin scrollbar-thumb-amber-800 scrollbar-track-amber-100 relative"
-       
+          ref={contentRef}
+          className="royal-scroll-content px-6 pb-6 pt-4 opacity-0 transform -translate-y-10 max-h-[480px] overflow-y-auto relative"
           role="region"
           aria-label={`Program details for ${title}`}
         >
-       
           <div className="flex items-center justify-center mb-3">
             <span className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
             <span className="mx-2 text-xs tracking-[0.35em] uppercase text-amber-700">
@@ -467,20 +403,20 @@ export default function RoyalDecree({
           <h3 className="text-xl font-semibold text-center text-amber-900 mb-1">
             {title}
           </h3>
-
           <p className="text-center text-[13px] text-amber-800 mb-2">
             {date} • {time} hrs
           </p>
 
-         
           <p className="text-[13px] leading-relaxed text-amber-900/90 whitespace-pre-line mb-2">
             {description}
           </p>
 
-        
-          {renderPosterFrame()}
+          {/* Poster/frame area (ensures image not clipped) */}
+          <div style={{ zIndex: 22 }} className="flex justify-center">
+            {renderPosterFrame()}
+          </div>
 
-          {/* Ornamental footer */}
+          {/* footer ornamental */}
           <div className="mt-5">
             <div className="flex items-center justify-center mb-2">
               <span className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
@@ -492,19 +428,15 @@ export default function RoyalDecree({
           </div>
         </div>
 
-        {/* Decorative bottom strip */}
+        {/* bottom decorative strip */}
         <div className="h-2 w-full bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-200 border-t border-amber-300 shadow-inner" />
 
-       
+        {/* scroll track + thumb */}
         <div
-          ref={scrollTrackRef}
-          className="royal-track"
-          aria-hidden="true"
-          style={{
-            opacity: 0,
-            transition: "opacity 320ms ease",
-            pointerEvents: "none",
-          }}
+          ref={trackRef}
+          className="rd-track"
+          style={{ opacity: 0, transition: "opacity 320ms ease", pointerEvents: "none" }}
+          aria-hidden
         >
           <div
             style={{
@@ -518,23 +450,27 @@ export default function RoyalDecree({
           >
             <div
               ref={thumbRef}
-              className="royal-thumb"
+              className="rd-thumb"
               style={{
                 height: 48,
                 transform: "translateY(0px)",
                 pointerEvents: "auto",
+                background:
+                  "linear-gradient(180deg, #7a4a24 0%, #5a3317 45%, #421f11 100%)",
+                border: "1px solid rgba(0,0,0,0.18)",
               }}
             >
-              <div className="royal-shine" />
+              <div className="rd-shine" />
             </div>
           </div>
         </div>
       </div>
 
-   
+      {/* bottom handle */}
       <div
         ref={bottomHandleRef}
-        className="absolute left-0 right-0 h-6 mx-6 -bottom-3 z-20"
+        className="absolute left-0 right-0 h-6 mx-6 -bottom-3 z-30 pointer-events-none"
+        aria-hidden
       >
         <div className="w-full h-6 rounded-full bg-gradient-to-r from-amber-900 via-amber-800 to-amber-900 shadow-lg">
           <div className="w-full h-2 rounded-full bg-gradient-to-r from-amber-700 to-amber-500 opacity-80" />

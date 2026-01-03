@@ -9,6 +9,7 @@ const navLinks = [
   { href: "/admin/dashboard", label: "Dashboard" },
   { href: "/admin/dashboard/analytics", label: "Analytics" },
   { href: "/admin/dashboard/events", label: "Events" },
+    { href: "/admin/dashboard/gallery", label: "Gallery" },
 ];
 
 function normalizePath(p: string | null | undefined) {

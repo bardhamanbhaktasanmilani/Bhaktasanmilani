@@ -2,12 +2,15 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { format, parseISO } from "date-fns";
+import EventFormModal from "@/components/ui/Modals/EventFormModal";
 
+/* -----------------------
+   Types
+   ----------------------- */
 type RawEvent = {
   id: number;
   title: string;
   description: string;
- 
   date?: string | null;
   dateTime?: string | null;
   posterUrl?: string | null;
@@ -17,12 +20,14 @@ type Event = {
   id: number;
   title: string;
   description: string;
-  dateISO: string; 
+  dateISO: string;
   posterUrl?: string | null;
 };
 
+/* -----------------------
+   Component
+   ----------------------- */
 export default function AdminEventsPage() {
-
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -31,21 +36,24 @@ export default function AdminEventsPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Edit modal: when editing an event
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [time, setTime] = useState("18:00");
 
-
   const [posterFile, setPosterFile] = useState<File | null>(null);
   const [posterPreview, setPosterPreview] = useState<string | null>(null);
-
 
   const [uploadingByEvent, setUploadingByEvent] = useState<Record<number, boolean>>({});
   const [uploadingPosterLocal, setUploadingPosterLocal] = useState(false);
 
-  
   const fetchAbortRef = useRef<AbortController | null>(null);
 
+  /* -----------------------
+     Helpers
+     ----------------------- */
 
   const normalize = (r: RawEvent): Event => {
     const rawIso = r.date ?? r.dateTime ?? null;
@@ -59,11 +67,22 @@ export default function AdminEventsPage() {
     };
   };
 
- 
-  const fetchEvents = async () => {
-    if (fetchAbortRef.current) {
-      fetchAbortRef.current.abort();
+  const safeFormat = (iso: string, fmt: string) => {
+    try {
+      return format(parseISO(iso), fmt);
+    } catch {
+      return "—";
     }
+  };
+
+  const sortEvents = (list: Event[]) =>
+    [...list].sort((a, b) => new Date(a.dateISO).getTime() - new Date(b.dateISO).getTime());
+
+  /* -----------------------
+     Fetch events
+     ----------------------- */
+  const fetchEvents = async () => {
+    fetchAbortRef.current?.abort();
     const ac = new AbortController();
     fetchAbortRef.current = ac;
 
@@ -74,12 +93,10 @@ export default function AdminEventsPage() {
       const res = await fetch("/api/events", { signal: ac.signal });
       if (!res.ok) throw new Error("Failed to load events");
       const data: RawEvent[] = await res.json();
-      const normalized = data.map(normalize).sort((a, b) => {
-        return new Date(a.dateISO).getTime() - new Date(b.dateISO).getTime();
-      });
-      setEvents(normalized);
+      const normalized = data.map(normalize);
+      setEvents(sortEvents(normalized));
     } catch (err: any) {
-      if (err.name === "AbortError") return; // ignore aborts
+      if (err?.name === "AbortError") return;
       setError(err?.message ?? "Something went wrong while loading events");
     } finally {
       setLoading(false);
@@ -90,14 +107,17 @@ export default function AdminEventsPage() {
   useEffect(() => {
     fetchEvents();
     return () => {
-      if (fetchAbortRef.current) fetchAbortRef.current.abort();
-     
-      if (posterPreview) URL.revokeObjectURL(posterPreview);
+      fetchAbortRef.current?.abort();
+      if (posterPreview && posterPreview.startsWith("blob:")) {
+        URL.revokeObjectURL(posterPreview);
+      }
     };
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-
+  /* -----------------------
+     Calendar helpers
+     ----------------------- */
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const calendarDays = useMemo(() => {
@@ -109,7 +129,6 @@ export default function AdminEventsPage() {
 
     const days: (Date | null)[] = [];
 
-  
     const startWeekday = (start.getDay() + 6) % 7;
     for (let i = 0; i < startWeekday; i++) days.push(null);
 
@@ -118,17 +137,44 @@ export default function AdminEventsPage() {
     return days;
   }, [currentMonth]);
 
+  const goToPrevMonth = () => setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  const goToNextMonth = () => setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+
+  /* -----------------------
+     Modal open / close helpers
+     ----------------------- */
   const openModalForDate = (date: Date) => {
     setSelectedDate(new Date(date.getFullYear(), date.getMonth(), date.getDate()));
     setTitle("");
     setDescription("");
     setTime("18:00");
     setPosterFile(null);
-    if (posterPreview) {
+    if (posterPreview && posterPreview.startsWith("blob:")) {
       URL.revokeObjectURL(posterPreview);
-      setPosterPreview(null);
     }
+    setPosterPreview(null);
+    setEditingEvent(null);
     setIsModalOpen(true);
+  };
+
+  const openEditModal = (evt: Event) => {
+    setEditingEvent(evt);
+    try {
+      const dt = parseISO(evt.dateISO);
+      setSelectedDate(new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()));
+      setTitle(evt.title);
+      setDescription(evt.description);
+      setTime(format(dt, "HH:mm"));
+      setPosterFile(null);
+      if (posterPreview && posterPreview.startsWith("blob:")) URL.revokeObjectURL(posterPreview);
+      setPosterPreview(evt.posterUrl ?? null);
+      setIsModalOpen(true);
+    } catch {
+      setTitle(evt.title);
+      setDescription(evt.description);
+      setIsModalOpen(true);
+      setPosterPreview(evt.posterUrl ?? null);
+    }
   };
 
   const closeModal = () => {
@@ -137,14 +183,15 @@ export default function AdminEventsPage() {
     setTitle("");
     setDescription("");
     setTime("18:00");
-    if (posterPreview) {
-      URL.revokeObjectURL(posterPreview);
-      setPosterPreview(null);
-    }
+    if (posterPreview && posterPreview.startsWith("blob:")) URL.revokeObjectURL(posterPreview);
+    setPosterPreview(null);
     setPosterFile(null);
+    setEditingEvent(null);
   };
 
-  
+  /* -----------------------
+     File helpers
+     ----------------------- */
   const fileToDataUrl = (file: File) =>
     new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
@@ -156,12 +203,9 @@ export default function AdminEventsPage() {
       reader.readAsDataURL(file);
     });
 
-  
   const uploadPosterToServer = async (file: File) => {
-   
     setUploadingPosterLocal(true);
     try {
-   
       try {
         const form = new FormData();
         form.append("file", file);
@@ -176,10 +220,8 @@ export default function AdminEventsPage() {
           const body = await res.json();
           return body.url as string;
         }
-
-     
-      } catch (e) {
-    
+      } catch {
+        // fallback to dataUrl POST if multipart failed (older handlers)
       }
 
       const dataUrl = await fileToDataUrl(file);
@@ -199,6 +241,46 @@ export default function AdminEventsPage() {
     }
   };
 
+  /* -----------------------
+     Update helpers (local state updates)
+     ----------------------- */
+
+  // Accept either { event } or direct Event object returned from API
+  const extractEventFromResponse = async (res: Response) => {
+    try {
+      const body = await res.json();
+      // If API returned { ok: true, event } (PATCH/[id] route)
+      if (body && body.event) return normalize(body.event as RawEvent);
+      // If API returned raw event (POST route)
+      if (body && typeof body.id === "number") return normalize(body as RawEvent);
+    } catch {
+      // swallow - caller may fallback
+    }
+    return null;
+  };
+
+  const applyUpdatedEventToState = (updated: Event) => {
+    setEvents((prev) => {
+      const exists = prev.some((e) => e.id === updated.id);
+      if (exists) {
+        return sortEvents(prev.map((e) => (e.id === updated.id ? updated : e)));
+      } else {
+        return sortEvents([...prev, updated]);
+      }
+    });
+  };
+
+  const removeEventFromState = (id: number) => {
+    setEvents((prev) => prev.filter((e) => e.id !== id));
+  };
+
+  const setEventPosterInState = (id: number, posterUrl: string | null) => {
+    setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, posterUrl } : e)));
+  };
+
+  /* -----------------------
+     Create event handler
+     ----------------------- */
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedDate) return setError("Please pick a date first");
@@ -231,8 +313,16 @@ export default function AdminEventsPage() {
         throw new Error(data.error || "Failed to create event");
       }
 
+      // prefer to use returned created event to update state (avoid refetch)
+      const created = await extractEventFromResponse(res);
+      if (created) {
+        applyUpdatedEventToState(created);
+      } else {
+        // fallback: refetch list
+        await fetchEvents();
+      }
+
       closeModal();
-      await fetchEvents();
     } catch (err: any) {
       setError(err?.message ?? "Something went wrong creating the event");
     } finally {
@@ -240,11 +330,15 @@ export default function AdminEventsPage() {
     }
   };
 
+  /* -----------------------
+     Upload / replace poster for existing event
+     ----------------------- */
   const handleUploadPosterForEvent = async (eventId: number, file: File) => {
     setUploadingByEvent((p) => ({ ...p, [eventId]: true }));
     try {
       const posterUrl = await uploadPosterToServer(file);
 
+      // try PATCH and use response to update state
       const res = await fetch(`/api/events/${eventId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -256,7 +350,15 @@ export default function AdminEventsPage() {
         throw new Error(body.error || "Failed to attach poster to event");
       }
 
-      await fetchEvents();
+      const updated = await extractEventFromResponse(res);
+      if (updated) {
+        applyUpdatedEventToState(updated);
+      } else {
+        // fallback: update posterUrl locally (optimistic) then refetch in background
+        setEventPosterInState(eventId, posterUrl);
+        // best-effort verification
+        fetchEvents().catch(() => {});
+      }
     } catch (err: any) {
       setError(err?.message ?? "Something went wrong while uploading poster");
     } finally {
@@ -264,22 +366,9 @@ export default function AdminEventsPage() {
     }
   };
 
-  const onSelectPosterFile = (file?: File | null) => {
-    if (!file) {
-      if (posterPreview) URL.revokeObjectURL(posterPreview);
-      setPosterFile(null);
-      setPosterPreview(null);
-      return;
-    }
-
-    setPosterFile(file);
-    const url = URL.createObjectURL(file);
-    setPosterPreview(url);
-  };
-
-  const goToPrevMonth = () => setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-  const goToNextMonth = () => setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-
+  /* -----------------------
+     Delete event
+     ----------------------- */
   const handleDeleteEvent = async (eventId: number) => {
     const confirmDelete = window.confirm("Are you sure you want to delete this event?");
     if (!confirmDelete) return;
@@ -290,21 +379,122 @@ export default function AdminEventsPage() {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || "Failed to delete event");
       }
-      await fetchEvents();
+
+      // prefer to remove locally without full refetch
+      removeEventFromState(eventId);
     } catch (err: any) {
       setError(err?.message ?? "Something went wrong deleting the event");
     }
   };
 
+  /* -----------------------
+     Modal save handler (create or edit)
+     This now updates local state from API response (no mandatory refetch)
+     ----------------------- */
+ const handleModalSave = async (payload: {
+  id?: number;
+  title: string;
+  description: string;
+  dateISO: string;
+  posterUrl?: string | null;
+}) => {
+  try {
+    if (payload.id && payload.id > 0) {
+      // PATCH update
+      const res = await fetch(`/api/events/${payload.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: payload.title,
+          description: payload.description,
+          dateTime: payload.dateISO,
+          posterUrl: payload.posterUrl, // ← DO NOT coerce to undefined
+        }),
+      });
 
-  const safeFormat = (iso: string, fmt: string) => {
-    try {
-      return format(parseISO(iso), fmt);
-    } catch (_e) {
-      return "—";
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Failed to update event");
+      }
+
+      // 🔥 FORCE STATE UPDATE (THIS FIXES IMAGE REMOVAL)
+      setEvents((prev) =>
+        prev.map((e) =>
+          e.id === payload.id
+            ? {
+                ...e,
+                title: payload.title,
+                description: payload.description,
+                dateISO: payload.dateISO,
+                posterUrl: payload.posterUrl ?? null, // ← CRITICAL LINE
+              }
+            : e
+        )
+      );
+    } else {
+      // POST create
+      const res = await fetch("/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: payload.title,
+          description: payload.description,
+          dateTime: payload.dateISO,
+          posterUrl: payload.posterUrl ?? undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Failed to create event");
+      }
+
+      const created = await res.json();
+      setEvents((prev) => [
+        ...prev,
+        {
+          id: created.id,
+          title: created.title,
+          description: created.description,
+          dateISO: created.date,
+          posterUrl: created.posterUrl ?? null,
+        },
+      ]);
     }
+
+    closeModal();
+  } catch (err: any) {
+    setError(err?.message ?? "Failed to save event");
+    throw err;
+  }
+};
+
+
+  /* -----------------------
+     Helper to update poster removal from modal immediately
+     (EventFormModal should call handleModalSave with posterUrl: null)
+     ----------------------- */
+  // Note: handleModalSave will receive posterUrl: null and update state accordingly.
+
+  /* -----------------------
+     Select local poster file (for "Create" flow preview)
+     ----------------------- */
+  const onSelectPosterFile = (file?: File | null) => {
+    if (!file) {
+      if (posterPreview && posterPreview.startsWith("blob:")) URL.revokeObjectURL(posterPreview);
+      setPosterFile(null);
+      setPosterPreview(null);
+      return;
+    }
+
+    setPosterFile(file);
+    const url = URL.createObjectURL(file);
+    setPosterPreview(url);
   };
 
+  /* -----------------------
+     Render
+     ----------------------- */
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="mx-auto max-w-6xl">
@@ -392,7 +582,10 @@ export default function AdminEventsPage() {
                             </label>
                           </div>
 
-                          <button onClick={() => handleDeleteEvent(event.id)} className="mt-2 rounded-md bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700">Delete Event</button>
+                          <div className="flex gap-2 mt-2">
+                            <button onClick={() => openEditModal(event)} className="rounded-md bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700">Edit</button>
+                            <button onClick={() => handleDeleteEvent(event.id)} className="rounded-md bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700">Delete</button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -406,59 +599,39 @@ export default function AdminEventsPage() {
         </div>
       </div>
 
-     
-      {isModalOpen && selectedDate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-800">Create Event</h2>
-                <p className="text-xs text-slate-500">{format(selectedDate, "EEEE, dd MMM yyyy")}</p>
-              </div>
-              <button onClick={closeModal} className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-500 hover:bg-slate-200">✕</button>
-            </div>
-
-            <form onSubmit={handleCreateEvent} className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-slate-600">Title</label>
-                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-300" placeholder="Evening satsang, kirtan, etc." />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-600">Description</label>
-                <textarea value={description} onChange={(e) => setDescription(e.target.value)} required rows={3} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-300" placeholder="Short details about the event for donors." />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-600">Time (24-hour format)</label>
-                <input type="time" value={time} onChange={(e) => setTime(e.target.value)} required className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-300" />
-              </div>
-
-             
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Poster (optional)</label>
-
-                <div className="flex items-center gap-3">
-                  <label className="relative cursor-pointer rounded-md bg-slate-100 px-3 py-2 text-xs text-slate-600 hover:bg-slate-200">
-                    <input type="file" accept="image/*" className="absolute inset-0 h-full w-full opacity-0 cursor-pointer" onChange={(e) => { const f = e.target.files?.[0] ?? null; onSelectPosterFile(f ?? undefined); }} />
-                    Choose image
-                  </label>
-
-                  {posterPreview && (
-                    <div className="flex items-center gap-2">
-                      <img src={posterPreview} alt="preview" className="h-16 w-24 rounded-md object-cover" />
-                      <button type="button" onClick={() => onSelectPosterFile(undefined)} className="text-xs text-slate-500 underline">Remove</button>
-                    </div>
-                  )}
-                </div>
-
-                <p className="mt-2 text-xs text-slate-400">Poster will appear on donor site with the event. Recommended: 1200×675 (landscape).</p>
-              </div>
-
-              <button type="submit" disabled={creating || uploadingPosterLocal} className="mt-2 w-full rounded-xl bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-70">{creating ? "Saving…" : "Save Event"}</button>
-            </form>
-          </div>
-        </div>
+      {/* Use EventFormModal for both Create and Edit */}
+      {isModalOpen && (
+        <EventFormModal
+          event={
+            editingEvent
+              ? {
+                  id: editingEvent.id,
+                  title: editingEvent.title,
+                  description: editingEvent.description,
+                  dateISO: editingEvent.dateISO,
+                  posterUrl: editingEvent.posterUrl ?? null,
+                }
+              : {
+                  id: 0,
+                  title: title,
+                  description: description,
+                  dateISO: selectedDate
+                    ? new Date(
+                        selectedDate.getFullYear(),
+                        selectedDate.getMonth(),
+                        selectedDate.getDate(),
+                        Number(time.split(":")[0] ?? 18),
+                        Number(time.split(":")[1] ?? 0),
+                        0,
+                        0
+                      ).toISOString()
+                    : new Date().toISOString(),
+                  posterUrl: posterPreview ?? null,
+                }
+          }
+          onSave={handleModalSave}
+          onClose={closeModal}
+        />
       )}
     </div>
   );

@@ -1,3 +1,4 @@
+// components/sub-sections/About/Photo-gallery.tsx
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
@@ -14,101 +15,7 @@ type ImgItem = {
   height?: number;
 };
 
-const religionImages: ImgItem[] = [
-  {
-    src: "/About/religious/religious8.AVIF",
-    alt: "Devotees engaged in morning prayer",
-    title: "Morning Prayers",
-    subtitle: "Devotees begin the day with collective prayer and devotion",
-    width: 1600,
-    height: 900,
-  },
-  {
-    src: "/About/religious/religious2.AVIF",
-    alt: "Sacred idols displayed in the temple",
-    title: "Sacred Idols",
-    subtitle: "Divine forms worshipped with reverence and sacred rituals",
-    width: 1600,
-    height: 900,
-  },
-  {
-    src: "/About/religious/religious3.AVIF",
-    alt: "Temple construction in progress",
-    title: "Temple Construction",
-    subtitle: "Building sacred spaces dedicated to faith and worship",
-    width: 1600,
-    height: 900,
-  },
-  {
-    src: "/About/religious/religious7.AVIF",
-    alt: "Evening aarti ceremony",
-    title: "Evening Aarti",
-    subtitle: "Sacred lamps offered at dusk in devotion to the divine",
-    width: 1600,
-    height: 900,
-  },
-  {
-    src: "/About/religious/religious5.AVIF",
-    alt: "Radha Krishna idols adorned for worship",
-    title: "Radha Krishna Murti",
-    subtitle: "The divine presence symbolising love, devotion, and harmony",
-    width: 1600,
-    height: 900,
-  },
-];
-
-
-const charityImages: ImgItem[] = [
-  {
-    src: "/About/Yoga/yoga1.AVIF",
-    alt: "Group yoga practice",
-    title: "Collective Yoga Practice",
-    subtitle: "Practicing asanas together to build strength and harmony",
-    width: 1600,
-    height: 900,
-  },
-  {
-    src: "/About/Yoga/yoga2.AVIF",
-    alt: "Meditative yoga posture",
-    title: "Mindful Postures",
-    subtitle: "Awakening body awareness through controlled movement",
-    width: 1600,
-    height: 900,
-  },
-  {
-    src: "/About/Yoga/yoga3.AVIF",
-    alt: "Guided yoga session",
-    title: "Guided Yoga Session",
-    subtitle: "Learning alignment, balance, and inner stillness",
-    width: 1600,
-    height: 900,
-  },
-  {
-    src: "/About/Yoga/yoga4.AVIF",
-    alt: "Yoga for mental peace",
-    title: "Inner Balance & Calm",
-    subtitle: "Cultivating mental clarity through breath and focus",
-    width: 1600,
-    height: 900,
-  },
-  {
-    src: "/About/Yoga/yoga5.AVIF",
-    alt: "Outdoor yoga practice",
-    title: "Yoga in Harmony with Nature",
-    subtitle: "Connecting breath, movement, and the natural world",
-    width: 1600,
-    height: 900,
-  },
-];
-
-
-const covidImages: ImgItem[] = [
-  { src: "/About/charity/charity1.AVIF", alt: "Vaccine awareness", title: "Vaccination Drive", subtitle: "Vaccines administered safely", width: 1600, height: 900 },
-  { src: "/About/charity/charity2.AVIF", alt: "Relief supplies", title: "Relief Supplies", subtitle: "Medicine & oxygen supply distribution", width: 1600, height: 900 },
-  { src: "/About/charity/charity3.AVIF", alt: "Testing camp", title: "Testing Camps", subtitle: "Rapid testing & safety education", width: 1600, height: 900 },
-  { src: "/About/charity/charity4.AVIF", alt: "Volunteer support", title: "Volunteer Network", subtitle: "Volunteers coordinating aid and logistics", width: 1600, height: 900 },
-  { src: "/About/charity/charity5.AVIF", alt: "Isolation care", title: "Isolation Support", subtitle: "Safe care & quarantine assistance", width: 1600, height: 900 },
-];
+type GalleryCategory = "RELIGIOUS" | "YOG" | "CHARITY";
 
 const usePrefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -117,7 +24,7 @@ export default function PhotoGallery() {
   const rootRef = useRef<HTMLElement | null>(null);
   const religionRef = useRef<HTMLElement | null>(null);
   const charityRef = useRef<HTMLElement | null>(null);
-  const covidRef = useRef<HTMLElement | null>(null);
+  const yogaRef = useRef<HTMLElement | null>(null);
 
   const [isVisible, setIsVisible] = useState(false);
   const prefersReducedMotion = usePrefersReducedMotion();
@@ -129,6 +36,14 @@ export default function PhotoGallery() {
 
   const [mount3D, setMount3D] = useState(false);
 
+  // dynamic gallery state (grouped by category)
+  const [gallery, setGallery] = useState<Record<GalleryCategory, ImgItem[]>>({
+    RELIGIOUS: [],
+    YOG: [],
+    CHARITY: [],
+  });
+
+  // --- mount 3D carousel on >= md devices (preserve original behavior) ---
   useEffect(() => {
     if (typeof window === "undefined") return;
     const mq = window.matchMedia("(min-width:768px)");
@@ -140,6 +55,7 @@ export default function PhotoGallery() {
     };
   }, []);
 
+  // --- reveal on intersection (preserve original behavior) ---
   useEffect(() => {
     if (!rootRef.current || typeof IntersectionObserver === "undefined") return;
     const io = new IntersectionObserver(
@@ -157,6 +73,7 @@ export default function PhotoGallery() {
     return () => io.disconnect();
   }, []);
 
+  // --- mobile carousel auto-advance ---
   useEffect(() => {
     if (prefersReducedMotion) return;
     if (!isVisible) return;
@@ -164,33 +81,50 @@ export default function PhotoGallery() {
     return () => clearInterval(timer);
   }, [prefersReducedMotion, isVisible]);
 
+  // --- lightbox helpers with safety checks ---
   const openLightbox = (images: ImgItem[], index = 0) => {
-    setLightboxImages(images);
-    setLightboxIndex(index);
-    setLightboxOpen(true);
-    document.body.style.overflow = "hidden";
-  };
+  if (!Array.isArray(images) || images.length === 0) return;
 
-  const closeLightbox = () => {
-    setLightboxOpen(false);
-    document.body.style.overflow = "";
-  };
+  const normalizedIndex = Math.max(0, Math.min(index, images.length - 1));
 
+  // clone the array to avoid external mutation affecting the open lightbox
+  setLightboxImages([...images]);
+  setLightboxIndex(normalizedIndex);
+  setLightboxOpen(true);
+
+  document.body.style.overflow = "hidden";
+};
+
+const closeLightbox = () => {
+  setLightboxOpen(false);
+
+  // small timeout guard in case immediate UI updates cause reflows
+  setTimeout(() => {
+    setLightboxImages([]);
+    setLightboxIndex(0);
+  }, 120);
+
+  document.body.style.overflow = "";
+};
+
+
+  // keyboard navigation for lightbox (safely check length)
   useEffect(() => {
     if (!isLightboxOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeLightbox();
-      if (e.key === "ArrowRight") setLightboxIndex((i) => (i + 1) % lightboxImages.length);
-      if (e.key === "ArrowLeft") setLightboxIndex((i) => (i - 1 + lightboxImages.length) % lightboxImages.length);
+      if (e.key === "ArrowRight" && lightboxImages.length > 0) setLightboxIndex((i) => (i + 1) % lightboxImages.length);
+      if (e.key === "ArrowLeft" && lightboxImages.length > 0) setLightboxIndex((i) => (i - 1 + lightboxImages.length) % lightboxImages.length);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [isLightboxOpen, lightboxImages]);
 
+  // --- submenus for site nav (preserve original event) ---
   const submenus = [
     { id: "religion", label: "Religion" },
     { id: "yoga", label: "Yoga Classes" },
-    { id: "covid", label: "Covid Relief & Charity" },
+    { id: "charity", label: "Charity & Relief" },
   ];
 
   useEffect(() => {
@@ -198,6 +132,7 @@ export default function PhotoGallery() {
     window.dispatchEvent(new CustomEvent("gallery:submenus", { detail: submenus }));
   }, []);
 
+  // --- scroll/navigation handlers (preserve original behavior) ---
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -210,7 +145,7 @@ export default function PhotoGallery() {
       const map: Record<string, HTMLElement | null> = {
         religion: religionRef.current,
         charity: charityRef.current,
-        covid: covidRef.current,
+        yoga: yogaRef.current,
       };
       const target = map[id];
       if (target) {
@@ -250,13 +185,95 @@ export default function PhotoGallery() {
     };
   }, []);
 
-  function Subsection({ id, title, desc, images, autoplayDelay }: { id: string; title: string; desc: string; images: ImgItem[]; autoplayDelay?: number }) {
+  // --- fetch gallery items from the server; re-fetch on 'gallery:changed' events ---
+  const fetchGallery = async () => {
+    try {
+      const res = await fetch("/api/gallery");
+      if (!res.ok) {
+        console.warn("gallery fetch failed", res.status);
+        return;
+      }
+      const items = await res.json();
+      // group into categories, tolerant to variant strings
+      const grouped: Record<GalleryCategory, ImgItem[]> = { RELIGIOUS: [], YOG: [], CHARITY: [] };
+      (items || []).forEach((it: any) => {
+        const catRaw = (it.category || "").toString().trim().toUpperCase();
+        const mapped: ImgItem = {
+          src: it.imageUrl,
+          alt: it.description || it.title || "",
+          title: it.title,
+          subtitle: it.description,
+          width: it.width ?? 1600,
+          height: it.height ?? 900,
+        };
+
+        if (catRaw === "RELIGIOUS" || catRaw === "RELG" || catRaw === "REL") {
+          grouped.RELIGIOUS.push(mapped);
+        } else if (catRaw === "YOG" || catRaw === "YOGA") {
+          grouped.YOG.push(mapped);
+        } else {
+          // anything else routes to charity by default (handles CHARITY, COVID, RELIEF, etc.)
+          grouped.CHARITY.push(mapped);
+        }
+      });
+
+      // ensure deterministic ordering (newest-first if server doesn't already)
+      Object.keys(grouped).forEach((k) => {
+        grouped[k as GalleryCategory].reverse(); // optional; adapt if server sorts
+      });
+
+      setGallery(grouped);
+    } catch (err) {
+      console.warn("Failed to load gallery:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchGallery();
+
+    // re-fetch when admin updates gallery (server-side flows can dispatch this)
+    const onChanged = () => {
+      fetchGallery();
+    };
+    window.addEventListener("gallery:changed", onChanged);
+
+    return () => {
+      window.removeEventListener("gallery:changed", onChanged);
+    };
+  }, []);
+
+  // If the currently open lightbox images get replaced (e.g., category change), keep index valid
+  useEffect(() => {
+    if (!isLightboxOpen) return;
+    if (lightboxImages.length === 0) {
+      // close defensively
+      closeLightbox();
+      return;
+    }
+    if (lightboxIndex >= lightboxImages.length) {
+      setLightboxIndex(0);
+    }
+  }, [lightboxImages, lightboxIndex, isLightboxOpen]);
+
+  function Subsection({
+    id,
+    title,
+    desc,
+    images,
+    autoplayDelay,
+  }: {
+    id: string;
+    title: string;
+    desc: string;
+    images: ImgItem[];
+    autoplayDelay?: number;
+  }) {
     const revealClass = isVisible ? "gallery-reveal" : "gallery-hidden";
 
     const refMap: Record<string, React.RefObject<HTMLElement | null>> = {
       religion: religionRef,
       charity: charityRef,
-      covid: covidRef,
+      yoga: yogaRef,
     };
 
     return (
@@ -270,7 +287,12 @@ export default function PhotoGallery() {
           </div>
 
           <div className="mt-4 sm:mt-0 sm:ml-4">
-            <button type="button" onClick={() => openLightbox(images, 0)} className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md shadow-sm bg-amber-600 text-white hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-amber-500" aria-label={`View all images for ${title}`}>
+            <button
+              type="button"
+              onClick={() => images.length > 0 && openLightbox(images, 0)}
+              className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md shadow-sm bg-amber-600 text-white hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              aria-label={`View all images for ${title}`}
+            >
               View gallery
             </button>
           </div>
@@ -285,7 +307,12 @@ export default function PhotoGallery() {
             <div className="w-full rounded-xl overflow-x-auto hide-scrollbar carousel-wrap" role="region" aria-roledescription="carousel" aria-label={`${title} carousel`} style={{ WebkitOverflowScrolling: "touch" }}>
               <div className="flex gap-4 py-2 px-1">
                 {images.map((img, idx) => (
-                  <button key={img.src + idx} onClick={() => openLightbox(images, idx)} className="flex-shrink-0 w-[80vw] sm:w-[45vw] md:w-[33vw] rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-amber-500" aria-label={`${img.title ?? "Image"} - ${img.alt ?? ""}`}>
+                  <button
+                    key={(img.src || "") + idx}
+                    onClick={() => openLightbox(images, idx)}
+                    className="flex-shrink-0 w-[80vw] sm:w-[45vw] md:w-[33vw] rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    aria-label={`${img.title ?? "Image"} - ${img.alt ?? ""}`}
+                  >
                     <img
                       src={img.src}
                       alt={img.alt ?? img.title ?? "gallery image"}
@@ -301,6 +328,13 @@ export default function PhotoGallery() {
                     </div>
                   </button>
                 ))}
+
+                {/* If there are no images, show a subtle placeholder card (keeps layout predictable) */}
+                {images.length === 0 && (
+                  <div className="flex items-center justify-center w-[80vw] sm:w-[45vw] md:w-[33vw] rounded-lg border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
+                    No images yet
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -313,7 +347,11 @@ export default function PhotoGallery() {
     <section aria-labelledby="gallery-heading" className="py-12" ref={rootRef}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-10 text-center">
-          <h3 id="gallery-heading" className={`text-3xl md:text-4xl font-extrabold text-amber-900 tracking-tight font-serif ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-6"}`} style={{ transition: "opacity 600ms ease, transform 600ms ease" }}>
+          <h3
+            id="gallery-heading"
+            className={`text-3xl md:text-4xl font-extrabold text-amber-900 tracking-tight font-serif ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-6"}`}
+            style={{ transition: "opacity 600ms ease, transform 600ms ease" }}
+          >
             Gallery
           </h3>
 
@@ -327,24 +365,54 @@ export default function PhotoGallery() {
         </div>
 
         <div className="space-y-16">
-          <Subsection id="religion" title="Religion" desc="Spiritual events, rituals, and community gatherings celebrating devotion and tradition." images={religionImages} autoplayDelay={4200} />
-          <Subsection id="yoga" title="Yoga Classes" desc="Programs and drives that bring food, shelter, medicine and education to those in need." images={charityImages} autoplayDelay={3800} />
-          <Subsection id="covid" title="Covid Relief & Charity" desc="Emergency response, healthcare support, and community assistance during the pandemic." images={covidImages} autoplayDelay={3600} />
+          <Subsection id="religion" title="Religion" desc="Spiritual events, rituals, and community gatherings celebrating devotion and tradition." images={gallery.RELIGIOUS} autoplayDelay={4200} />
+          <Subsection id="yoga" title="Yoga Classes" desc="Programs and drives that bring food, shelter, medicine and education to those in need." images={gallery.YOG} autoplayDelay={3800} />
+          <Subsection id="charity" title="Charity & Relief" desc="Emergency response, healthcare support, and community assistance." images={gallery.CHARITY} autoplayDelay={3600} />
         </div>
       </div>
 
-      {isLightboxOpen && (
+      {isLightboxOpen && lightboxImages.length > 0 && (
         <div role="dialog" aria-modal="true" aria-label="Image gallery" className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={closeLightbox} style={{ background: "rgba(2,6,23,0.7)" }}>
           <div className="max-w-[90vw] max-h-[90vh] w-full bg-transparent outline-none" onClick={(e) => e.stopPropagation()}>
             <div className="relative">
-              <button onClick={closeLightbox} aria-label="Close gallery" className="absolute z-10 right-2 top-2 inline-flex items-center justify-center p-2 rounded-full bg-white/90 hover:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500">✕</button>
+              <button onClick={closeLightbox} aria-label="Close gallery" className="absolute z-10 right-2 top-2 inline-flex items-center justify-center p-2 rounded-full bg-white/90 hover:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+                ✕
+              </button>
 
               <div className="w-full h-full flex items-center justify-center">
-                <img src={lightboxImages[lightboxIndex].src} alt={lightboxImages[lightboxIndex].alt || lightboxImages[lightboxIndex].title || "Gallery image"} width={lightboxImages[lightboxIndex].width ?? 1600} height={lightboxImages[lightboxIndex].height ?? 900} loading="eager" />
+                {/* Guarded access to the current lightbox image */}
+                {lightboxImages[lightboxIndex] ? (
+                  <img
+                    src={lightboxImages[lightboxIndex].src}
+                    alt={lightboxImages[lightboxIndex].alt || lightboxImages[lightboxIndex].title || "Gallery image"}
+                    width={lightboxImages[lightboxIndex].width ?? 1600}
+                    height={lightboxImages[lightboxIndex].height ?? 900}
+                    loading="eager"
+                    className="max-h-[80vh] object-contain"
+                  />
+                ) : (
+                  <div className="text-white">Image not available</div>
+                )}
               </div>
 
-              <button onClick={() => setLightboxIndex((i) => (i - 1 + lightboxImages.length) % lightboxImages.length)} aria-label="Previous image" className="absolute left-0 top-1/2 -translate-y-1/2 ml-2 p-2 rounded-full bg-white/90 focus:outline-none focus:ring-2 focus:ring-amber-500">‹</button>
-              <button onClick={() => setLightboxIndex((i) => (i + 1) % lightboxImages.length)} aria-label="Next image" className="absolute right-0 top-1/2 -translate-y-1/2 mr-2 p-2 rounded-full bg-white/90 focus:outline-none focus:ring-2 focus:ring-amber-500">›</button>
+              {lightboxImages.length > 0 && (
+                <>
+                  <button
+                    onClick={() => setLightboxIndex((i) => (i - 1 + lightboxImages.length) % lightboxImages.length)}
+                    aria-label="Previous image"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 ml-2 p-2 rounded-full bg-white/90 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    onClick={() => setLightboxIndex((i) => (i + 1) % lightboxImages.length)}
+                    aria-label="Next image"
+                    className="absolute right-0 top-1/2 -translate-y-1/2 mr-2 p-2 rounded-full bg-white/90 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    ›
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

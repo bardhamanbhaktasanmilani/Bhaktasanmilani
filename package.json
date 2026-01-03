@@ -18,6 +18,7 @@
     "@supabase/supabase-js": "^2.86.2",
     "animejs": "^3.2.1",
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.8.0",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.23.25",
     "gsap": "^3.14.1",

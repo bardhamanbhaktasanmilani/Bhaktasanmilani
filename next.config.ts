@@ -22,6 +22,7 @@ const ContentSecurityPolicy = `
     'self'
     data:
     blob:
+    https://res.cloudinary.com
     https://maps.gstatic.com
     https://maps.googleapis.com
     https://checkout.razorpay.com
@@ -58,6 +59,7 @@ const ContentSecurityPolicy = `
   base-uri 'self';
   form-action 'self' https://checkout.razorpay.com;
 `;
+
 
 const nextConfig: NextConfig = {
   async headers() {

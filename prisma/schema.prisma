@@ -62,3 +62,17 @@ model Event {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+enum GalleryCategory {
+  RELIGIOUS
+  YOG
+  CHARITY
+}
+
+model GalleryItem {
+  id          String          @id @default(cuid())
+  category    GalleryCategory
+  title       String
+  description String?
+  imageUrl    String
+  createdAt   DateTime        @default(now())
+}
