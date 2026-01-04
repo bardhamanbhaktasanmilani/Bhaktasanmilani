@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { format, parseISO } from "date-fns";
 import EventFormModal from "@/components/ui/Modals/EventFormModal";
 // Confirm modal imported from components/ui/modals
-import ConfirmModal from "@/components/ui/modals/ConfirmModal";
+import ConfirmModal from "@/components/ui/Modals/ConfirmModal";
 
 /* -----------------------
    Types
