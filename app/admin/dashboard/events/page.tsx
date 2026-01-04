@@ -3,6 +3,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { format, parseISO } from "date-fns";
 import EventFormModal from "@/components/ui/Modals/EventFormModal";
+// Confirm modal imported from components/ui/modals
+import ConfirmModal from "@/components/ui/modals/ConfirmModal";
 
 /* -----------------------
    Types
@@ -50,6 +52,11 @@ export default function AdminEventsPage() {
   const [uploadingPosterLocal, setUploadingPosterLocal] = useState(false);
 
   const fetchAbortRef = useRef<AbortController | null>(null);
+
+  // Delete confirmation modal state
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deletingEventId, setDeletingEventId] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   /* -----------------------
      Helpers
@@ -367,23 +374,39 @@ export default function AdminEventsPage() {
   };
 
   /* -----------------------
-     Delete event
+     Delete event (now uses ConfirmModal)
      ----------------------- */
-  const handleDeleteEvent = async (eventId: number) => {
-    const confirmDelete = window.confirm("Are you sure you want to delete this event?");
-    if (!confirmDelete) return;
+  // open confirmation modal for delete
+  const handleDeleteEvent = (eventId: number) => {
+    setDeletingEventId(eventId);
+    setDeleteModalOpen(true);
+  };
+
+  // called when user confirms deletion
+  const handleConfirmDelete = async () => {
+    if (deletingEventId == null) {
+      setDeleteModalOpen(false);
+      return;
+    }
+
+    setIsDeleting(true);
+    setError(null);
 
     try {
-      const res = await fetch(`/api/events/${eventId}`, { method: "DELETE" });
+      const res = await fetch(`/api/events/${deletingEventId}`, { method: "DELETE" });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || "Failed to delete event");
       }
 
-      // prefer to remove locally without full refetch
-      removeEventFromState(eventId);
+      // remove locally to avoid full refetch
+      removeEventFromState(deletingEventId);
+      setDeleteModalOpen(false);
+      setDeletingEventId(null);
     } catch (err: any) {
       setError(err?.message ?? "Something went wrong deleting the event");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -508,9 +531,11 @@ export default function AdminEventsPage() {
 
         {error && <div className="mb-4 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{error}</div>}
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-[420px_1fr] items-start">
+
           {/* Calendar card */}
-          <div className="rounded-2xl bg-white p-4 shadow-sm">
+         <div className="rounded-2xl bg-white p-4 shadow-sm self-start">
+
             <div className="mb-4 flex items-center justify-between">
               <button onClick={goToPrevMonth} aria-label="Previous month" className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-600 hover:bg-slate-200">◀</button>
               <div className="text-center">
@@ -548,7 +573,8 @@ export default function AdminEventsPage() {
             <p className="mt-3 text-xs text-slate-400">Tip: Choose date → fill title, description & time (24-hour) → save. Donors will see it as an upcoming event with poster if provided.</p>
           </div>
 
-          <div className="rounded-2xl bg-white p-4 shadow-sm">
+        <div className="rounded-2xl bg-white p-4 shadow-sm max-h-[calc(100vh-220px)] overflow-y-auto">
+
             <h2 className="mb-3 text-lg font-semibold text-slate-800">Upcoming Events</h2>
 
             {loading ? (
@@ -584,7 +610,13 @@ export default function AdminEventsPage() {
 
                           <div className="flex gap-2 mt-2">
                             <button onClick={() => openEditModal(event)} className="rounded-md bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700">Edit</button>
-                            <button onClick={() => handleDeleteEvent(event.id)} className="rounded-md bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700">Delete</button>
+                            <button
+                              onClick={() => handleDeleteEvent(event.id)}
+                              className="rounded-md bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700"
+                              disabled={isDeleting && deletingEventId === event.id}
+                            >
+                              {isDeleting && deletingEventId === event.id ? "Deleting…" : "Delete"}
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -598,6 +630,27 @@ export default function AdminEventsPage() {
           </div>
         </div>
       </div>
+
+      {/* Confirmation modal for deletion (imported from components/ui/modals) */}
+      <ConfirmModal
+        open={deleteModalOpen}
+        title="Delete event"
+        description={
+          (() => {
+            const ev = events.find((e) => e.id === deletingEventId);
+            return ev ? `Are you sure you want to permanently delete "${ev.title}"? This cannot be undone.` : "Are you sure you want to delete this event?";
+          })()
+        }
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={handleConfirmDelete}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setDeletingEventId(null);
+        }}
+        intent="danger"
+        isLoading={isDeleting}
+      />
 
       {/* Use EventFormModal for both Create and Edit */}
       {isModalOpen && (

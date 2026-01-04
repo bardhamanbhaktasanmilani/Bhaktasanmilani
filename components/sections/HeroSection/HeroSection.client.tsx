@@ -66,6 +66,7 @@ export default function HeroSectionClient() {
           className={`absolute inset-0 transition-opacity duration-1000 ${
             index === currentSlide ? "opacity-100" : "opacity-0"
           }`}
+          aria-hidden={index !== currentSlide}
         >
           <Image
             src={s.image}
@@ -75,45 +76,36 @@ export default function HeroSectionClient() {
             className="object-cover"
             priority={index === 0}
           />
+          {/* A subtle overlay so white text keeps good contrast on bright images */}
+          <div className={`absolute inset-0 ${index === currentSlide ? "bg-black/20" : "bg-black/10"} pointer-events-none`} />
         </div>
       ))}
 
       {/* Content */}
       <div className="relative z-30 flex h-full items-center">
         <div className="mx-auto w-full max-w-7xl px-4 py-24 sm:py-28 md:py-32">
-          <div className="max-w-3xl text-white">
-            {/* TITLE WITH SUN-LIKE GLOW */}
+          <div className="max-w-3xl">
+            {/* TITLE (plain text — no glow) */}
             <h1
               key={slide.title}
-              className="mb-4 text-4xl font-bold sm:text-5xl md:text-6xl lg:text-7xl animate-fade-in"
-              style={{
-                textShadow: `
-                  0 0 6px rgba(255, 236, 179, 0.9),
-                  0 0 14px rgba(255, 224, 102, 0.8),
-                  0 0 28px rgba(255, 215, 0, 0.6),
-                  0 0 48px rgba(255, 193, 7, 0.45)
-                `,
-              }}
+              className={`mb-4 text-4xl font-bold sm:text-5xl md:text-6xl lg:text-7xl ${
+                currentSlide === 0 ? "text-black" : "text-white"
+              }`}
             >
               {slide.title}
             </h1>
 
-            {/* SUBTITLE WITH SOFTER GLOW */}
+            {/* SUBTITLE (plain white text) */}
             <p
               key={slide.subtitle}
-              className="text-lg sm:text-xl md:text-2xl animate-fade-in"
-              style={{
-                textShadow: `
-                  0 0 4px rgba(255, 236, 179, 0.8),
-                  0 0 10px rgba(255, 224, 102, 0.7),
-                  0 0 20px rgba(255, 215, 0, 0.5)
-                `,
-              }}
+              className={`text-lg sm:text-xl md:text-2xl ${
+                currentSlide === 0 ? "text-black/85" : "text-white/90"
+              }`}
             >
               {slide.subtitle}
             </p>
 
-            {/* Learn more */}
+            {/* Learn more (collapsible paragraph) */}
             <div
               className={`overflow-hidden transition-all duration-500 ease-in-out ${
                 showLearnMore
@@ -121,13 +113,11 @@ export default function HeroSectionClient() {
                   : "max-h-0 opacity-0 -translate-y-2"
               }`}
             >
-              <p className="text-base sm:text-lg text-white/90" style={{
-                textShadow: `
-                  0 0 6px rgba(255, 236, 179, 0.9),
-                  0 0 14px rgba(255, 224, 102, 0.8),
-                  0 0 28px rgba(255, 215, 0, 0.6),
-                  0 0 48px rgba(255, 193, 7, 0.45)
-                `,}}>
+              <p
+                className={`text-base sm:text-lg ${
+                  currentSlide === 0 ? "text-black/85" : "text-white/90"
+                }`}
+              >
                 {slide.more}
               </p>
             </div>
@@ -167,6 +157,7 @@ export default function HeroSectionClient() {
               i === currentSlide ? "w-8 bg-white" : "w-3 bg-white/50"
             }`}
             aria-label={`Go to slide ${i + 1}`}
+            type="button"
           />
         ))}
       </div>

@@ -17,7 +17,11 @@ type RoyalDecreeProps = {
  * - Scrollable content with custom thumb
  * - Accepts children; images inside children are detected and rendered into a framed poster area
  *
- * Important: the container allows overflow-visible so poster images are not clipped.
+ * Notes on fixes:
+ * - wrapper uses `self-start flex flex-col overflow-visible` so each card keeps its own height
+ *   and top/bottom handles remain anchored even when siblings differ in height.
+ * - computeThumb now falls back to a sensible track height if the track element isn't fully visible yet.
+ * - track pointer-events are enabled after open so thumb animations and measurements are reliable.
  */
 export default function RoyalDecree({
   title,
@@ -50,7 +54,11 @@ export default function RoyalDecree({
       contentRef.current.style.opacity = "0";
       contentRef.current.style.transform = "translateY(-40px)";
       // hide native scrollbar visual (where supported)
-      (contentRef.current.style as any).scrollbarWidth = "none";
+      try {
+        (contentRef.current.style as any).scrollbarWidth = "none";
+      } catch {
+        // ignore in browsers that don't support it
+      }
     }
 
     const obs = new IntersectionObserver(
@@ -77,7 +85,9 @@ export default function RoyalDecree({
       !parchmentRef.current ||
       !contentRef.current ||
       !topHandleRef.current ||
-      !bottomHandleRef.current
+      !bottomHandleRef.current ||
+      !trackRef.current ||
+      !thumbRef.current
     )
       return;
 
@@ -165,6 +175,8 @@ export default function RoyalDecree({
             // after open, allow parchment height to auto-size and attach handlers
             if (parchmentRef.current) parchmentRef.current.style.height = "auto";
             computeThumb(false, true);
+            // enable pointer events on track so measurements & potential interaction behave correctly
+            if (trackRef.current) trackRef.current.style.pointerEvents = "auto";
             attachScrollHandlers();
             attachResizeObserver();
           },
@@ -183,7 +195,13 @@ export default function RoyalDecree({
 
     // compute track height (available vertical space)
     const trackRect = trackEl.getBoundingClientRect();
-    const trackHeight = Math.max(48, trackRect.height);
+    // If trackRect is unexpectedly small (e.g. still animating), fall back to using parchment's content area
+    let trackHeight = Math.max(48, trackRect.height || 0);
+    if (trackHeight < 48) {
+      // available area inside parchment minus small paddings
+      const fallback = Math.max(48, parchmentEl.clientHeight - 48);
+      trackHeight = Math.max(trackHeight, fallback);
+    }
 
     const clientH = scrollEl.clientHeight;
     const scrollH = Math.max(clientH, scrollEl.scrollHeight);
@@ -203,7 +221,7 @@ export default function RoyalDecree({
       anime({
         targets: thumbEl,
         height: `${rawThumb}px`,
-        translateY: topPx,
+        translateY: `${topPx}px`,
         duration: 260,
         easing: "easeOutQuad",
       });
@@ -231,7 +249,7 @@ export default function RoyalDecree({
 
     anime({
       targets: thumbEl,
-      translateY: topPx,
+      translateY: `${topPx}px`,
       duration: 200,
       easing: "easeOutSine",
     });
@@ -294,14 +312,14 @@ export default function RoyalDecree({
         const hasSrc =
           typeof props.src === "string" ||
           (typeof props.children === "string" &&
-            props.children.startsWith("data:"));
+            (props.children as string).startsWith("data:"));
 
         if (typeName === "img" || hasSrc) {
           imageIndex = i;
           break;
         }
       }
-    } // <-- properly close the for loop here
+    }
 
     const frameBase =
       "mx-auto mt-5 w-[240px] h-[340px] sm:w-[320px] sm:h-[420px] rounded-lg overflow-hidden border-2 border-amber-200 shadow-inner flex items-center justify-center bg-amber-50";
@@ -338,9 +356,7 @@ export default function RoyalDecree({
     // if no image child, render children inside a framed slot
     return (
       <div className={frameBase} style={{ zIndex: 22 }}>
-        <div className="p-3 w-full h-full flex items-center justify-center">
-          {children}
-        </div>
+        <div className="p-3 w-full h-full flex items-center justify-center">{children}</div>
       </div>
     );
   };
@@ -349,7 +365,10 @@ export default function RoyalDecree({
   return (
     <div
       ref={wrapperRef}
-      className="relative w-full max-w-md mx-auto my-8 opacity-0"
+      // KEY FIX: `self-start flex flex-col overflow-visible`
+      // keeps each card's handles anchored and prevents sibling heights from stretching this wrapper.
+      className="relative w-full max-w-md mx-auto my-8 opacity-0 self-start flex flex-col overflow-visible"
+      aria-live="polite"
     >
       {/* Inline styles for the custom thumb look (kept close to original design) */}
       <style>{`
@@ -400,16 +419,10 @@ export default function RoyalDecree({
             <span className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
           </div>
 
-          <h3 className="text-xl font-semibold text-center text-amber-900 mb-1">
-            {title}
-          </h3>
-          <p className="text-center text-[13px] text-amber-800 mb-2">
-            {date} • {time} hrs
-          </p>
+          <h3 className="text-xl font-semibold text-center text-amber-900 mb-1">{title}</h3>
+          <p className="text-center text-[13px] text-amber-800 mb-2">{date} • {time} hrs</p>
 
-          <p className="text-[13px] leading-relaxed text-amber-900/90 whitespace-pre-line mb-2">
-            {description}
-          </p>
+          <p className="text-[13px] leading-relaxed text-amber-900/90 whitespace-pre-line mb-2">{description}</p>
 
           {/* Poster/frame area (ensures image not clipped) */}
           <div style={{ zIndex: 22 }} className="flex justify-center">
@@ -420,9 +433,7 @@ export default function RoyalDecree({
           <div className="mt-5">
             <div className="flex items-center justify-center mb-2">
               <span className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
-              <span className="mx-2 text-[11px] text-amber-800">
-                All devotees invited — with love &amp; seva 🙏
-              </span>
+              <span className="mx-2 text-[11px] text-amber-800">All devotees invited — with love &amp; seva 🙏</span>
               <span className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
             </div>
           </div>
