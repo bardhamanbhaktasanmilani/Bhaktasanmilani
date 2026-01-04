@@ -274,8 +274,7 @@ export default function AdminGalleryPage() {
           open
           title="Delete Image"
           description="This image will be permanently removed from the gallery. This action cannot be undone."
-          confirmText="Delete"
-          loading={deleting}
+          isLoading={deleting}
           onClose={() => setDeleteTarget(null)}
           onConfirm={confirmDelete}
         />
