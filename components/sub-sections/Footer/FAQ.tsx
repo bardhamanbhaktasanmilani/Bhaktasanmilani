@@ -36,7 +36,7 @@ const faqs = [
   {
     question: "Can I get a refund for my donation?",
     answer:
-      "Donations are generally non-refundable as they are treated as voluntary offerings. However, refunds may be considered in exceptional cases such as duplicate payments or technical transaction errors, subject to review.",
+      "Donations are generally non-refundable as they are treated as voluntary offerings. ",
   },
   {
    question: "How can I request a refund if eligible?",
