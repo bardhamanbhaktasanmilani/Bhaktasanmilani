@@ -99,9 +99,8 @@ export default function Footer() {
   const socialLinks = useMemo(
     () => [
       { Icon: Facebook, label: "Facebook", href: "https://www.facebook.com/share/1DLUhJAnrV/" },
-      { Icon: Twitter, label: "Twitter", href: "#" },
-      { Icon: Instagram, label: "Instagram", href: "#" },
-      { Icon: Youtube, label: "YouTube", href: "#" },
+      { Icon: Instagram, label: "Instagram", href: "https://www.instagram.com/bhakta_sanmilani?utm_source=qr&igsh=cnQzNzVhb296ajN1" },
+      { Icon: Youtube, label: "YouTube", href: "https://youtube.com/@bardhamanbhaktasanmilani?si=FGRO5lvyDPIKbhqt" },
     ],
     []
   );
