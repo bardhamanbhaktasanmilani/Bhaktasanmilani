@@ -22,31 +22,32 @@ const ContactSection = dynamic(() => import("../sections/ContactSection"), {
 export default function ClientSections() {
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
+useEffect(() => {
+  if (typeof window === "undefined") return;
 
-    if ("scrollRestoration" in history) {
-      history.scrollRestoration = "manual";
+  if ("scrollRestoration" in history) {
+    history.scrollRestoration = "manual";
+  }
+
+  window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+
+  let idleId: number | IdleCallbackHandle;
+
+  if ("requestIdleCallback" in window) {
+    idleId = window.requestIdleCallback(() => setMounted(true));
+  } else {
+    idleId = window.setTimeout(() => setMounted(true), 1);
+  }
+
+  return () => {
+    if ("cancelIdleCallback" in window) {
+      window.cancelIdleCallback(idleId as IdleCallbackHandle);
+    } else {
+      window.clearTimeout(idleId as number);
     }
+  };
+}, []);
 
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-
-    const requestIdle =
-      "requestIdleCallback" in window
-        ? window.requestIdleCallback
-        : (cb: () => void) => window.setTimeout(cb, 1);
-
-    const cancelIdle =
-      "cancelIdleCallback" in window
-        ? window.cancelIdleCallback
-        : window.clearTimeout;
-
-    const id = requestIdle(() => setMounted(true));
-
-    return () => {
-      cancelIdle(id as never);
-    };
-  }, []);
 
   if (!mounted) return null;
 
