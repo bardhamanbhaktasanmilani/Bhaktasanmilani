@@ -36,17 +36,18 @@ useEffect(() => {
   if ("requestIdleCallback" in window) {
     idleId = window.requestIdleCallback(() => setMounted(true)) as unknown as number;
   } else {
-    idleId = window.setTimeout(() => setMounted(true), 1);
+    idleId = setTimeout(() => setMounted(true), 1);
   }
 
   return () => {
     if ("cancelIdleCallback" in window) {
       window.cancelIdleCallback(idleId as unknown as number);
     } else {
-      window.clearTimeout(idleId);
+      clearTimeout(idleId);
     }
   };
 }, []);
+
 
 
 
