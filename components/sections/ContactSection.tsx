@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useCallback,
   useRef,
+  FormEvent,
 } from "react";
 import { Mail, Phone, MapPin, Send, X } from "lucide-react";
 
@@ -13,8 +14,6 @@ export const metadata = {
   description:
     "Contact Bhakta Sanmilani Temple for donation support, puja inquiries, events, or general assistance.",
 };
-
-
 
 type FormState = {
   name: string;
@@ -31,9 +30,7 @@ type ToastState =
     }
   | null;
 
-
 export default function ContactSection() {
- 
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   useEffect(() => {
@@ -42,15 +39,23 @@ export default function ContactSection() {
       return;
     }
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setPrefersReducedMotion(Boolean(mq.matches));
     const handler = () => setPrefersReducedMotion(Boolean(mq.matches));
-    mq.addEventListener?.("change", handler);
-    return () => mq.removeEventListener?.("change", handler);
+    handler();
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", handler);
+      return () => mq.removeEventListener("change", handler);
+    } else {
+      // older Safari fallback
+      // @ts-ignore
+      mq.addListener(handler);
+      // @ts-ignore
+      return () => mq.removeListener(handler);
+    }
   }, []);
 
   const toastTimerRef = useRef<number | null>(null);
   const mountedRef = useRef(false);
-
+  const submitInFlightRef = useRef(false);
 
   const [formData, setFormData] = useState<FormState>({
     name: "",
@@ -65,14 +70,14 @@ export default function ContactSection() {
   const [visible, setVisible] = useState(false); // used for light entrance
 
   useEffect(() => {
-  
     mountedRef.current = true;
-   
     const t = window.setTimeout(() => setVisible(true), 40);
-    return () => window.clearTimeout(t);
+    return () => {
+      mountedRef.current = false;
+      window.clearTimeout(t);
+    };
   }, []);
 
- 
   useEffect(() => {
     if (!toast) return;
 
@@ -80,8 +85,8 @@ export default function ContactSection() {
       window.clearTimeout(toastTimerRef.current);
     }
 
-    // auto-hide after 4s
     toastTimerRef.current = window.setTimeout(() => {
+      if (!mountedRef.current) return;
       setToast(null);
       toastTimerRef.current = null;
     }, 4000);
@@ -94,6 +99,16 @@ export default function ContactSection() {
     };
   }, [toast]);
 
+  // cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) {
+        window.clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = null;
+      }
+      submitInFlightRef.current = false;
+    };
+  }, []);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -103,9 +118,13 @@ export default function ContactSection() {
     []
   );
 
+  const validateEmail = (s: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || "").trim());
+
   const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
+    async (e: FormEvent) => {
       e.preventDefault();
+      if (submitInFlightRef.current) return;
 
       if (!formData.name || !formData.email || !formData.message) {
         setToast({
@@ -115,20 +134,41 @@ export default function ContactSection() {
         return;
       }
 
-      try {
-        setIsSubmitting(true);
+      if (!validateEmail(formData.email)) {
+        setToast({
+          type: "error",
+          message: "Please enter a valid email address.",
+        });
+        return;
+      }
 
+      const controller = new AbortController();
+      submitInFlightRef.current = true;
+      setIsSubmitting(true);
+
+      try {
         const res = await fetch("/api/contact", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
+          signal: controller.signal,
         });
 
-        const data = await res.json();
+        // if request aborted, throw to outer catch
+        if (controller.signal.aborted) throw new Error("aborted");
 
-        if (!res.ok || !data.success) {
+        let data: any = {};
+        try {
+          data = await res.json();
+        } catch {
+          // non-json response
+        }
+
+        if (!res.ok || !data?.success) {
           throw new Error(data?.error || "Submission failed");
         }
+
+        if (!mountedRef.current) return;
 
         setFormData({
           name: "",
@@ -142,19 +182,23 @@ export default function ContactSection() {
           type: "success",
           message: "Your query has been submitted.",
         });
-      } catch {
+      } catch (err) {
+        if (!mountedRef.current) return;
         setToast({
           type: "error",
           message:
             "Something went wrong. Please try again later or email us directly.",
         });
       } finally {
-        setIsSubmitting(false);
+        submitInFlightRef.current = false;
+        if (mountedRef.current) setIsSubmitting(false);
       }
+
+      // ensure we abort if the component unmounts before fetch resolves
+      return () => controller.abort();
     },
     [formData]
   );
-
 
   const dismissToast = useCallback(() => {
     setToast(null);
@@ -164,10 +208,8 @@ export default function ContactSection() {
     }
   }, []);
 
- 
   return (
     <>
-   
       {toast && (
         <div
           role="status"
@@ -175,7 +217,11 @@ export default function ContactSection() {
           className={`fixed top-4 right-4 z-50 transform transition-all ${
             prefersReducedMotion ? "transition-none" : "duration-200"
           } ${toast ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}`}
-          style={{ minWidth: 280 }}
+          style={{
+            minWidth: 280,
+            /* respect iPhone safe area */
+            paddingRight: "env(safe-area-inset-right)",
+          }}
         >
           <div
             className={`flex items-start gap-3 px-4 py-3 rounded-[16px] border text-sm shadow-sm ${
@@ -207,12 +253,10 @@ export default function ContactSection() {
         </div>
       )}
 
-    
       <section
         id="contact"
         className="relative overflow-hidden py-12 sm:py-16 bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100"
       >
-      
         <div className="absolute inset-0 -z-10 pointer-events-none">
           <div
             className="absolute -top-8 -left-8 w-44 h-44 rounded-full opacity-60"
@@ -233,7 +277,7 @@ export default function ContactSection() {
         </div>
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Heading — simple fade-in via opacity/transform */}
+          {/* Heading */}
           <div
             className={`text-center mb-10 transform transition-all ${
               prefersReducedMotion ? "transition-none" : "duration-400"
@@ -283,12 +327,14 @@ export default function ContactSection() {
                 },
               ].map(({ icon: Icon, title, text }) => (
                 <div key={title} className="flex gap-4">
-                  <div className="w-11 h-11 flex items-center justify-center rounded-xl"
-                       style={{
-                         background:
-                           "linear-gradient(135deg, rgba(249,115,22,0.95), rgba(245,158,11,0.95))",
-                         boxShadow: "0 6px 18px rgba(249,115,22,0.12)",
-                       }}>
+                  <div
+                    className="w-11 h-11 flex items-center justify-center rounded-xl"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, rgba(249,115,22,0.95), rgba(245,158,11,0.95))",
+                      boxShadow: "0 6px 18px rgba(249,115,22,0.12)",
+                    }}
+                  >
                     <Icon className="w-5 h-5 text-white" />
                   </div>
                   <div>
@@ -299,10 +345,12 @@ export default function ContactSection() {
               ))}
 
               {/* Map */}
-              <div className="p-1 rounded-2xl"
-                   style={{
-                     background: "linear-gradient(90deg, rgba(249,115,22,0.08), rgba(245,158,11,0.06))",
-                   }}>
+              <div
+                className="p-1 rounded-2xl"
+                style={{
+                  background: "linear-gradient(90deg, rgba(249,115,22,0.08), rgba(245,158,11,0.06))",
+                }}
+              >
                 <div className="overflow-hidden rounded-2xl h-52 sm:h-60 bg-gray-100">
                   <iframe
                     title="Bhakta Sanmilan Math Location"
@@ -312,6 +360,7 @@ export default function ContactSection() {
                     loading="lazy"
                     style={{ border: 0 }}
                     allowFullScreen
+                    aria-hidden={false}
                   />
                 </div>
               </div>
@@ -327,6 +376,7 @@ export default function ContactSection() {
                 onSubmit={handleSubmit}
                 className="bg-white/95 rounded-2xl p-6 sm:p-7 max-w-md mx-auto"
                 aria-labelledby="contact-form-heading"
+                aria-busy={isSubmitting}
               >
                 <h3 id="contact-form-heading" className="text-xl font-bold mb-4">
                   Send us a Message
@@ -348,7 +398,9 @@ export default function ContactSection() {
                       name={name}
                       value={(formData as any)[name]}
                       onChange={handleChange}
-                      className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:outline-none"
+                      className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:outline-none text-base"
+                      // text-base ensures 16px to avoid iOS auto-zoom on focus
+                      inputMode={name === "phone" ? "tel" : undefined}
                     />
                   </div>
                 ))}
@@ -363,7 +415,7 @@ export default function ContactSection() {
                     rows={4}
                     value={formData.message}
                     onChange={handleChange}
-                    className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg resize-none focus:border-orange-500 focus:outline-none"
+                    className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg resize-none focus:border-orange-500 focus:outline-none text-base"
                   />
                 </div>
 
@@ -379,14 +431,11 @@ export default function ContactSection() {
                     boxShadow: "0 10px 24px rgba(249,115,22,0.12)",
                     transition: prefersReducedMotion ? "none" : "transform 180ms ease, box-shadow 180ms ease",
                   }}
-                  onMouseDown={(e) => {
+                  onTouchStart={() => {
+                    /* cheap native-feel feedback on touch devices */
                     if (!prefersReducedMotion && !isSubmitting) {
-                      // subtle press effect via inline transform (cheap)
-                      (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-1px) scale(1.01)";
+                      // no heavy DOM writes here
                     }
-                  }}
-                  onMouseUp={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.transform = "";
                   }}
                 >
                   <Send className="w-4 h-4" />

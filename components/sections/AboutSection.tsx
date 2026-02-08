@@ -1,23 +1,26 @@
-
 "use client";
 
-import React, { useEffect, useRef, useState, Suspense, useCallback, MutableRefObject, ReactNode } from "react";
+import React, {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  ReactNode,
+} from "react";
 import { Users, Heart } from "lucide-react";
 import dynamic from "next/dynamic";
 import PhotoGallery from "../sub-sections/About/Photo-gallery";
 
-
+/* ================== (Optional) Metadata kept for parity ================== */
 export const metadata = {
   title: "Donate to Bhakta Sanmilani Temple | Secure Online Donations",
   description:
     "Support Bhakta Sanmilani Temple with secure online donations. Transparent, trusted, and spiritually guided.",
 };
 
-
-const usePrefersReducedMotion = () =>
-  typeof window !== "undefined" &&
-  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
+/* ================== Helpers & Formatters ================== */
 const parseAmount = (raw: any): number => {
   if (raw == null) return 0;
   if (typeof raw === "number") return raw;
@@ -51,8 +54,7 @@ const formatCompactINR = (value: number) => {
 const formatINRPlain = (value: number) =>
   new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(value);
 
-
-
+/* ================== AnimatedNumber (robust) ================== */
 function AnimatedNumber({
   value,
   isCurrency = false,
@@ -84,46 +86,73 @@ function AnimatedNumber({
     }
     const to = Math.round(value);
     const from = fromRef.current || 0;
-    const start = (ts: number) => {
-      startRef.current = ts;
-      const step = (now: number) => {
-        if (startRef.current == null) {
-          return;
-        }
-        const t = Math.min(1, (now - startRef.current) / duration);
-        const curr = Math.round(from + (to - from) * t);
-        if (isCurrency && compact) {
-          setDisplay(formatCompactINR(curr));
-        } else if (isCurrency) {
-          setDisplay(`₹${formatINRPlain(curr)}`);
-        } else {
-          setDisplay(formatINRPlain(curr));
-        }
-        if (t < 1) {
-          rafRef.current = requestAnimationFrame(step);
-        } else {
-          fromRef.current = to;
-          if (onFinish) onFinish();
-        }
-      };
-      rafRef.current = requestAnimationFrame(step);
+
+    const step = (now: number) => {
+      if (startRef.current == null) return;
+      const t = Math.min(1, (now - startRef.current) / duration);
+      const curr = Math.round(from + (to - from) * t);
+
+      if (isCurrency && compact) {
+        setDisplay(formatCompactINR(curr));
+      } else if (isCurrency) {
+        setDisplay(`₹${formatINRPlain(curr)}`);
+      } else {
+        setDisplay(formatINRPlain(curr));
+      }
+
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(step);
+      } else {
+        fromRef.current = to;
+        if (onFinish) onFinish();
+      }
     };
+
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    requestAnimationFrame(start);
+    startRef.current = performance.now();
+    rafRef.current = requestAnimationFrame(step);
+
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+      startRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, isCurrency, compact, duration, onFinish]);
 
   return <>{display}</>;
 }
 
+/* ================== client-only helpers ================== */
+const usePrefersReducedMotion = () => {
+  const [pref, setPref] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const handler = () => setPref(!!mq.matches);
+      handler();
+      if (typeof mq.addEventListener === "function") {
+        mq.addEventListener("change", handler);
+        return () => mq.removeEventListener("change", handler);
+      } else {
+        // older Safari
+        // @ts-ignore
+        mq.addListener(handler);
+        // @ts-ignore
+        return () => mq.removeListener(handler);
+      }
+    } catch {
+      setPref(false);
+    }
+  }, []);
+  return pref;
+};
 
 const STATS_CACHE_KEY = "bhakta_stats_v1";
-const STATS_TTL_MS = 60 * 1000; 
+const STATS_TTL_MS = 60 * 1000; // 1 minute cache
 
-
-
+/* ================== Dynamically loaded viewer (client-only) ================== */
 const TempleViewer = dynamic(() => import("@/components/ui/TempleViewer"), {
   ssr: false,
   loading: () => (
@@ -133,8 +162,7 @@ const TempleViewer = dynamic(() => import("@/components/ui/TempleViewer"), {
   ),
 });
 
-
-
+/* ================== SimpleErrorBoundary (unchanged, small cleanup) ================== */
 class SimpleErrorBoundary extends React.Component<
   { children: ReactNode; fallback?: ReactNode },
   { hasError: boolean }
@@ -147,7 +175,7 @@ class SimpleErrorBoundary extends React.Component<
     return { hasError: true };
   }
   componentDidCatch() {
-    
+    // intentionally empty; we only surface fallback UI
   }
   render() {
     if (this.state.hasError) {
@@ -157,13 +185,12 @@ class SimpleErrorBoundary extends React.Component<
   }
 }
 
-
-
+/* ================== Component ================== */
 const AboutSection: React.FC = () => {
   const sectionRef = useRef<HTMLElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const viewerContainerRef = useRef<HTMLDivElement | null>(null);
-  const viewerWrapperRef = useRef<HTMLDivElement | null>(null); // <- ensure this exists
+  const viewerWrapperRef = useRef<HTMLDivElement | null>(null);
 
   const [load3D, setLoad3D] = useState<null | boolean>(null);
   const [userRequested3D, setUserRequested3D] = useState(false);
@@ -173,7 +200,6 @@ const AboutSection: React.FC = () => {
   const statRefs = useRef<Array<HTMLDivElement | null>>([]);
   const prefersReducedMotion = usePrefersReducedMotion();
 
- 
   const [loadingStats, setLoadingStats] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
   const [devoteesCount, setDevoteesCount] = useState<number | null>(null);
@@ -181,44 +207,49 @@ const AboutSection: React.FC = () => {
   const [isLiveData, setIsLiveData] = useState(false);
   const [scriptCacheUsed, setScriptCacheUsed] = useState(false);
 
-
+  /* ========= Load 3D decision (media query) ========= */
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
       const mq = window.matchMedia("(min-width: 768px)");
       setLoad3D(!!mq.matches);
-      const handler = (e: MediaQueryListEvent) => {
+      const handler = (e: MediaQueryListEvent | MediaQueryList) => {
+        // If user explicitly asked for 3D, respect that request
         if (userRequested3D) {
-          if (e.matches) setLoad3D(true);
+          if ((e as MediaQueryListEvent).matches ?? (e as MediaQueryList).matches)
+            setLoad3D(true);
           return;
         }
-        setLoad3D(!!e.matches);
+        setLoad3D(!!((e as any).matches));
       };
+
       if (typeof mq.addEventListener === "function") {
-        mq.addEventListener("change", handler);
-        return () => mq.removeEventListener("change", handler);
+        mq.addEventListener("change", handler as any);
+        return () => mq.removeEventListener("change", handler as any);
       } else {
-       
+        // older Safari fallback
+        // @ts-ignore
         mq.addListener(handler);
-       
+        // @ts-ignore
         return () => mq.removeListener(handler);
       }
     } catch {
-     
       setLoad3D(false);
     }
   }, [userRequested3D]);
 
-  
+  /* ========= Fetch + compute stats (with abort safety) ========= */
   useEffect(() => {
     let mounted = true;
+    const ac = new AbortController();
+
     const fetchAndCompute = async () => {
       setLoadingStats(true);
       setStatsError(null);
       setIsLiveData(false);
       setScriptCacheUsed(false);
 
-     
+      // Try cache first
       try {
         const raw = localStorage.getItem(STATS_CACHE_KEY);
         if (raw) {
@@ -227,13 +258,26 @@ const AboutSection: React.FC = () => {
             if (!mounted) return;
             setScriptCacheUsed(true);
             const cached = parsed.data;
-            if (cached && (typeof cached.devotees === "number" || typeof cached.funds === "number")) {
-              setDevoteesCount(typeof cached.devotees === "number" ? cached.devotees : null);
-              setFundsRaised(typeof cached.funds === "number" ? cached.funds : null);
+            if (
+              cached &&
+              (typeof cached.devotees === "number" ||
+                typeof cached.funds === "number")
+            ) {
+              setDevoteesCount(
+                typeof cached.devotees === "number" ? cached.devotees : null
+              );
+              setFundsRaised(
+                typeof cached.funds === "number" ? cached.funds : null
+              );
               setLoadingStats(false);
               return;
             }
-            const list = Array.isArray(cached) ? cached : Array.isArray(cached?.donations) ? cached.donations : [];
+
+            const list = Array.isArray(cached)
+              ? cached
+              : Array.isArray(cached?.donations)
+              ? cached.donations
+              : [];
             if (list.length) {
               const donors = new Set<string>();
               let total = 0;
@@ -251,11 +295,15 @@ const AboutSection: React.FC = () => {
                 total += parseAmount(possibleAmount);
                 const donorKey =
                   (item.email && String(item.email).trim().toLowerCase()) ||
-                  (item.donor_email && String(item.donor_email).trim().toLowerCase()) ||
+                  (item.donor_email &&
+                    String(item.donor_email).trim().toLowerCase()) ||
                   (item.name && String(item.name).trim()) ||
                   (item.donorId && String(item.donorId)) ||
                   (item.id && String(item.id)) ||
-                  JSON.stringify({ maybeName: item.name, maybeEmail: item.email }).slice(0, 200);
+                  JSON.stringify({
+                    maybeName: item.name,
+                    maybeEmail: item.email,
+                  }).slice(0, 200);
                 if (donorKey) donors.add(donorKey);
               }
               if (!mounted) return;
@@ -266,36 +314,51 @@ const AboutSection: React.FC = () => {
             }
           }
         }
-      } catch (e) {
-       
+      } catch {
+        // ignore cache errors
       }
 
-     
-      const endpoints = ["/api/stats", "/api/admin/donations", "/api/donations", "/api/donations/list"];
+      // Try endpoints in order
+      const endpoints = [
+        "/api/stats",
+        "/api/admin/donations",
+        "/api/donations",
+        "/api/donations/list",
+      ];
+
       for (const ep of endpoints) {
+        if (ac.signal.aborted) break;
         try {
-          const res = await fetch(ep, { credentials: "include" });
-          if (!res.ok) {
-            continue;
-          }
+          const res = await fetch(ep, {
+            credentials: "include",
+            signal: ac.signal,
+          });
+          if (!res.ok) continue;
           const data = await res.json();
 
           if (data && (typeof data.devotees === "number" || typeof data.funds === "number")) {
             if (!mounted) return;
-            setDevoteesCount(typeof data.devotees === "number" ? data.devotees : null);
+            setDevoteesCount(
+              typeof data.devotees === "number" ? data.devotees : null
+            );
             setFundsRaised(typeof data.funds === "number" ? data.funds : null);
             setIsLiveData(ep === "/api/stats");
             setLoadingStats(false);
             try {
-              localStorage.setItem(STATS_CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
+              localStorage.setItem(
+                STATS_CACHE_KEY,
+                JSON.stringify({ ts: Date.now(), data })
+              );
             } catch {}
             return;
           }
 
-          const list: any[] = Array.isArray(data) ? data : Array.isArray(data?.donations) ? data.donations : [];
-          if (!list.length) {
-            continue;
-          }
+          const list: any[] = Array.isArray(data)
+            ? data
+            : Array.isArray(data?.donations)
+            ? data.donations
+            : [];
+          if (!list.length) continue;
 
           const donors = new Set<string>();
           let total = 0;
@@ -313,11 +376,15 @@ const AboutSection: React.FC = () => {
             total += parseAmount(possibleAmount);
             const donorKey =
               (item.email && String(item.email).trim().toLowerCase()) ||
-              (item.donor_email && String(item.donor_email).trim().toLowerCase()) ||
+              (item.donor_email &&
+                String(item.donor_email).trim().toLowerCase()) ||
               (item.name && String(item.name).trim()) ||
               (item.donorId && String(item.donorId)) ||
               (item.id && String(item.id)) ||
-              JSON.stringify({ maybeName: item.name, maybeEmail: item.email }).slice(0, 200);
+              JSON.stringify({
+                maybeName: item.name,
+                maybeEmail: item.email,
+              }).slice(0, 200);
             if (donorKey) donors.add(donorKey);
           }
 
@@ -327,10 +394,14 @@ const AboutSection: React.FC = () => {
           setIsLiveData(false);
           setLoadingStats(false);
           try {
-            localStorage.setItem(STATS_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: list }));
+            localStorage.setItem(
+              STATS_CACHE_KEY,
+              JSON.stringify({ ts: Date.now(), data: list })
+            );
           } catch {}
           return;
-        } catch (err) {
+        } catch {
+          // try next endpoint
           continue;
         }
       }
@@ -344,12 +415,13 @@ const AboutSection: React.FC = () => {
     };
 
     fetchAndCompute();
+
     return () => {
       mounted = false;
+      ac.abort();
     };
   }, []);
 
-  
   const computedDevotees = devoteesCount;
   const computedFunds = fundsRaised;
 
@@ -375,10 +447,13 @@ const AboutSection: React.FC = () => {
     return true;
   });
 
-    const request3D = useCallback(() => {
-    setLoad3D(true);  
+  const request3D = useCallback(() => {
+    setUserRequested3D(true);
+    setLoad3D(true);
   }, []);
-  /* ------------------------ Render ------------------------ */
+
+  const isReducedMotion = prefersReducedMotion;
+
   return (
     <section
       id="about"
@@ -398,26 +473,26 @@ const AboutSection: React.FC = () => {
           <div className="mx-auto w-20 h-1 mb-6 rounded-full bg-gradient-to-r from-orange-600 to-amber-600" />
         </header>
 
-    
         <main className="mb-12" aria-labelledby="about-heading">
           <div className="flex flex-col gap-6">
-         
             <div
               ref={viewerWrapperRef}
               className="w-full flex items-center justify-center"
-              style={{ minWidth: 0 }} 
+              style={{ minWidth: 0 }}
             >
               <div
                 ref={viewerContainerRef}
                 className="w-full rounded-2xl overflow-hidden shadow-lg bg-white"
                 style={{
-                  height: "clamp(360px, 64vh, 820px)",
+                  height: "clamp(360px, 64dvh, 820px)",
                   margin: "0 auto",
                   display: "flex",
                   width: "100%",
+                  minWidth: 0,
                 }}
+                aria-live="polite"
+                role="region"
               >
-               
                 {viewerError ? (
                   <div className="w-full h-full flex items-center justify-center p-6 text-center">
                     <div>
@@ -437,7 +512,6 @@ const AboutSection: React.FC = () => {
                   <div className="w-full h-full flex items-center justify-center text-sm text-gray-400">Loading…</div>
                 ) : load3D === false ? (
                   <div className="w-full h-full flex flex-col items-center justify-center p-4" style={{ minWidth: 0 }}>
-                    
                     <button
                       onClick={request3D}
                       className="mt-3 px-4 py-2 text-sm font-medium rounded-lg shadow-sm bg-amber-600 text-white hover:brightness-110"
@@ -463,9 +537,7 @@ const AboutSection: React.FC = () => {
                       }
                     >
                       <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-sm">Loading 3D…</div>}>
-                        <TempleViewer
-                          
-                        />
+                        <TempleViewer />
                       </Suspense>
                     </SimpleErrorBoundary>
                   </div>
@@ -473,8 +545,9 @@ const AboutSection: React.FC = () => {
               </div>
             </div>
 
-<span className="text-xl text-black"><b>Note :</b><i>This is a conceptual design presented for illustrative purposes. The final architectural details of the Radha-Krishna Temple may evolve during construction or in future development phases.</i></span>
-            {/* ROYAL DECREE — FIXED, NO ANIMATION */}
+            <span className="text-xl text-black"><b>Note :</b><i>This is a conceptual design presented for illustrative purposes. The final architectural details of the Radha-Krishna Temple may evolve during construction or in future development phases.</i></span>
+
+            {/* ROYAL DECREE — fixed scroll settings for iOS */}
             <div className="w-full flex justify-center">
               <div className="relative w-full max-w-3xl">
                 <div
@@ -483,10 +556,9 @@ const AboutSection: React.FC = () => {
                     borderLeft: "3px solid #d97706",
                     borderRight: "3px solid #d97706",
                     minHeight: 56,
-                    maxHeight: "auto", 
+                    maxHeight: "auto",
                   }}
                 >
-                  {/* Decree Content */}
                   <div
                     id="decree-content"
                     ref={contentRef}
@@ -495,6 +567,8 @@ const AboutSection: React.FC = () => {
                       opacity: 1,
                       transform: "translateY(0)",
                       transition: "opacity 420ms ease, transform 420ms ease",
+                      WebkitOverflowScrolling: "touch",
+                      overscrollBehavior: "contain",
                     }}
                   >
                     <style>{`
@@ -562,25 +636,25 @@ const AboutSection: React.FC = () => {
           </div>
 
           {/* Stats grid */}
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-2 md:gap-6 my-8">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-2 md:gap-6 my-8" aria-live="polite">
             {statsToRender.length === 0 && !loadingStats ? (
               <div className="col-span-2 text-center text-sm text-gray-500">No community stats to display.</div>
             ) : null}
 
-            {statsToRender.map((stat, index) => {
+            {statsToRender.map((stat, idx) => {
               const Icon = stat.icon as React.ComponentType<any>;
               return (
                 <div
-                  key={index}
+                  key={idx}
                   ref={(el) => {
-                    statRefs.current[index] = el;
+                    statRefs.current[idx] = el;
                   }}
                   className="p-4 text-center bg-white rounded-xl shadow transform transition"
                   style={{
-  opacity: loadingStats ? 0 : 1,
-  transform: loadingStats ? "translateY(18px) scale(0.98)" : "translateY(0) scale(1)",
-}}
-
+                    opacity: loadingStats ? 0 : 1,
+                    transform: loadingStats ? "translateY(18px) scale(0.98)" : "translateY(0) scale(1)",
+                    transition: "opacity 420ms ease, transform 420ms ease",
+                  }}
                 >
                   <div className="w-12 h-12 mx-auto mb-3 flex items-center justify-center rounded-full bg-gradient-to-br from-orange-100 to-amber-100 shadow-inner">
                     <Icon className="w-6 h-6 text-orange-600" />
@@ -618,6 +692,5 @@ const AboutSection: React.FC = () => {
     </section>
   );
 };
-
 
 export default AboutSection;

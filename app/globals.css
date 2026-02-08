@@ -1,11 +1,9 @@
-
 @import "tailwindcss";
 
-/* 
-   ROOT VARIABLES (MERGED)
-    */
+/* ========================================
+   ROOT VARIABLES
+   ======================================== */
 :root {
-  /* design tokens */
   --main-bg-overlay: rgba(0, 0, 0, 0.10);
   --main-bg-overlay-strong: rgba(0, 0, 0, 0.18);
   --heading-text-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
@@ -13,7 +11,6 @@
   --transition-medium: 450ms;
   --bs-bg-z: -10;
 
-  
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
@@ -45,6 +42,9 @@
   --radius: 0.5rem;
 }
 
+/* ========================================
+   DARK MODE
+   ======================================== */
 @media (prefers-color-scheme: dark) {
   :root {
     --foreground-rgb: 255, 255, 255;
@@ -78,54 +78,56 @@
   }
 }
 
-/* Respect reduced motion */
+/* ========================================
+   REDUCED MOTION
+   ======================================== */
 @media (prefers-reduced-motion: reduce) {
   :root {
     --transition-fast: 0ms;
     --transition-medium: 0ms;
   }
 
-  .bs-animate-heading,
-  .bs-bg-layer,
-  .bs-bg-layer.active {
-    transition: none !important;
+  * {
     animation: none !important;
+    transition: none !important;
   }
 }
 
 /* ========================================
-   BASE RESET / TYPOGRAPHY
+   BASE RESET (iOS SAFE)
    ======================================== */
 @layer base {
   html {
-    scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    height: 100%;
-    box-sizing: border-box;
-  }
-
-  *, *::before, *::after {
-    box-sizing: inherit;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
-    min-height: 100%;
+    min-height: 100dvh;
     line-height: 1.5;
-    -webkit-text-size-adjust: 100%;
-    
     background-color: #ffffff;
-    color: #020617; 
+    color: #020617;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
       sans-serif;
+
+    /* iOS SAFE AREA */
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+
+    /* Prevent scroll bounce leaks */
+    overscroll-behavior-y: none;
   }
 
- 
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
   .sr-only {
     position: absolute !important;
     width: 1px !important;
     height: 1px !important;
-    padding: 0 !important;
     margin: -1px !important;
     overflow: hidden !important;
     clip: rect(0, 0, 0, 0) !important;
@@ -134,29 +136,34 @@
   }
 }
 
-
-html,
-body,
-#__next {
-  height: 100%;
+/* ========================================
+   iOS SCROLL FIX
+   ======================================== */
+html {
+  scroll-behavior: smooth;
 }
 
-
-:focus {
-  outline: 3px solid rgba(59, 130, 246, 0.25);
-  outline-offset: 3px;
+/* Disable smooth scroll only on iOS Safari */
+@supports (-webkit-touch-callout: none) {
+  html {
+    scroll-behavior: auto;
+  }
 }
 
-
+/* ========================================
+   FIXED BACKGROUND SYSTEM (Safari Safe)
+   ======================================== */
 @layer components {
   .bs-bg-layer-container {
     position: fixed;
     inset: 0;
     z-index: var(--bs-bg-z);
     pointer-events: none;
-    perspective: 900px;
-    transform-style: preserve-3d;
     overflow: hidden;
+
+    /* Safari repaint + flicker fix */
+    contain: paint layout;
+    transform: translateZ(0);
   }
 
   .bs-bg-layer {
@@ -164,21 +171,21 @@ body,
     inset: 0;
     background-size: cover;
     background-position: center;
-    will-change: opacity, transform;
+    background-repeat: no-repeat;
+
     opacity: 0;
-    transform: translate3d(0, 0, 0) scale(1.04);
+    transform: scale(1.04);
     transition:
       opacity 700ms cubic-bezier(.2, .9, .2, 1),
       transform 1000ms cubic-bezier(.2, .9, .2, 1);
-    filter: saturate(1) contrast(1);
-    background-repeat: no-repeat;
+
     backface-visibility: hidden;
+    will-change: opacity, transform;
   }
 
   .bs-bg-layer.active {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
-    transition-duration: 900ms;
+    transform: scale(1);
   }
 
   .bs-bg-overlay {
@@ -186,7 +193,6 @@ body,
     inset: 0;
     background: linear-gradient(var(--main-bg-overlay), rgba(0,0,0,0.04));
     pointer-events: none;
-    mix-blend-mode: normal;
   }
 
   .bs-content-wrapper {
@@ -195,14 +201,15 @@ body,
   }
 }
 
+/* ========================================
+   UTILITIES
+   ======================================== */
 @layer utilities {
   .bs-animate-heading {
     opacity: 0;
     transform: translateY(28px);
-    transition-property: opacity, transform;
-    transition-duration: var(--transition-medium);
-    transition-timing-function: cubic-bezier(.2, .9, .2, 1);
-    will-change: opacity, transform;
+    transition: opacity var(--transition-medium),
+      transform var(--transition-medium);
   }
 
   .bs-heading-show {
@@ -216,8 +223,7 @@ body,
 
   .section {
     min-height: 80vh;
-    padding-top: 6rem;
-    padding-bottom: 6rem;
+    padding: 6rem 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -235,39 +241,7 @@ body,
 
 @media (max-width: 768px) {
   .section {
-    padding-top: 3.5rem;
-    padding-bottom: 3.5rem;
     min-height: 60vh;
+    padding: 3.5rem 0;
   }
 }
-
-
-@keyframes fadeUp {
-  0% {
-    opacity: 0;
-    transform: translateY(20px) scale(0.98);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes pageCurl {
-  0% {
-    transform: perspective(2000px) rotateY(0deg);
-  }
-  100% {
-    transform: perspective(2000px) rotateY(-180deg);
-  }
-}
-
-@keyframes bookPulse {
-  0%, 100% {
-    transform: scale(1) translateY(0);
-  }
-  50% {
-    transform: scale(1.02) translateY(-4px);
-  }
-}
-

@@ -22,20 +22,30 @@ const ContactSection = dynamic(() => import("../sections/ContactSection"), {
 export default function ClientSections() {
   const [mounted, setMounted] = useState(false);
 
-
   useEffect(() => {
-   
+    if (typeof window === "undefined") return;
+
     if ("scrollRestoration" in history) {
       history.scrollRestoration = "manual";
     }
 
-  
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
 
-  
-    const id = requestIdleCallback(() => setMounted(true));
+    const requestIdle =
+      "requestIdleCallback" in window
+        ? window.requestIdleCallback
+        : (cb: () => void) => window.setTimeout(cb, 1);
 
-    return () => cancelIdleCallback(id);
+    const cancelIdle =
+      "cancelIdleCallback" in window
+        ? window.cancelIdleCallback
+        : window.clearTimeout;
+
+    const id = requestIdle(() => setMounted(true));
+
+    return () => {
+      cancelIdle(id as never);
+    };
   }, []);
 
   if (!mounted) return null;
