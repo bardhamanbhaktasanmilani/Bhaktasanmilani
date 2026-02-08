@@ -31,10 +31,10 @@ useEffect(() => {
 
   window.scrollTo({ top: 0, left: 0, behavior: "auto" });
 
-  let idleId: number;
+  let idleId: ReturnType<typeof setTimeout>;
 
   if ("requestIdleCallback" in window) {
-    idleId = window.requestIdleCallback(() => setMounted(true)) as unknown as number;
+    idleId = window.requestIdleCallback(() => setMounted(true)) as unknown as ReturnType<typeof setTimeout>;
   } else {
     idleId = setTimeout(() => setMounted(true), 1);
   }
@@ -47,6 +47,7 @@ useEffect(() => {
     }
   };
 }, []);
+
 
 
 
