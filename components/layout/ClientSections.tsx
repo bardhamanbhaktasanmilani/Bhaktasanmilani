@@ -31,22 +31,23 @@ useEffect(() => {
 
   window.scrollTo({ top: 0, left: 0, behavior: "auto" });
 
-  let idleId: number | IdleCallbackHandle;
+  let idleId: number;
 
   if ("requestIdleCallback" in window) {
-    idleId = window.requestIdleCallback(() => setMounted(true));
+    idleId = window.requestIdleCallback(() => setMounted(true)) as unknown as number;
   } else {
     idleId = window.setTimeout(() => setMounted(true), 1);
   }
 
   return () => {
     if ("cancelIdleCallback" in window) {
-      window.cancelIdleCallback(idleId as IdleCallbackHandle);
+      window.cancelIdleCallback(idleId as unknown as number);
     } else {
-      window.clearTimeout(idleId as number);
+      window.clearTimeout(idleId);
     }
   };
 }, []);
+
 
 
   if (!mounted) return null;
